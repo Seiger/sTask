@@ -1,6 +1,5 @@
 <?php namespace Seiger\sTask\Controllers;
 
-use EvolutionCMS\Controllers\Controller;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
 use Illuminate\Http\Request;
@@ -14,20 +13,26 @@ use Illuminate\Http\Request;
  * @author Seiger IT Team
  * @since 1.0.0
  */
-class sTaskController extends Controller
+class sTaskController
 {
     /**
      * Display tasks dashboard
      */
     public function index()
     {
-        $tasks = sTaskModel::with('user')
+        $data = [
+            'tabIcon' => '<i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
+            'tabName' => __('sTask::global.dashboard'),
+        ];
+
+        $data['tasks'] = sTaskModel::with('user')
             ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->limit(10)
+            ->get();
 
-        $stats = sTaskFacade::getStats();
+        $data['stats'] = sTaskFacade::getStats();
 
-        return view('sTask::dashboard', compact('tasks', 'stats'));
+        return view('sTask::dashboardTab', $data);
     }
 
     /**
@@ -214,14 +219,15 @@ class sTaskController extends Controller
      */
     public function workers(Request $request)
     {
-        $activeOnly = $request->input('active_only', false);
-        $workers = sTaskFacade::getWorkers($activeOnly);
+        $data = [
+            'tabIcon' => '<i data-lucide="cpu" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
+            'tabName' => __('sTask::global.workers'),
+        ];
 
-        return response()->json([
-            'success' => true,
-            'workers' => $workers,
-            'count' => $workers->count()
-        ]);
+        $data['workers'] = sTaskFacade::getWorkers();
+        $data['stats'] = sTaskFacade::getStats();
+
+        return view('sTask::workersTab', $data);
     }
 
     /**

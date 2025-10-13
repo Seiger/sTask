@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="{{ManagerTheme::getLang()}}" dir="{{ManagerTheme::getTextDir()}}">
 <head>
-    <title>{{$tabName}} @lang('sSeo::global.title') - Evolution CMS</title>
+    <title>{{$tabName}} @lang('sTask::global.title') - Evolution CMS</title>
     <base href="{{EVO_MANAGER_URL}}">
     <meta http-equiv="Content-Type" content="text/html; charset={{ManagerTheme::getCharset()}}"/>
     <meta name="viewport" content="initial-scale=1.0,user-scalable=no,maximum-scale=1,width=device-width"/>
     <meta name="theme-color" content="#0b1a2f"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <link rel="icon" type="image/svg+xml" href="{{asset('site/sseo.svg')}}" />
+    <link rel="icon" type="image/svg+xml" href="{{asset('site/stask.svg')}}" />
     <style>[x-cloak]{display:none!important}</style>
-    <link rel="stylesheet" href="{{asset('site/sseo.min.css')}}?{{evo()->getConfig('sSeoVer')}}">
+    <link rel="stylesheet" href="{{asset('site/stask.min.css')}}?{{evo()->getConfig('sTaskVer')}}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@latest/build/css/alertify.min.css"/>
     @if(class_exists(Tracy\Debugger::class) && config('tracy.active')){!!Tracy\Debugger::renderLoader()!!}@endif
     {!!ManagerTheme::getMainFrameHeaderHTMLBlock()!!}
@@ -32,14 +32,14 @@
         evo.config.which_browser = '{{evo()->getConfig('which_browser')}}';
     </script>
     <script src="media/script/main.js"></script>
-    <script src="{{asset('site/sseo.js')}}?{{evo()->getConfig('sSeoVer')}}"></script>
+    <script src="{{asset('site/stask.js')}}?{{evo()->getConfig('sTaskVer')}}"></script>
     @stack('scripts.top')
     {!!EvolutionCMS()->getRegisteredClientStartupScripts()!!}
 </head>
 <body class="{{ManagerTheme::getTextDir()}} {{ManagerTheme::getThemeStyle()}}" data-evocp="color">
-<h1 style="display:none"><i class="@lang('sSeo::global.icon')"></i> {{$tabName}} @lang('sSeo::global.title')</h1>
-<div x-data="sSeo.sPinner('sSidebarPinned')" class="s-document">
-    @include('sSeo::partials.menu')
+<h1 style="display:none"><i class="@lang('sTask::global.icon')"></i> {{$tabName}} @lang('sTask::global.title')</h1>
+<div x-data="sTask.sPinner('sTaskSidebarPinned')" class="s-document">
+    @include('sTask::partials.menu')
     <main :class="open?'ml-60':'ml-16'" class="flex-1 min-h-screen transition-all duration-300">
         <header class="s-header">
             <div class="flex items-center gap-2">{!!$tabIcon!!} <h2 class="s-header-title">{{$tabName}}</h2></div>
@@ -54,7 +54,7 @@
     </div>
     <template x-if="open">
         <div x-transition.opacity class="s-brand-text">
-            <a href="https://seiger.github.io/sSeo" target="_blank" class="s-brand-link">sSeo</a>
+            <a href="https://seiger.github.io/sTask" target="_blank" class="s-brand-link">sTask</a>
             &nbsp;|&nbsp;
             <a href="https://seigerit.com" target="_blank" class="s-brand-link">Seiger IT</a>
         </div>

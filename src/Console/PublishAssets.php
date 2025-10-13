@@ -1,7 +1,8 @@
-<?php namespace Seiger\sMultisite\Console;
+<?php namespace Seiger\sTask\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
+use Composer\InstalledVersions;
 
 /**
  * Class PublishAssets
@@ -9,26 +10,46 @@ use Illuminate\Filesystem\Filesystem;
  * Prunes outdated published assets and republishes package files.
  * - Deletes specific target files before publish
  * - Calls vendor:publish for this provider
+ * - Updates version in config file
+ *
+ * @package Seiger\sTask\Console
+ * @author Seiger IT Team
+ * @since 1.0.0
  */
 class PublishAssets extends Command
 {
-    /** @var string */
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'stask:publish {--no-prune : Do not delete existing files before publish}';
 
-    /** @var string */
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
     protected $description = 'Publish sTask assets (with optional prune).';
 
+    /**
+     * Execute the console command.
+     *
+     * @param Filesystem $fs
+     * @return int
+     */
     public function handle(Filesystem $fs): int
     {
         // 1) Targets to delete before publishing
         $targets = [
             public_path('assets/site/stask.min.css'),
             public_path('assets/site/stask.js'),
+            public_path('assets/site/stask.svg'),
+            public_path('assets/site/seigerit.tooltip.js'),
         ];
 
         if (!$this->option('no-prune')) {
             foreach ($targets as $path) {
-                // File::delete() is safe even if file does not exist
                 $fs->delete($path);
             }
         }
@@ -36,21 +57,24 @@ class PublishAssets extends Command
         // 2) Publish (force overwrite)
         $this->call('vendor:publish', [
             '--provider' => 'Seiger\sTask\sTaskServiceProvider',
+            '--tag' => 'stask-assets',
+            '--force' => true,
         ]);
 
-        // 3) (Optional) drop VERSION file for debugging
+        // 3) Update version in config file
         try {
-            $ver = \Composer\InstalledVersions::getVersion('seiger/stask');
-            $fs->ensureDirectoryExists(public_path('assets/site'));
+            $ver = InstalledVersions::getVersion('seiger/stask');
+            $configPath = dirname(__DIR__, 2) . '/config/sTaskCheck.php';
             $fs->put(
-                public_path('core/vendor/seiger/sstask/config/sTaskCheck.php'),
-                "<?php return ['check_sTask' => true, 'sTaskVer' => '" . $ver . "'];"
+                $configPath,
+                "<?php\n\nreturn [\n    'check_sTask' => true,\n    'sTaskVer' => '" . $ver . "',\n];\n"
             );
-        } catch (\Throwable) {
-            // ignore if class not available
+            $this->info("Version updated to: {$ver}");
+        } catch (\Throwable $e) {
+            $this->warn('Could not detect package version: ' . $e->getMessage());
         }
 
-        $this->info('sTask assets published.');
+        $this->info('sTask assets published successfully!');
         return self::SUCCESS;
     }
 }

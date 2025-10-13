@@ -23,6 +23,7 @@
 }
 
 @layer components {
+    .evo-tooltip {display: none;}
     .s-document {
         @apply flex min-h-screen font-sans;
         background-color: var(--bg-color, #f1f5f9);
@@ -35,12 +36,12 @@
     }
     .s-brand {
         @apply fixed bottom-3 right-3 z-50 flex items-center gap-2 bg-white/80 backdrop-blur rounded-full shadow-lg
-            overflow-hidden transition-[width,padding] duration-300 ease-in-out;
+        overflow-hidden transition-[width,padding] duration-300 ease-in-out;
         width : 2.5rem;
     }
     .s-brand--open {
         @apply pl-3 pr-4;
-        width : 11rem;
+        width : 13rem;
     }
     .s-brand-logo {@apply w-10 h-10 flex items-center justify-center shrink-0;}
     .s-brand-text {@apply text-sm leading-tight text-slate-700 whitespace-nowrap;}
@@ -49,7 +50,7 @@
     /* Aside */
     .s-nav {
         @apply fixed inset-y-0 z-40 flex flex-col bg-gradient-to-b from-[#0f2645] to-[#113c6E] text-slate-100
-            transition-all duration-300;
+        transition-all duration-300;
     }
     .s-nav-header {
         @apply flex items-center justify-center h-16 shrink-0 sticky top-0 bg-inherit z-10;
@@ -77,7 +78,7 @@
     }
     .s-pin-btn {
         @apply fixed bottom-4 z-50 flex items-center justify-center w-8 h-8 rounded-full hover:bg-white/10
-            focus:outline-none focus:ring-2 focus:ring-white/40;
+        focus:outline-none focus:ring-2 focus:ring-white/40;
     }
 
     /* Header */
@@ -93,7 +94,7 @@
     /* Buttons */
     .s-btn {
         @apply flex items-center justify-center gap-1 px-3 py-1 rounded-lg shadow text-sm font-medium transition-colors
-            duration-150;
+        duration-150;
     }
     .s-btn--primary {
         @apply bg-[#3B82F6] text-white hover:bg-[#306ee0];
@@ -127,20 +128,40 @@
     .darkness .s-toggle-slider::after {
         border-color: #4b5563;
     }
+    input[type="checkbox"].peer:checked + .s-toggle-slider::after {
+        transform: translateX(100%);
+    }
     input[type="checkbox"].peer:checked + .s-toggle-slider {
         @apply bg-green-600;
     }
     .darkness input[type="checkbox"].peer:checked + .s-toggle-slider {
         @apply bg-green-600;
     }
-    input[type="checkbox"].peer:checked + .s-toggle-slider::after {
-        transform: translateX(100%);
+    input[type="checkbox"].peer:checked + .s-toggle-slider.is-invalid,
+    .darkness input[type="checkbox"].peer:checked + .s-toggle-slider.is-invalid {
+        background-color: var(--invalid-color) !important;
+    }
+    .is-valid {
+        border-color: var(--valid-color) !important;
+        box-shadow: 0 0 0 1px var(--valid-color) !important;
+    }
+    .is-invalid {
+        border-color: var(--invalid-color) !important;
+        box-shadow: 0 0 0 1px var(--invalid-color) !important;
+    }
+    .text-valid {
+        color: var(--valid-color) !important;
+        font-weight: 600 !important;
+    }
+    .text-invalid {
+        color: var(--invalid-color) !important;
+        font-weight: 600 !important;
     }
 
     /* Search */
     .s-input-search {
         @apply w-32 group-hover:w-64 focus:w-64 bg-slate-200 text-sm rounded-lg pl-8 pr-3 py-1 placeholder-slate-500
-            border border-transparent focus:outline-none focus:border-slate-400 transition-all duration-300;
+        border border-transparent focus:outline-none focus:border-slate-400 transition-all duration-300;
         @apply darkness:bg-slate-700 darkness:placeholder-slate-300 darkness:focus:border-slate-500;
     }
 
@@ -172,7 +193,7 @@
     }
     .s-meta-block-btn {
         @apply w-full flex items-center justify-between px-6 py-4 bg-sky-100 hover:bg-sky-200 transition-all
-            cursor-pointer select-none;
+        cursor-pointer select-none;
         @apply darkness:text-slate-200 darkness:bg-[#132a44] darkness:hover:bg-[#1a2f44];
     }
     .s-meta-block-content {

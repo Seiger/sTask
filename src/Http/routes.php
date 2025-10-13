@@ -5,7 +5,7 @@ use Seiger\sTask\Controllers\sTaskController;
 
 // Manager routes only
 Route::middleware(['mgr'])->group(function () {
-    Route::prefix('stask')->name('stask.')->group(function () {
+    Route::prefix('stask')->name('sTask.')->group(function () {
         // Dashboard
         Route::get('/', [sTaskController::class, 'index'])->name('index');
         Route::get('/stats', [sTaskController::class, 'stats'])->name('stats');

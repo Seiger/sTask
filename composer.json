@@ -44,12 +44,8 @@
     ]
   },
   "scripts": {
-    "post-autoload-dump": [],
-    "post-install-cmd": [
-      "@php artisan stask:publish"
-    ],
-    "post-update-cmd": [
-      "@php artisan stask:publish"
+    "post-autoload-dump": [
+      "@php artisan stask:publish --no-prune"
     ]
   }
 }

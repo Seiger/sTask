@@ -10,6 +10,9 @@
     --brand-color: #0057c7;
     --brand-fore: #ffffff;
 
+    --valid-color: #22c55e;
+    --invalid-color: #ef4444;
+
     --theme-transition: background-color .2s ease, color .2s ease, border-color .2s ease;
     --font-sans: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
@@ -31,4 +34,7 @@ body.darkness {
     --focus-ring: 0 0 0 3px rgba(59,130,246,.45);
     --brand-color: #0057c7;
     --brand-fore: #0b1a2f;
+
+    --valid-color: #4ade80;
+    --invalid-color: #f87171;
 }
