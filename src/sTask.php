@@ -1,511 +1,394 @@
 <?php namespace Seiger\sTask;
 
-use Carbon\Carbon;
-use EvolutionCMS\Facades\UrlProcessor;
-use EvolutionCMS\Models\SiteContent;
-use Illuminate\Support\Str;
-use Seiger\sArticles\Models\sArticle;
-use Seiger\sCommerce\Facades\sCommerce;
-use Seiger\sCommerce\Models\sProduct;
-use Seiger\sLang\Facades\sLang;
-use Seiger\sMultisite\Models\sMultisite;
-use Seiger\sSeo\Controllers\sTaskController;
-use Seiger\sSeo\Models\sTaskModel;
-use Seiger\sSeo\Support\FastTagParser;
-use Seiger\sSeo\Support\MetaBuilder;
-use View;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Collection;
+use Seiger\sTask\Models\sTaskModel;
+use Seiger\sTask\Models\sWorker;
+use Seiger\sTask\Services\TaskLogger;
+use Seiger\sTask\Services\WorkerDiscovery;
+use Seiger\sTask\Contracts\TaskInterface;
 
 /**
- * Class sSeo - Seiger collection of SEO Tools for Evolution CMS.
+ * Class sTask
  *
- * This class provides methods for handling SEO-related tasks such as checking robots meta tag,
- * generating sitemap, and getting route URLs.
+ * This class handles asynchronous task management for Evolution CMS.
+ * Provides methods for creating, executing, and monitoring background tasks.
+ *
+ * @package Seiger\sTask
+ * @author Seiger IT Team
+ * @since 1.0.0
  */
 class sTask
 {
-    private $document;
-
     /**
-     * Check and generate the canonical URL for the current page.
+     * Create a new task
      *
-     * @return array Returns an array with keys "show" (boolean) and "value" (string)
+     * @param string $identifier Worker identifier
+     * @param string $action Action to perform
+     * @param array $data Task data and parameters
+     * @param string $priority Task priority (low, normal, high)
+     * @param int $userId User ID who initiated the task
+     * @return sTaskModel
      */
-    public function checkCanonical(): string
+    public function create(string $identifier, string $action, array $data = [], string $priority = 'normal', int $userId = null): sTaskModel
     {
-        $document = $this->getDocument();
-        $canonical = trim($document['canonical_url'] ?? '');
-
-        // canonical
-        if (isset(evo()->documentObject['canonical']) && empty($canonical)) {
-            if (is_scalar(evo()->documentObject['canonical']) && evo()->documentObject['canonical'] != '') {
-                $canonical = strtolower(evo()->documentObject['canonical']);
-            } elseif (is_array(evo()->documentObject['canonical']) && isset(evo()->documentObject['canonical'][1]) && evo()->documentObject['canonical'][1] != 'default') {
-                $canonical = strtolower(evo()->documentObject['canonical'][1]);
-            }
-        }
-
-        // tv_canonical
-        if (isset(evo()->documentObject['tv_canonical']) && empty($canonical)) {
-            if (is_scalar(evo()->documentObject['tv_canonical']) && evo()->documentObject['tv_canonical'] != '') {
-                $canonical = strtolower(evo()->documentObject['tv_canonical']);
-            } elseif (is_array(evo()->documentObject['tv_canonical']) && isset(evo()->documentObject['tv_canonical'][1]) && evo()->documentObject['tv_canonical'][1] != 'default') {
-                $canonical = strtolower(evo()->documentObject['tv_canonical'][1]);
-            }
-        }
-
-        // For Product or any custom type document
-        if (isset(evo()->documentObject['link']) && empty($canonical)) {
-            $canonical = evo()->documentObject['link'];
-        }
-
-        // Paginate
-        $paginates_get = config('seiger.settings.sSeo.paginates_get', 'page');
-        if (
-            empty($canonical) ||
-            in_array($paginates_get, request()->segments()) ||
-            in_array($paginates_get, array_keys(request()->except('q')))
-        ) {
-            $canonical = UrlProcessor::makeUrl((int)$document['id']);
-        }
-
-        if (evo()->isBackend() && str_starts_with($canonical, 'http')) {
-            $canonical = explode('/', $canonical);
-
-            evo()->setConfig('site_url', implode('/', [$canonical[0], $canonical[1], $canonical[2]]) . '/');
-
-            unset($canonical[0], $canonical[1], $canonical[2]);
-            $canonical = '/' . implode('/', $canonical);
-        }
-
-        if (evo()->getConfig('check_sLang', false)) {
-            if (
-                evo()->getConfig('lang') != 'base' &&
-                (evo()->getConfig('lang') != sLang::langDefault() || evo()->getConfig('s_lang_default_show', 0) == 1)
-            ) {
-                $canonical = str_replace('/' . evo()->getConfig('lang', '') . '/', '/', $canonical);
-                $canonical = '/' . evo()->getConfig('lang', '') . '/' . ltrim($canonical, '/');
-            }
-        }
-
-        if (str_starts_with($canonical, '/')) {
-            $canonical = evo()->getConfig('site_url', '') . ltrim($canonical, '/');
-        }
-
-        return $canonical;
+        return sTaskModel::create([
+            'identifier' => $identifier,
+            'action' => $action,
+            'meta' => $data,
+            'priority' => $priority,
+            'started_by' => $userId,
+            'status' => 10, // pending
+            'progress' => 0,
+            'attempts' => 0,
+            'max_attempts' => 3,
+        ]);
     }
 
     /**
-     * Check and generate the Meta Title value
+     * Execute a task
      *
-     * @return string Returns a title value
+     * @param sTaskModel $task
+     * @return bool
      */
-    public function checkMetaTitle(): string
+    public function execute(sTaskModel $task): bool
     {
-        $document = $this->getDocument();
+        try {
+            // Mark task as running
+            $task->markAsRunning();
 
-        if (isset($document['meta_title']) && !empty($document['meta_title'])) {
-            $title = $document['meta_title'];
-        } else {
-            $title = $this->parseSource(evo()->getConfig("sseo_meta_title_{$document['resource_type']}_{$document['lang']}", '[*pagetitle*] - [(site_name)]'));
-        }
+            // Log task start
+            $this->log($task, 'info', 'Task started', [
+                'identifier' => $task->identifier,
+                'action' => $task->action,
+                'attempt' => $task->attempts
+            ]);
 
-        return trim($title);
-    }
-
-    /**
-     * Check and generate the Meta Description value
-     *
-     * @return string Returns a title value
-     */
-    public function checkMetaDescription(): string
-    {
-        $document = $this->getDocument();
-
-        if (isset($document['meta_description']) && !empty($document['meta_description'])) {
-            $description = $document['meta_description'];
-        } else {
-            $description = $this->parseSource(evo()->getConfig("sseo_meta_description_{$document['resource_type']}_{$document['lang']}", '[*pagetitle*] - [(site_name)]'));
-        }
-
-        return trim($description);
-    }
-
-    /**
-     * Check and retrieve meta keywords for the current document.
-     *
-     * This method checks if the `meta_keywords` field is set and not empty for the current document.
-     * If available, it returns the value of `meta_keywords`. If the field is empty or not set,
-     * it retrieves the default meta keywords from the system configuration based on the document's type.
-     * The default value is parsed from a template using the `[pagetitle]` and `[longtitle]` placeholders.
-     *
-     * @return string The meta keywords for the document, either custom or default, trimmed of whitespace.
-     */
-    public function checkMetaKeywords(): string
-    {
-        $document = $this->getDocument();
-
-        if (isset($document['meta_keywords']) && !empty($document['meta_keywords'])) {
-            $description = $document['meta_keywords'];
-        } else {
-            $description = $this->parseSource(evo()->getConfig("sseo_meta_keywords_{$document['resource_type']}_{$document['lang']}", '[*pagetitle*], [*longtitle*]'));;
-        }
-
-        $description = trim($description);
-        $description = trim($description, ',');
-        return trim($description);
-    }
-
-    /**
-     * Check and generate the Robots settings and return the value to be used
-     *
-     * @return array Returns an array with keys "show" (boolean) and "value" (string)
-     */
-    public function checkRobots(): string
-    {
-        $document = $this->getDocument();
-        $robots = ['show' => false, 'value' => 'index,follow'];
-
-        // robots
-        if (isset($document['robots']) && !empty($document['robots'])) {
-            $robots = ['show' => true, 'value' => strtolower($document['robots'])];
-        }
-
-        // Paginate
-        $paginates_get = config('seiger.settings.sSeo.paginates_get', 'page');
-        if (
-            in_array($paginates_get, request()->segments()) ||
-            in_array($paginates_get, array_keys(request()->except('q')))
-        ) {
-            $robots = ['show' => true, 'value' => 'noindex,follow'];
-        }
-
-        // seorobots
-        if (isset(evo()->documentObject['seorobots'])) {
-            if (is_scalar(evo()->documentObject['seorobots']) && evo()->documentObject['seorobots'] != '') {
-                $robots = ['show' => true, 'value' => strtolower(evo()->documentObject['seorobots'])];
-            } elseif (is_array(evo()->documentObject['seorobots']) && isset(evo()->documentObject['seorobots'][1]) && evo()->documentObject['seorobots'][1] != '') {
-                $robots = ['show' => true, 'value' => strtolower(evo()->documentObject['seorobots'][1])];
-            }
-        }
-
-        // seo_robots
-        if (isset(evo()->documentObject['seo_robots'])) {
-            if (is_scalar(evo()->documentObject['seo_robots']) && evo()->documentObject['seo_robots'] != '') {
-                $robots = ['show' => true, 'value' => strtolower(evo()->documentObject['seo_robots'])];
-            } elseif (is_array(evo()->documentObject['seo_robots']) && isset(evo()->documentObject['seo_robots'][1]) && evo()->documentObject['seo_robots'][1] != '') {
-                $robots = ['show' => true, 'value' => strtolower(evo()->documentObject['seo_robots'][1])];
-            }
-        }
-
-        // tv_robots
-        if (isset(evo()->documentObject['tv_robots'])) {
-            if (is_scalar(evo()->documentObject['tv_robots']) && evo()->documentObject['tv_robots'] != '') {
-                $robots = ['show' => true, 'value' => strtolower(evo()->documentObject['tv_robots'])];
-            } elseif (is_array(evo()->documentObject['tv_robots']) && isset(evo()->documentObject['tv_robots'][1]) && evo()->documentObject['tv_robots'][1] != '') {
-                $robots = ['show' => true, 'value' => strtolower(evo()->documentObject['tv_robots'][1])];
-            }
-        }
-
-        // $_GET
-        $request_get = request()->except('q');
-        if (count($request_get)) {
-            $noindex_get = config('seiger.settings.sSeo.noindex_get', []);
-            foreach ($request_get as $key => $item) {
-                if (in_array($key, $noindex_get) || strpos($item, ',') !== false) {
-                    $robots = ['show' => true, 'value' => 'noindex,nofollow'];
-                }
-            }
-        }
-
-        return $robots['show'] ? $robots['value'] : '';
-    }
-
-    /**
-     * Event handler for 'OnWebPagePrerender'.
-     *
-     * - Skips manager area
-     * - Skips non-HTML outputs and empty buffers
-     * - Injects meta fragment before the last </head>
-     *
-     * @return void
-     */
-    public function headInjection(): void
-    {
-        // Front-end only
-        if (!evo()->isFrontend()) {
-            return;
-        }
-
-        // Current output snapshot
-        $out = evo()->documentOutput ?? '';
-        if ($out === '' || stripos($out, '<head') === false || stripos($out, '</head>') === false) {
-            return;
-        }
-
-        // Cheap JSON guard
-        $trim = ltrim($out);
-        if (($trim !== '' && ($trim[0] === '{' || $trim[0] === '['))
-            && stripos($trim, '<!doctype') === false
-            && stripos($trim, '<html') === false) {
-            return;
-        }
-
-        // Avoid double injection if somehow called twice
-        if (strpos($out, 'Meta Tags') !== false) {
-            return;
-        }
-
-        // Build once per request
-        static $built = false, $headHtml = '';
-        if (!$built) {
-            $meta['title'] = $this->checkMetaTitle();
-            $meta['description'] = $this->checkMetaDescription();
-            $meta['keywords'] = $this->checkMetaKeywords();
-            $meta['robots'] = $this->checkRobots();
-            $meta['canonical'] = $this->checkCanonical();
-
-            $headHtml = MetaBuilder::buildHeadHtml($meta, $out);
-            $built = true;
-        }
-        if ($headHtml === '') {
-            return;
-        }
-
-        // Inject before the last </head>
-        $pos = strripos($out, '</head>');
-        if ($pos !== false) {
-            evo()->documentOutput = substr($out, 0, $pos) . "<!-- Meta Tags -->\n" . $headHtml . substr($out, $pos);
-        }
-    }
-
-    /**
-     * Set or Update SEO fields
-     *
-     * @param $data
-     * @return void
-     */
-    public function updateSeoFields($data)
-    {
-        if (is_array($data) && isset($data['resource_id']) && (int)$data['resource_id']) {
-            $langs = ['base'];
-            $langDefault = 'base';
-
-            if (evo()->getConfig('check_sLang', false)) {
-                $langs = sLang::langConfig();
-                $langDefault = sLang::langDefault();
+            // Get worker for this task identifier
+            $worker = $this->resolveWorker($task->identifier);
+            
+            if (!$worker) {
+                throw new \Exception("Worker for identifier '{$task->identifier}' not found");
             }
 
-            $fields = sTaskModel::describe();
-
-            $query = sTaskModel::query();
-            $query->where('resource_id', (int)$data['resource_id']);
-            $query->where('resource_type', ($data['resource_type'] ?? 'document'));
-            if (trim($data['domain_key'] ?? '')) $query->where('domain_key', $data['domain_key']);
-            $items = $query->get();
-
-            foreach ($langs as $lang) {
-                $request = $data[$lang] ?? null;
-                if ($request) {
-                    $request['resource_id'] = $data['resource_id'];
-                    $request['resource_type'] = $data['resource_type'];
-                    $request['lang'] = $lang;
-
-                    if (in_array($request['resource_type'], ['product'])) {
-                        $request['domain_key'] = 'default';
-                    }
-
-                    if ($lang == $langDefault) {
-                        $item = $items
-                            ->whereIn('lang', [$lang, 'base'])->sort(function ($a, $b) {
-                                $la = $a->lang ?? '';
-                                $lb = $b->lang ?? '';
-                                $wa = ($la === 'base') ? 1 : 0;
-                                $wb = ($lb === 'base') ? 1 : 0;
-                                return $wa <=> $wb ?: strcmp($la, $lb);
-                            })
-                            ->where('domain_key', $request['domain_key'])
-                            ->first();
-                    } else {
-                        $item = $items
-                            ->where('lang', $lang)
-                            ->where('domain_key', $request['domain_key'])
-                            ->first();
-                    }
-
-                    if (!$item) {
-                        $item = new sTaskModel();
-                    }
-
-                    foreach ($fields as $field) {
-                        if (in_array($field['name'], ['seoid'])) {
-                            continue;
-                        }
-                        if (isset($request[$field['name']])) {
-                            switch ($field['type']) {
-                                case 'int':
-                                    $item->{$field['name']} = (int)$request[$field['name']];
-                                    break;
-                                default:
-                                    $item->{$field['name']} = (string)$request[$field['name']];
-                                    break;
-                            }
-                        }
-                    }
-
-                    $item->save();
-                }
+            // Validate task data
+            if (method_exists($worker, 'validate') && !$worker->validate($task->meta)) {
+                throw new \Exception('Task validation failed');
             }
-        }
-    }
 
-    /**
-     * Generate sitemap.xml file.
-     *
-     * This method generates a sitemap file by fetching resources from the Evolution CMS (including
-     * site content, sCommerce products, and sArticles publications). The method renders an XML structure
-     * and saves the contents to the "sitemap.xml" file in the MODX base path.
-     *
-     * - It considers settings from `seiger.settings.sSeo.generate_sitemap` to decide whether to generate
-     *   the sitemap.
-     * - It gathers the URLs from site content, sCommerce products, and sArticles publications, including
-     *   their metadata like `lastmod`, `changefreq`, and `priority`.
-     * - The sitemap file is saved as "sitemap.xml" in the base path of the MODX site.
-     *
-     * @return void
-     */
-    public function generateSitemap(int $id = 0)
-    {
-        if (config('seiger.settings.sSeo.generate_sitemap', 0) == 1) {
-            if (evo()->getConfig('check_sMultisite', false)) {
-                if ($id > 0) {
-                    $parents = evo()->getParentIds($id);
-                    $root = (int)array_pop($parents);
-                    (new sTaskController())->generateMultisiteSitemap($root);
-                }
+            // Execute the task
+            $result = $worker->execute($task->meta);
+
+            if ($result) {
+                $task->markAsCompleted('Task completed successfully');
+                $this->log($task, 'info', 'Task completed successfully');
+                return true;
             } else {
-                (new sTaskController())->generateSitemap();
+                throw new \Exception('Task execution returned false');
             }
+
+        } catch (\Exception $e) {
+            $task->markAsFailed($e->getMessage());
+
+            $this->log($task, 'error', 'Task failed: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Retry if attempts not exceeded
+            if ($task->attempts < $task->max_attempts) {
+                $this->retry($task);
+            }
+
+            return false;
         }
     }
 
     /**
-     * Get url from route name with action id
+     * Retry a failed task
      *
-     * @param string $name Route name
-     * @return string
+     * @param sTaskModel $task
+     * @return void
      */
-    public function route(string $name): string
+    public function retry(sTaskModel $task): void
     {
-        // Generate the base route URL and remove trailing slashes
-        $route = route($name);
+        $delay = 60;
+        
+        $task->update([
+            'status' => 10, // pending
+            'message' => "Retrying in {$delay} seconds",
+        ]);
 
-        // Trim friendly URL suffix
-        if (!empty(evo()->getConfig('friendly_url_suffix'))) {
-            $route = rtrim($route, evo()->getConfig('friendly_url_suffix'));
-        }
-
-        // Generate a unique action ID based on the route name
-        $a = array_sum(array_map('ord', str_split(__('sSeo::global.title')))) + 999;
-        $a = $a < 999 ? $a + 999 : $a;
-
-        return $route . '?a=' . $a;
+        $this->log($task, 'info', "Task will be retried in {$delay} seconds", [
+            'attempt' => $task->attempts,
+            'max_attempts' => $task->max_attempts
+        ]);
     }
 
     /**
-     * Retrieves and caches the document data for the current request.
+     * Get pending tasks
      *
-     * This method fetches the document details from the `sSeoModel` based on the
-     * current `resource_id` and `resource_type`. If no corresponding entry is found
-     * in the database, it falls back to `evo()->documentObject`.
-     *
-     * The result is cached in `$this->document` to avoid redundant database queries.
-     *
-     * @return array The document data merged with `evo()->documentObject` if found in `sSeoModel`, otherwise returns `evo()->documentObject` as is.
+     * @param int $limit
+     * @return Collection
      */
-    private function getDocument()
+    public function getPendingTasks(int $limit = 10): Collection
     {
-        $lang = evo()->getConfig('lang', 'base');
-        if ($this->document === null || !isset($this->document['lang']) || $this->document['lang'] !== $lang) {
-            $domainKey = evo()->getConfig('site_key', 'default');
+        $priorities = [
+            'high' => 1,
+            'normal' => 5,
+            'low' => 10,
+        ];
 
-            if (in_array(evo()->documentObject['type'], ['product'])) {
-                $domainKey = 'default';
-            }
-
-            $document = sTaskModel::where('resource_id', (int)evo()->documentObject['id'])
-                ->where('resource_type', evo()->documentObject['type'])
-                ->where('domain_key', $domainKey)
-                ->where('lang', $lang)
-                ->first()?->toArray();
-
-            if (is_array($document) && count($document)) {
-                $this->document = array_merge($document, evo()->documentObject);
-            } else {
-                $this->document = evo()->documentObject;
-            }
-
-            $this->document['lang'] = $lang;
-
-            if (empty($this->document['resource_type'])) {
-                $this->document['resource_type'] = evo()->documentObject['type'];
-            }
-
-            if (evo()->getConfig('check_sCommerce', false)) {
-                if ($this->document['type'] == 'document') {
-                    $catalogRoot = (int)sCommerce::config('basic.catalog_root', 0);
-                    if ($catalogRoot > 0) {
-                        $catPages = array_merge([$catalogRoot], evo()->getChildIds($catalogRoot));
-                        if (in_array($this->document['id'], $catPages)) {
-                            $this->document['resource_type'] = 'prodcat';
-                        }
-                    }
-                }
-            }
-
-            foreach ($this->document as $k => $v) {
-                if (str_starts_with($k, $lang . '_')) {
-                    unset($this->document[$k]);
-                    $this->document[ltrim($k, $lang . '_')] = $v;
-                }
-            }
-        }
-
-        return $this->document;
+        return sTaskModel::where('status', 10) // pending
+            ->orderByRaw("CASE priority 
+                WHEN 'high' THEN {$priorities['high']} 
+                WHEN 'normal' THEN {$priorities['normal']} 
+                WHEN 'low' THEN {$priorities['low']} 
+                ELSE {$priorities['normal']} END")
+            ->orderBy('created_at')
+            ->limit($limit)
+            ->get();
     }
 
     /**
-     * Parse document source using FastTagParser.
+     * Process pending tasks
      *
-     * This method provides a lightweight alternative to evo()->parseDocumentSource().
-     * It builds a context array from the current document and global configuration,
-     * wires FastTagParser resolvers to EvoCMS internals (snippets, chunks, links, placeholders),
-     * and executes the parser with static caching for improved performance.
-     *
-     * Key points:
-     * - Context is built once per call (documentObject + config).
-     * - Resolvers are initialized only once per request (static flag).
-     * - Uses FastTagParser::parse() with a limited number of passes (default: 6).
-     * - Designed specifically for rendering meta tags faster than the core parser.
-     *
-     * @param string $source Raw document source containing EVO-like tags.
-     * @return string Parsed output string with all tags resolved.
+     * @param int $batchSize
+     * @return int Number of processed tasks
      */
-    private function parseSource(string $source): string
+    public function processPendingTasks(int $batchSize = null): int
     {
-        $ctx = array_merge(evo()->allConfig(), $this->document);
+        $batchSize = $batchSize ?? 10;
+        $processed = 0;
 
-        static $wired = false;
-        if (!$wired) {
-            FastTagParser::setResolvers(
-                fn(string $name, array $ctx): ?string => $ctx[$name] ?? null,                  // [+x+] / [(x)]
-                fn(string $name, array $ctx): ?string => $ctx[$name] ?? null,                  // [*x*]
-                fn(string $name, array $ctx): ?string => evo()->getChunk($name) ?? null,       // {{chunk}}
-                fn(string $name, array $params, array $ctx): string => (string)(evo()->runSnippet($name, $params) ?? ''), // [[Snippet]]
-                fn(string $ref, array $ctx): string => (string)(\EvolutionCMS\Facades\UrlProcessor::makeUrl($ref) ?? '#'.$ref) // [~id~]
-            );
-            $wired = true;
+        $tasks = $this->getPendingTasks($batchSize);
+
+        foreach ($tasks as $task) {
+            if ($this->execute($task)) {
+                $processed++;
+            }
         }
 
-        return FastTagParser::parse($source, $ctx, 6);
+        return $processed;
+    }
+
+    /**
+     * Get task statistics
+     *
+     * @return array
+     */
+    public function getStats(): array
+    {
+        return [
+            'pending' => sTaskModel::where('status', 10)->count(),
+            'running' => sTaskModel::where('status', 20)->count(),
+            'completed' => sTaskModel::where('status', 30)->count(),
+            'failed' => sTaskModel::where('status', 40)->count(),
+            'cancelled' => sTaskModel::where('status', 50)->count(),
+            'total' => sTaskModel::count(),
+        ];
+    }
+
+    /**
+     * Clean old completed tasks
+     *
+     * @param int $days Number of days to keep completed tasks
+     * @return int Number of deleted tasks
+     */
+    public function cleanOldTasks(int $days = 30): int
+    {
+        $cutoff = now()->subDays($days);
+        
+        return sTaskModel::where('status', 30) // completed
+            ->where('finished_at', '<', $cutoff)
+            ->delete();
+    }
+
+    /**
+     * Clean old log files
+     *
+     * @param int $days Number of days to keep logs
+     * @return int Number of deleted log files
+     */
+    public function cleanOldLogs(int $days = 30): int
+    {
+        $logger = app(TaskLogger::class);
+        return $logger->clearOldLogs($days);
+    }
+
+    /**
+     * Log a message for a task
+     *
+     * @param sTaskModel $task
+     * @param string $level
+     * @param string $message
+     * @param array $context
+     * @return void
+     */
+    public function log(sTaskModel $task, string $level, string $message, array $context = []): void
+    {
+        // Write to task log file
+        $logger = app(TaskLogger::class);
+        $logger->log($task, $level, $message, $context);
+    }
+
+    /**
+     * Resolve worker class for task identifier
+     *
+     * @param string $identifier
+     * @return TaskInterface|null
+     */
+    private function resolveWorker(string $identifier): ?TaskInterface
+    {
+        // First try to get from database
+        $worker = sWorker::where('identifier', $identifier)->where('active', true)->first();
+        
+        if ($worker && $worker->canBeUsed()) {
+            try {
+                return $worker->getInstance();
+            } catch (\Exception $e) {
+                Log::error("Failed to resolve worker for identifier '{$identifier}': " . $e->getMessage());
+            }
+        }
+
+        // Try auto-discovery if worker not found
+        $this->autoDiscoverWorkers();
+        
+        // Try again after discovery
+        $worker = sWorker::where('identifier', $identifier)->where('active', true)->first();
+        
+        if ($worker && $worker->canBeUsed()) {
+            try {
+                return $worker->getInstance();
+            } catch (\Exception $e) {
+                Log::error("Failed to resolve worker for identifier '{$identifier}': " . $e->getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Auto-discover workers from registered packages
+     *
+     * @return void
+     */
+    private function autoDiscoverWorkers(): void
+    {
+        // Auto-discovery is handled by WorkerDiscovery service
+        // This method is kept for compatibility but delegates to discoverWorkers()
+        $this->discoverWorkers();
+    }
+
+    /**
+     * Discover and register new workers
+     *
+     * @return array
+     */
+    public function discoverWorkers(): array
+    {
+        $discovery = app(WorkerDiscovery::class);
+        return $discovery->discover();
+    }
+
+    /**
+     * Register a single worker
+     *
+     * @param string $className
+     * @return Worker|null
+     */
+    public function registerWorker(string $className): ?Worker
+    {
+        $discovery = app(WorkerDiscovery::class);
+        return $discovery->registerWorker($className);
+    }
+
+    /**
+     * Re-scan and update existing workers
+     *
+     * @return array
+     */
+    public function rescanWorkers(): array
+    {
+        $discovery = app(WorkerDiscovery::class);
+        return $discovery->rescan();
+    }
+
+    /**
+     * Clean orphaned workers
+     *
+     * @return int
+     */
+    public function cleanOrphanedWorkers(): int
+    {
+        $discovery = app(WorkerDiscovery::class);
+        return $discovery->cleanOrphaned();
+    }
+
+    /**
+     * Get all workers
+     *
+     * @param bool $activeOnly
+     * @return Collection
+     */
+    public function getWorkers(bool $activeOnly = false): Collection
+    {
+        $query = sWorker::ordered();
+        
+        if ($activeOnly) {
+            $query->active();
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get worker by identifier
+     *
+     * @param string $identifier
+     * @return sWorker|null
+     */
+    public function getWorker(string $identifier): ?sWorker
+    {
+        return sWorker::where('identifier', $identifier)->first();
+    }
+
+    /**
+     * Activate worker
+     *
+     * @param string $identifier
+     * @return bool
+     */
+    public function activateWorker(string $identifier): bool
+    {
+        $worker = $this->getWorker($identifier);
+        
+        if (!$worker) {
+            return false;
+        }
+
+        $worker->active = true;
+        return $worker->save();
+    }
+
+    /**
+     * Deactivate worker
+     *
+     * @param string $identifier
+     * @return bool
+     */
+    public function deactivateWorker(string $identifier): bool
+    {
+        $worker = $this->getWorker($identifier);
+        
+        if (!$worker) {
+            return false;
+        }
+
+        $worker->active = false;
+        return $worker->save();
     }
 }
