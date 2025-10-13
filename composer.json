@@ -1,0 +1,55 @@
+{
+  "name": "seiger/stask",
+  "license": "GPL-3.0",
+  "type": "evolutioncms-tool",
+  "description": "Asynchronous task management system for Evolution CMS. Handle background operations and task queues with reliability and performance.",
+  "keywords": [
+    "evocms",
+    "evolution-cms",
+    "evolution-cms-tool"
+  ],
+  "authors": [
+    {
+      "name": "Serhii Korneliuk",
+      "email": "info@seigerit.com"
+    }
+  ],
+  "require": {
+    "php": "^8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Seiger\\sTask\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Seiger\\sTask\\sTaskServiceProvider"
+      ],
+      "aliases": {
+        "sTask": "Seiger\\sTask\\Facades\\sTask"
+      }
+    }
+  },
+  "config": {
+    "exclude-files": [
+      "/docs",
+      "/docs/**",
+      "/.git/*",
+      "/.github/*",
+      "/.idea/*",
+      "README.md",
+      "LICENSE"
+    ]
+  },
+  "scripts": {
+    "post-autoload-dump": [],
+    "post-install-cmd": [
+      "@php artisan stask:publish"
+    ],
+    "post-update-cmd": [
+      "@php artisan stask:publish"
+    ]
+  }
+}
