@@ -2,15 +2,15 @@ import type {Config} from '@docusaurus/types';
 import type {ThemeConfig} from '@docusaurus/preset-classic';
 
 const config: Config = {
-    title: 'sSeo Docs',
-    tagline: 'Powerful modules for Evolution CMS',
+    title: 'sTask Docs',
+    tagline: 'Asynchronous task management system for Evolution CMS. Handle background operations and task queues with reliability and performance.',
     url: 'https://seiger.github.io',
-    baseUrl: '/sSeo/',
+    baseUrl: '/sTask/',
     favicon: 'img/logo.svg',
 
     // GitHub Pages
     organizationName: 'Seiger',
-    projectName: 'sSeo',
+    projectName: 'sTask',
     deploymentBranch: 'gh-pages',
 
     onBrokenLinks: 'throw',
@@ -49,9 +49,9 @@ const config: Config = {
 
     themeConfig: {
         navbar: {
-            title: 'sSeo Docs',
+            title: 'sTask Docs',
             logo: {
-                alt: 'sSeo',
+                alt: 'sTask',
                 src: 'img/logo.svg',
                 width: 24, height: 24
             },
