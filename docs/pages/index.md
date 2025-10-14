@@ -235,7 +235,11 @@ composer update
 php artisan package:installrequire seiger/stask "*"
 php artisan vendor:publish --provider="Seiger\sTask\sTaskServiceProvider"
 php artisan migrate
-php artisan stask:discover-workers
+```
+
+Setup cron for task processing:
+```cron
+* * * * * cd /path/to/your/project && php artisan stask:worker >> /dev/null 2>&1
 ```
 
 See **[Getting Started](./getting-started.md)** for detailed installation instructions.

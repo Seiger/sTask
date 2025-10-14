@@ -4,6 +4,9 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\Schema;
+use EvolutionCMS\Models\Permissions;
+use EvolutionCMS\Models\PermissionsGroups;
+use EvolutionCMS\Models\RolePermissions;
 
 /**
  * Migration: sTask tables creation.
@@ -11,6 +14,39 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Create sTask permission
+        |--------------------------------------------------------------------------
+        */
+        $staskGroup = PermissionsGroups::firstOrCreate(
+            ['name' => 'sTask'],
+            [
+                'name' => 'sTask',
+                'lang_key' => 'sTask::global.permissions_group',
+                'createdon' => time(),
+                'editedon' => time(),
+            ]
+        );
+
+        Permissions::firstOrCreate(
+            ['key' => 'stask_access'],
+            [
+                'name' => 'Access sTask Interface',
+                'key' => 'stask_access',
+                'lang_key' => 'sTask::global.permission_access',
+                'group_id' => $staskGroup->id,
+                'createdon' => time(),
+                'editedon' => time(),
+            ]
+        );
+
+        // Assign permission to administrator role (role_id = 1)
+        RolePermissions::firstOrCreate([
+            'role_id' => 1,
+            'permission' => 'stask_access',
+        ]);
+
         /*
         |--------------------------------------------------------------------------
         | The workers table structure
@@ -76,5 +112,14 @@ return new class extends Migration {
         */
         Schema::dropIfExists('s_tasks');
         Schema::dropIfExists('s_workers');
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Remove sTask permission
+        |--------------------------------------------------------------------------
+        */
+        RolePermissions::where('permission', 'stask_access')->delete();
+        Permissions::where('key', 'stask_access')->delete();
+        PermissionsGroups::where('name', 'sTask')->delete();
     }
 };

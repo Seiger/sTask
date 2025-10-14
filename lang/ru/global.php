@@ -53,6 +53,10 @@ return [
     'discover_workers' => 'Найти Воркеры',
     'discover_workers_confirm' => 'Просканировать систему на новые воркеры?',
     'no_workers_found' => 'Воркеры не найдены. Добавьте собственный воркер или установите пакет с соответствующими реализациями.',
+
+    // Permissions
+    'permissions_group' => 'sTask',
+    'permission_access' => 'Доступ к интерфейсу sTask',
     
     // Common
     'refresh' => 'Обновить',

@@ -29,18 +29,18 @@ class sTaskServiceProvider extends ServiceProvider
         // Register singletons
         $this->app->singleton(sTask::class);
         $this->app->alias(sTask::class, 'sTask');
-
+        
         // Create storage directory for logs
         $this->ensureStorageExists();
-
+        
         // Load migrations, translations, views
         $this->loadMigrationsFrom(dirname(__DIR__) . '/database/migrations');
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
-
+        
         // Load routes
         $this->loadRoutes();
-
+        
         // Publish resources
         $this->publishResources();
     }
@@ -51,7 +51,7 @@ class sTaskServiceProvider extends ServiceProvider
     protected function ensureStorageExists(): void
     {
         $logPath = storage_path('stask');
-
+        
         if (!file_exists($logPath)) {
             mkdir($logPath, 0755, true);
         }
@@ -66,13 +66,13 @@ class sTaskServiceProvider extends ServiceProvider
     {
         // Load plugins
         $this->loadPluginsFrom(dirname(__DIR__) . '/plugins/');
-
+        
         // Register commands
         if ($this->app->runningInConsole()) {
-            $this->commands([
-                PublishAssets::class,
-                TaskWorker::class,
-            ]);
+        $this->commands([
+            PublishAssets::class,
+            TaskWorker::class,
+        ]);
         }
     }
 

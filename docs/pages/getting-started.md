@@ -52,6 +52,8 @@ This creates two database tables:
 - `s_workers` - Worker configurations
 - `s_tasks` - Task records and execution history
 
+It also creates the `stask_access` permission for controlling access to the sTask interface.
+
 ### Step 6: Setup Task Worker
 
 The task worker command processes pending tasks automatically. Add it to your cron or task scheduler:
@@ -143,23 +145,6 @@ echo "Processed {$processedCount} tasks\n";
 $processedCount = sTask::processPendingTasks(batchSize: 5);
 ```
 
-### 4. View Task Logs
-
-```php
-$task = \Seiger\sTask\Models\sTaskModel::find(1);
-
-// Get all logs
-$logs = $task->getLogs();
-foreach ($logs as $log) {
-    echo "[{$log['timestamp']}] {$log['level']}: {$log['message']}\n";
-}
-
-// Get last 10 logs
-$recentLogs = $task->getLastLogs(10);
-
-// Get only errors
-$errorLogs = $task->getErrorLogs();
-```
 
 ## Basic Usage Examples
 
@@ -249,7 +234,6 @@ $task = \Seiger\sTask\Models\sTaskModel::create([
     'priority' => 'low',
     'start_at' => now()->addHours(2), // Run in 2 hours
     'meta' => [
-        'clean_logs' => true,
         'clean_cache' => true,
         'older_than_days' => 30
     ]
@@ -386,40 +370,22 @@ $deleted = sTaskModel::failed()
 echo "Deleted {$deleted} old failed tasks\n";
 ```
 
-### Clean Old Logs
-
-```php
-// Remove log files older than 30 days
-$deletedLogs = sTask::cleanOldLogs(days: 30);
-echo "Deleted {$deletedLogs} old log files\n";
-
-// Clear specific task logs
-$task = sTaskModel::find(1);
-$task->clearLogs();
-echo "Logs cleared for task #{$task->id}\n";
-```
 
 ## Artisan Commands
 
-### Discover Workers
+### Task Worker
 
 ```console
-# Basic discovery
-php artisan stask:discover-workers
-
-# Discover with rescan
-php artisan stask:discover-workers --rescan
-
-# Discover with cleanup
-php artisan stask:discover-workers --clean
-
-# Discover with both options
-php artisan stask:discover-workers --rescan --clean
+# Process pending tasks
+php artisan stask:worker
 ```
 
 **What it does:**
-- `--rescan` - Updates metadata for existing workers
-- `--clean` - Removes orphaned workers (classes no longer exist)
+- Processes all pending tasks in the queue
+- Executes tasks through their respective workers
+- Updates task progress and status
+- Cleans up old progress files when idle
+- Should be run via cron every minute for continuous processing
 
 ### Publish Assets
 
@@ -469,24 +435,16 @@ sTask creates the following storage structure:
 ```
 storage/
 └── stask/
-    ├── 1.log           # Task #1 logs
-    ├── 2.log           # Task #2 logs
-    ├── 3.log           # Task #3 logs
     ├── 1.json          # Task #1 progress snapshot
     ├── 2.json          # Task #2 progress snapshot
-    ├── .gc_progress    # Garbage collection marker
     └── ...
 ```
 
-**Log Files** (`*.log`):
-- Contain detailed execution logs
-- Include timestamps, levels (info/warning/error), messages
-- Automatically cleaned up after configured period
-
 **Progress Files** (`*.json`):
-- Real-time progress snapshots
-- Used for progress monitoring in admin interface
-- Automatically cleaned up after 24 hours
+- Store task progress snapshots
+- Updated during task execution
+- Used for real-time progress tracking
+- Cleaned up automatically by TaskWorker when idle
 
 ## Database Tables
 
@@ -592,22 +550,10 @@ echo "Status: {$task->status_text}\n";
 echo "Message: {$task->message}\n";
 ```
 
-3. Check logs:
-```php
-$logs = $task->getErrorLogs();
-foreach ($logs as $log) {
-    echo $log['message'] . "\n";
-}
-```
 
 ### Workers Not Discovered
 
-1. Run discovery manually:
-```console
-php artisan stask:discover-workers --clean
-```
-
-2. Check if class implements `TaskInterface`:
+1. Check if class implements `TaskInterface`:
 ```php
 class MyWorker implements \Seiger\sTask\Contracts\TaskInterface
 {
@@ -615,7 +561,9 @@ class MyWorker implements \Seiger\sTask\Contracts\TaskInterface
 }
 ```
 
-3. Verify your worker is in a valid Composer package and not in system namespaces (Illuminate, Symfony, etc.)
+2. Verify your worker is in a valid Composer package and not in system namespaces (Illuminate, Symfony, etc.)
+
+3. Access the Workers tab in admin interface to trigger automatic discovery
 
 ### Permission Issues
 

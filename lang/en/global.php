@@ -53,6 +53,10 @@ return [
     'discover_workers' => 'Discover Workers',
     'discover_workers_confirm' => 'Scan system for new workers?',
     'no_workers_found' => 'No workers found. Add your own worker or install a package with corresponding implementations.',
+
+    // Permissions
+    'permissions_group' => 'sTask',
+    'permission_access' => 'Access sTask Interface',
     
     // Common
     'refresh' => 'Refresh',

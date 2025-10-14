@@ -160,6 +160,7 @@ class sTask
             ->delete();
     }
 
+
     /**
      * Resolve worker class for task identifier
      *
@@ -306,3 +307,7 @@ class sTask
         return $worker->save();
     }
 }
+
+
+
+

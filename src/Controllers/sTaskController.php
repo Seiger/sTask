@@ -20,6 +20,11 @@ class sTaskController
      */
     public function index()
     {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
         $data = [
             'tabIcon' => '<i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
             'tabName' => __('sTask::global.dashboard'),
@@ -40,6 +45,11 @@ class sTaskController
      */
     public function show(sTaskModel $task)
     {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
         $task->load(['user', 'worker']);
 
         return view('sTask::task-details', compact('task'));
@@ -50,6 +60,11 @@ class sTaskController
      */
     public function create(Request $request)
     {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
         $request->validate([
             'identifier' => 'required|string',
             'action' => 'required|string',
@@ -117,6 +132,11 @@ class sTaskController
      */
     public function workers(Request $request)
     {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
         // Auto-discover new workers (like in sCommerce)
         $this->autoDiscoverWorkers();
 
