@@ -39,7 +39,7 @@ class DiscoverWorkersCommand extends Command
 
         // Discover new workers
         $registered = sTask::discoverWorkers();
-        
+
         if (!empty($registered)) {
             $this->info("Discovered and registered " . count($registered) . " new workers:");
             foreach ($registered as $worker) {
@@ -53,7 +53,7 @@ class DiscoverWorkersCommand extends Command
         if ($this->option('rescan')) {
             $this->info('Re-scanning existing workers...');
             $updated = sTask::rescanWorkers();
-            
+
             if (!empty($updated)) {
                 $this->info("Updated " . count($updated) . " workers:");
                 foreach ($updated as $worker) {
@@ -68,7 +68,7 @@ class DiscoverWorkersCommand extends Command
         if ($this->option('clean')) {
             $this->info('Cleaning orphaned workers...');
             $deleted = sTask::cleanOrphanedWorkers();
-            
+
             if ($deleted > 0) {
                 $this->info("Removed {$deleted} orphaned workers.");
             } else {
@@ -78,7 +78,7 @@ class DiscoverWorkersCommand extends Command
 
         $this->newLine();
         $this->info('Worker discovery completed successfully!');
-        
+
         return Command::SUCCESS;
     }
 }

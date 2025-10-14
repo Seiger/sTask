@@ -47,7 +47,7 @@ class sTask
     }
 
     /**
-     * Execute a task
+     * Execute a task by invoking its action method
      *
      * @param sTaskModel $task
      * @return bool
@@ -67,26 +67,17 @@ class sTask
 
             // Get worker for this task identifier
             $worker = $this->resolveWorker($task->identifier);
-            
+
             if (!$worker) {
                 throw new \Exception("Worker for identifier '{$task->identifier}' not found");
             }
 
-            // Validate task data
-            if (method_exists($worker, 'validate') && !$worker->validate($task->meta)) {
-                throw new \Exception('Task validation failed');
-            }
+            // Invoke the action method
+            $this->invokeAction($worker, $task->action, $task, $task->meta);
 
-            // Execute the task
-            $result = $worker->execute($task->meta);
-
-            if ($result) {
-                $task->markAsCompleted('Task completed successfully');
-                $this->log($task, 'info', 'Task completed successfully');
-                return true;
-            } else {
-                throw new \Exception('Task execution returned false');
-            }
+            $task->markAsCompleted('Task completed successfully');
+            $this->log($task, 'info', 'Task completed successfully');
+            return true;
 
         } catch (\Exception $e) {
             $task->markAsFailed($e->getMessage());
@@ -95,16 +86,53 @@ class sTask
                 'exception' => get_class($e),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'message' => $e->getMessage()
             ]);
 
-            // Retry if attempts not exceeded
-            if ($task->attempts < $task->max_attempts) {
+            // If max attempts reached, mark as failed permanently
+            if ($task->attempts >= $task->max_attempts) {
+                $task->markAsFailed('Max retry attempts reached. Task failed permanently.');
+                $this->log($task, 'error', 'Max retry attempts reached. Task failed permanently.');
+            } else {
                 $this->retry($task);
             }
-
             return false;
         }
+    }
+
+    /**
+     * Invoke a concrete action method by naming convention
+     *
+     * @param TaskInterface $worker
+     * @param string $action
+     * @param sTaskModel $task
+     * @param array $options
+     * @return void
+     * @throws \BadMethodCallException
+     */
+    protected function invokeAction(TaskInterface $worker, string $action, sTaskModel $task, array $options = []): void
+    {
+        $method = $this->resolveActionMethod($action);
+
+        if (!method_exists($worker, $method)) {
+            throw new \BadMethodCallException(
+                get_class($worker) . " missing action method {$method}() for action '{$action}'"
+            );
+        }
+
+        $worker->{$method}($task, $options);
+    }
+
+    /**
+     * Resolve a method name from action using StudlyCase conversion
+     *
+     * @param string $action
+     * @return string
+     */
+    protected function resolveActionMethod(string $action): string
+    {
+        $studly = str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', strtolower($action))));
+        return 'task' . $studly;
     }
 
     /**
@@ -116,7 +144,7 @@ class sTask
     public function retry(sTaskModel $task): void
     {
         $delay = 60;
-        
+
         $task->update([
             'status' => 10, // pending
             'message' => "Retrying in {$delay} seconds",
@@ -143,7 +171,7 @@ class sTask
         ];
 
         return sTaskModel::where('status', 10) // pending
-            ->orderByRaw("CASE priority 
+        ->orderByRaw("CASE priority 
                 WHEN 'high' THEN {$priorities['high']} 
                 WHEN 'normal' THEN {$priorities['normal']} 
                 WHEN 'low' THEN {$priorities['low']} 
@@ -201,9 +229,9 @@ class sTask
     public function cleanOldTasks(int $days = 30): int
     {
         $cutoff = now()->subDays($days);
-        
+
         return sTaskModel::where('status', 30) // completed
-            ->where('finished_at', '<', $cutoff)
+        ->where('finished_at', '<', $cutoff)
             ->delete();
     }
 
@@ -245,7 +273,7 @@ class sTask
     {
         // First try to get from database
         $worker = sWorker::where('identifier', $identifier)->where('active', true)->first();
-        
+
         if ($worker && $worker->canBeUsed()) {
             try {
                 return $worker->getInstance();
@@ -256,10 +284,10 @@ class sTask
 
         // Try auto-discovery if worker not found
         $this->autoDiscoverWorkers();
-        
+
         // Try again after discovery
         $worker = sWorker::where('identifier', $identifier)->where('active', true)->first();
-        
+
         if ($worker && $worker->canBeUsed()) {
             try {
                 return $worker->getInstance();
@@ -337,7 +365,7 @@ class sTask
     public function getWorkers(bool $activeOnly = false): Collection
     {
         $query = sWorker::ordered();
-        
+
         if ($activeOnly) {
             $query->active();
         }
@@ -365,7 +393,7 @@ class sTask
     public function activateWorker(string $identifier): bool
     {
         $worker = $this->getWorker($identifier);
-        
+
         if (!$worker) {
             return false;
         }
@@ -383,7 +411,7 @@ class sTask
     public function deactivateWorker(string $identifier): bool
     {
         $worker = $this->getWorker($identifier);
-        
+
         if (!$worker) {
             return false;
         }

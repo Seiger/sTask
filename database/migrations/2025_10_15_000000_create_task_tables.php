@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->id('id')->comment('Primary key - auto-incrementing ID');
             $table->uuid('uuid')->unique()->nullable()->comment('UUID for external system integration');
             $table->string('identifier')->unique()->comment('Unique identifier for the worker (e.g., "product_sync", "sitemap_generation")');
+            $table->string('scope')->default('')->comment('Module/package scope this worker belongs to (e.g., "scommerce", "sarticles", "stask")');
             $table->string('class')->comment('Full PHP class name implementing the worker (e.g., "Seiger\\sCommerce\\Workers\\ProductSyncWorker")');
             $table->boolean('active')->default(false)->comment('Indicates if the worker is currently active and available for use');
             $table->integer('position')->unsigned()->default(0)->comment('Sorting order for display in administrative interface (lower numbers appear first)');
@@ -29,6 +30,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index('identifier')->comment('Index for worker identifier queries');
+            $table->index('scope')->comment('Index for scope-based filtering');
             $table->index('active')->comment('Index for active workers filtering');
             $table->index('position')->comment('Index for position-based ordering');
         });
@@ -63,7 +65,6 @@ return new class extends Migration {
             $table->index('created_at')->comment('Index for chronological task ordering');
             $table->index('priority')->comment('Index for priority-based ordering');
         });
-
     }
 
     public function down(): void

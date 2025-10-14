@@ -15,10 +15,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class sWorker extends Model
 {
     protected $table = 's_workers';
-    
+
     protected $fillable = [
         'uuid',
         'identifier',
+        'scope',
         'class',
         'active',
         'position',
@@ -56,6 +57,14 @@ class sWorker extends Model
     }
 
     /**
+     * Scope for workers by scope
+     */
+    public function scopeByScope($query, string $scope)
+    {
+        return $query->where('scope', $scope);
+    }
+
+    /**
      * Scope for ordered workers
      */
     public function scopeOrdered($query)
@@ -88,31 +97,79 @@ class sWorker extends Model
     }
 
     /**
-     * Get worker description
+     * Get worker title from instance
      */
-    public function getDescriptionAttribute(): string
+    public function getTitleAttribute(): string
     {
         $instance = $this->getInstance();
-        
-        if ($instance && method_exists($instance, 'getDescription')) {
-            return $instance::getDescription();
+
+        if ($instance && method_exists($instance, 'title')) {
+            return $instance->title();
         }
 
         return ucwords(str_replace(['_', '-'], ' ', $this->identifier));
     }
 
     /**
-     * Get worker type
+     * Get worker description from instance
      */
-    public function getTypeAttribute(): string
+    public function getDescriptionAttribute(): string
     {
         $instance = $this->getInstance();
-        
-        if ($instance && method_exists($instance, 'getType')) {
-            return $instance::getType();
+
+        if ($instance && method_exists($instance, 'description')) {
+            return $instance->description();
         }
 
-        return $this->identifier;
+        return '';
+    }
+
+    /**
+     * Get worker scope from instance
+     */
+    public function getScopeAttribute($value): string
+    {
+        // If scope is already set in database, return it
+        if ($value) {
+            return $value;
+        }
+
+        // Otherwise try to get from worker instance
+        $instance = $this->getInstance();
+
+        if ($instance && method_exists($instance, 'scope')) {
+            return $instance->scope();
+        }
+
+        return 'stask';
+    }
+
+    /**
+     * Get worker icon from instance
+     */
+    public function getIconAttribute(): string
+    {
+        $instance = $this->getInstance();
+
+        if ($instance && method_exists($instance, 'icon')) {
+            return $instance->icon();
+        }
+
+        return '<i class="fa fa-cog"></i>';
+    }
+
+    /**
+     * Render worker widget
+     */
+    public function renderWidget(): string
+    {
+        $instance = $this->getInstance();
+
+        if ($instance && method_exists($instance, 'renderWidget')) {
+            return $instance->renderWidget();
+        }
+
+        return '<div class="alert alert-warning">Widget not implemented for this worker.</div>';
     }
 
     /**
@@ -139,4 +196,3 @@ class sWorker extends Model
         $this->update(['settings' => array_merge($this->getDefaultSettings(), $settings)]);
     }
 }
-

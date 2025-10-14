@@ -90,7 +90,7 @@ class WorkerDiscovery
                 return null;
             }
 
-            $identifier = $instance::getType();
+            $identifier = $instance->identifier();
             
             // Check if worker with this identifier already exists
             if (sWorker::where('identifier', $identifier)->exists()) {
@@ -101,8 +101,11 @@ class WorkerDiscovery
                 return null;
             }
 
+            $scope = method_exists($instance, 'scope') ? $instance->scope() : 'stask';
+
             $worker = sWorker::create([
                 'identifier' => $identifier,
+                'scope' => $scope,
                 'class' => $className,
                 'active' => false,
                 'position' => sWorker::max('position') + 1,
@@ -203,7 +206,7 @@ class WorkerDiscovery
                 }
 
                 // Update identifier if changed
-                $newIdentifier = $instance::getType();
+                $newIdentifier = $instance->identifier();
                 if ($worker->identifier !== $newIdentifier) {
                     $worker->identifier = $newIdentifier;
                     $worker->save();
