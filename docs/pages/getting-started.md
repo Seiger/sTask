@@ -563,8 +563,8 @@ $urgent = sTaskModel::highPriority()->get();
 ## Next Steps
 
 - Read the [Developer Guide](./developers.md) to create custom workers
-- Explore the [API Reference](./api.md) for advanced usage
-- Check out [Examples](./examples.md) for common use cases
+- Explore the [Admin Interface Guide](./admin.md) for managing tasks and workers
+- Check the [GitHub repository](https://github.com/Seiger/sTask) for updates and examples
 
 ## Troubleshooting
 
