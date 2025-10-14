@@ -58,4 +58,11 @@ return [
     // Common
     'refresh' => 'Refresh',
     'error' => 'Error occurred',
+    'done' => 'Done',
+    'task_queued' => 'Task queued',
+    'process_tasks' => 'Process Tasks',
+    'clean_old_tasks' => 'Clean Old Tasks',
+    'rescan_workers' => 'Rescan Workers',
+    'clean_orphaned' => 'Clean Orphaned',
+    'scope' => 'Scope',
 ];

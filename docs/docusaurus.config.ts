@@ -22,6 +22,7 @@ const config: Config = {
         localeConfigs: {
             en: { label: 'English', htmlLang: 'en' },
             uk: { label: 'Українська', htmlLang: 'uk' },
+            ru: { label: 'Русский', htmlLang: 'ru' },
         },
     },
 

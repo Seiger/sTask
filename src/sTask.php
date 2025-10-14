@@ -73,7 +73,7 @@ class sTask
             }
 
             // Invoke the action method
-            $this->invokeAction($worker, $task->action, $task, $task->meta);
+            $worker->invokeAction($task->action, $task, $task->meta);
 
             $task->markAsCompleted('Task completed successfully');
             $this->log($task, 'info', 'Task completed successfully');
@@ -100,40 +100,6 @@ class sTask
         }
     }
 
-    /**
-     * Invoke a concrete action method by naming convention
-     *
-     * @param TaskInterface $worker
-     * @param string $action
-     * @param sTaskModel $task
-     * @param array $options
-     * @return void
-     * @throws \BadMethodCallException
-     */
-    protected function invokeAction(TaskInterface $worker, string $action, sTaskModel $task, array $options = []): void
-    {
-        $method = $this->resolveActionMethod($action);
-
-        if (!method_exists($worker, $method)) {
-            throw new \BadMethodCallException(
-                get_class($worker) . " missing action method {$method}() for action '{$action}'"
-            );
-        }
-
-        $worker->{$method}($task, $options);
-    }
-
-    /**
-     * Resolve a method name from action using StudlyCase conversion
-     *
-     * @param string $action
-     * @return string
-     */
-    protected function resolveActionMethod(string $action): string
-    {
-        $studly = str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', strtolower($action))));
-        return 'task' . $studly;
-    }
 
     /**
      * Retry a failed task

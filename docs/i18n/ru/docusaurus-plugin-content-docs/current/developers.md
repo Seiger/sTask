@@ -1,14 +1,14 @@
 ---
-title: Developer Guide
-sidebar_label: Developer Guide
+title: Руководство разработчика
+sidebar_label: Руководство разработчика
 sidebar_position: 3
 ---
 
-# Developer Guide
+# Руководство разработчика
 
-## Creating Custom Workers
+## Создание пользовательских воркеров
 
-To create a custom worker, extend the `BaseWorker` class which provides all common functionality:
+Для создания пользовательского воркера, расширьте класс `BaseWorker` который предоставляет всю общую функциональность:
 
 ```php
 <?php namespace YourNamespace\Workers;
@@ -19,7 +19,7 @@ use Seiger\sTask\Models\sTaskModel;
 class ProductWorker extends BaseWorker
 {
     /**
-     * Unique identifier for this worker
+     * Уникальный идентификатор для этого воркера
      */
     public function identifier(): string
     {
@@ -27,7 +27,7 @@ class ProductWorker extends BaseWorker
     }
     
     /**
-     * Module/package scope (for filtering in admin)
+     * Scope модуля/пакета (для фильтрации в админе)
      */
     public function scope(): string
     {
@@ -35,7 +35,7 @@ class ProductWorker extends BaseWorker
     }
     
     /**
-     * Icon for admin interface
+     * Иконка для админ интерфейса
      */
     public function icon(): string
     {
@@ -43,23 +43,23 @@ class ProductWorker extends BaseWorker
     }
     
     /**
-     * Short human-readable title
+     * Краткое понятное название
      */
     public function title(): string
     {
-        return 'Product Management';
+        return 'Управление товарами';
     }
     
     /**
-     * Detailed description
+     * Детальное описание
      */
     public function description(): string
     {
-        return 'Import and export products from/to CSV files';
+        return 'Импорт и экспорт товаров из/в CSV файлы';
     }
     
     /**
-     * Render widget for admin interface
+     * Рендер виджета для админ интерфейса
      */
     public function renderWidget(): string
     {
@@ -69,7 +69,7 @@ class ProductWorker extends BaseWorker
     }
     
     /**
-     * Worker settings (optional)
+     * Настройки воркера (опционально)
      */
     public function settings(): array
     {
@@ -81,47 +81,47 @@ class ProductWorker extends BaseWorker
     }
     
     /**
-     * Action: Import products from CSV
+     * Действие: Импорт товаров из CSV
      */
     public function taskImport(sTaskModel $task, array $options = []): void
     {
         try {
-            // Update task status
-            $task->update(['status' => 20, 'message' => 'Starting import...']);
+            // Обновить статус задачи
+            $task->update(['status' => 20, 'message' => 'Начало импорта...']);
             
-            // Get file from options
+            // Получить файл из опций
             $file = $options['file'] ?? null;
             if (!$file || !file_exists($file)) {
-                throw new \Exception('Import file not found');
+                throw new \Exception('Файл для импорта не найден');
             }
             
-            // Read CSV
+            // Прочитать CSV
             $handle = fopen($file, 'r');
             $header = fgetcsv($handle);
             
-            // Count total rows
+            // Посчитать общее количество строк
             $total = 0;
             while (fgets($handle)) $total++;
             rewind($handle);
-            fgetcsv($handle); // Skip header
+            fgetcsv($handle); // Пропустить заголовок
             
             $processed = 0;
             $startTime = microtime(true);
             
-            // Process each row
+            // Обработать каждую строку
             while (($row = fgetcsv($handle)) !== false) {
                 $data = array_combine($header, $row);
                 
-                // Import product logic
+                // Логика импорта товара
                 $this->importProduct($data);
                 
                 $processed++;
                 
-                // Update progress every 10 items
+                // Обновлять прогресс каждые 10 элементов
                 if ($processed % 10 === 0 || $processed === $total) {
                     $progress = (int)(($processed / $total) * 100);
                     
-                    // Calculate ETA
+                    // Рассчитать ETA
                     $elapsed = microtime(true) - $startTime;
                     $rate = $processed / $elapsed;
                     $remaining = $total - $processed;
@@ -132,18 +132,18 @@ class ProductWorker extends BaseWorker
                         'processed' => $processed,
                         'total' => $total,
                         'eta' => $this->formatEta($etaSeconds),
-                        'message' => "Imported {$processed} of {$total} products"
+                        'message' => "Импортировано {$processed} из {$total} товаров"
                     ]);
                 }
             }
             
             fclose($handle);
             
-            // Mark as finished
+            // Отметить как завершенное
             $this->markFinished(
                 $task, 
                 null, 
-                "Successfully imported {$processed} products in " . round(microtime(true) - $startTime, 2) . "s"
+                "Успешно импортировано {$processed} товаров за " . round(microtime(true) - $startTime, 2) . "с"
             );
             
         } catch (\Exception $e) {
@@ -152,14 +152,14 @@ class ProductWorker extends BaseWorker
     }
     
     /**
-     * Action: Export products to CSV
+     * Действие: Экспорт товаров в CSV
      */
     public function taskExport(sTaskModel $task, array $options = []): void
     {
         try {
-            $task->update(['status' => 20, 'message' => 'Starting export...']);
+            $task->update(['status' => 20, 'message' => 'Начало экспорта...']);
             
-            // Prepare export file
+            // Подготовить файл экспорта
             $filename = 'products_' . date('Y-m-d_His') . '.csv';
             $filepath = storage_path('exports/' . $filename);
             
@@ -169,10 +169,10 @@ class ProductWorker extends BaseWorker
             
             $handle = fopen($filepath, 'w');
             
-            // Write header
-            fputcsv($handle, ['ID', 'SKU', 'Name', 'Price', 'Stock']);
+            // Записать заголовок
+            fputcsv($handle, ['ID', 'SKU', 'Название', 'Цена', 'Остаток']);
             
-            // Get products
+            // Получить товары
             $products = \DB::table('products')->get();
             $total = count($products);
             $processed = 0;
@@ -195,7 +195,7 @@ class ProductWorker extends BaseWorker
                         'progress' => $progress,
                         'processed' => $processed,
                         'total' => $total,
-                        'message' => "Exported {$processed} of {$total} products"
+                        'message' => "Экспортировано {$processed} из {$total} товаров"
                     ]);
                 }
             }
@@ -205,7 +205,7 @@ class ProductWorker extends BaseWorker
             $this->markFinished(
                 $task,
                 $filepath,
-                "Exported {$total} products to {$filename}"
+                "Экспортировано {$total} товаров в {$filename}"
             );
             
         } catch (\Exception $e) {
@@ -214,16 +214,16 @@ class ProductWorker extends BaseWorker
     }
     
     /**
-     * Action: Sync stock levels
+     * Действие: Синхронизация остатков
      */
     public function taskSyncStock(sTaskModel $task, array $options = []): void
     {
         try {
             $source = $options['source'] ?? 'api';
             
-            $task->update(['status' => 20, 'message' => "Syncing stock from {$source}..."]);
+            $task->update(['status' => 20, 'message' => "Синхронизация остатков с {$source}..."]);
             
-            // Your sync logic here
+            // Ваша логика синхронизации здесь
             $items = $this->fetchStockFromSource($source);
             $total = count($items);
             
@@ -239,50 +239,50 @@ class ProductWorker extends BaseWorker
                 }
             }
             
-            $this->markFinished($task, null, "Synced stock for {$total} products");
+            $this->markFinished($task, null, "Синхронизированы остатки для {$total} товаров");
             
         } catch (\Exception $e) {
             $this->markFailed($task, $e->getMessage());
         }
     }
     
-    // Helper methods
+    // Вспомогательные методы
     private function importProduct(array $data): void
     {
-        // Your import logic
+        // Ваша логика импорта
     }
     
     private function fetchStockFromSource(string $source): array
     {
-        // Your API/source fetch logic
+        // Ваша логика получения из API/источника
         return [];
     }
     
     private function updateProductStock(string $sku, int $quantity): void
     {
-        // Update logic
+        // Логика обновления
     }
 }
 ```
 
-## Worker Discovery
+## Автоматическое обнаружение воркеров
 
-Workers are automatically discovered if they:
-1. Implement the `TaskInterface`
-2. Are not abstract classes
-3. Can be instantiated
-4. Are in your package namespace
+Воркеры автоматически обнаруживаются если они:
+1. Реализуют интерфейс `TaskInterface`
+2. Не являются абстрактными классами
+3. Могут быть инстанцированы
+4. Находятся в пространстве имен вашего пакета
 
-The discovery process scans all installed Composer packages and registers workers automatically.
+Процесс обнаружения сканирует все установленные Composer пакеты и автоматически регистрирует воркеры.
 
-## Task Management API
+## API управления задачами
 
-### Creating Tasks
+### Создание задач
 
 ```php
 use Seiger\sTask\Facades\sTask;
 
-// Basic task creation
+// Базовое создание задачи
 $task = sTask::create(
     identifier: 'product',
     action: 'import',
@@ -291,7 +291,7 @@ $task = sTask::create(
     userId: evo()->getLoginUserID()
 );
 
-// Create with custom priority
+// Создать с собственным приоритетом
 $task = sTask::create(
     identifier: 'product',
     action: 'export',
@@ -300,23 +300,23 @@ $task = sTask::create(
     userId: evo()->getLoginUserID()
 );
 
-// Programmatic task creation from worker
+// Программное создание задачи из воркера
 $worker = new ProductWorker();
 $task = $worker->createTask('import', ['file' => 'products.csv']);
 ```
 
-### Processing Tasks
+### Обработка задач
 
 ```php
-// Process all pending tasks (default batch size: 10)
+// Обработать все ожидающие задачи (размер пакета по умолчанию: 10)
 $processedCount = sTask::processPendingTasks();
 
-// Process with custom batch size
+// Обработать с собственным размером пакета
 $processedCount = sTask::processPendingTasks(batchSize: 50);
 
-// Get task statistics
+// Получить статистику задач
 $stats = sTask::getStats();
-/* Returns:
+/* Возвращает:
 [
     'pending' => 5,
     'running' => 2,
@@ -327,104 +327,104 @@ $stats = sTask::getStats();
 ]
 */
 
-// Get pending tasks
+// Получить ожидающие задачи
 $pending = sTask::getPendingTasks(limit: 20);
 
 foreach ($pending as $task) {
-    echo "Task #{$task->id}: {$task->identifier} -> {$task->action}\n";
+    echo "Задача #{$task->id}: {$task->identifier} -> {$task->action}\n";
 }
 ```
 
-### Worker Management
+### Управление воркерами
 
 ```php
-// Discover new workers
+// Обнаружить новые воркеры
 $registered = sTask::discoverWorkers();
-echo "Registered " . count($registered) . " new workers\n";
+echo "Зарегистрировано " . count($registered) . " новых воркеров\n";
 
-// Rescan existing workers (update their metadata)
+// Пересканировать существующие воркеры (обновить их метаданные)
 $updated = sTask::rescanWorkers();
-echo "Updated " . count($updated) . " workers\n";
+echo "Обновлено " . count($updated) . " воркеров\n";
 
-// Clean orphaned workers (classes no longer exist)
+// Очистить orphaned воркеры (классы больше не существуют)
 $deleted = sTask::cleanOrphanedWorkers();
-echo "Deleted {$deleted} orphaned workers\n";
+echo "Удалено {$deleted} orphaned воркеров\n";
 
-// Get all workers
+// Получить всех воркеров
 $workers = sTask::getWorkers(activeOnly: false);
 
 foreach ($workers as $worker) {
     echo "{$worker->identifier} ({$worker->scope}) - ";
-    echo $worker->active ? 'Active' : 'Inactive';
+    echo $worker->active ? 'Активный' : 'Неактивный';
     echo "\n";
 }
 
-// Get specific worker
+// Получить конкретного воркера
 $worker = sTask::getWorker('product');
 if ($worker) {
-    echo "Title: {$worker->title}\n";
-    echo "Description: {$worker->description}\n";
-    echo "Icon: {$worker->icon}\n";
+    echo "Название: {$worker->title}\n";
+    echo "Описание: {$worker->description}\n";
+    echo "Иконка: {$worker->icon}\n";
 }
 
-// Activate/deactivate workers
+// Активировать/деактивировать воркеров
 sTask::activateWorker('product');
 sTask::deactivateWorker('old_worker');
 
-// Filter workers by scope
+// Фильтровать воркеров по scope
 $commerceWorkers = \Seiger\sTask\Models\sWorker::byScope('scommerce')->get();
 ```
 
-### Task Execution
+### Выполнение задач
 
 ```php
-// Execute specific task
+// Выполнить конкретную задачу
 $task = \Seiger\sTask\Models\sTaskModel::find(1);
 $result = sTask::execute($task);
 
 if ($result) {
-    echo "Task completed successfully\n";
+    echo "Задача завершена успешно\n";
 } else {
-    echo "Task failed: {$task->message}\n";
+    echo "Задача неудачна: {$task->message}\n";
 }
 
-// Retry failed task
+// Повторить неудачную задачу
 if ($task->canRetry()) {
     sTask::retry($task);
 }
 ```
 
-### Cleanup Operations
+### Операции очистки
 
 ```php
-// Clean tasks older than 30 days
+// Очистить задачи старше 30 дней
 $deletedTasks = sTask::cleanOldTasks(days: 30);
-echo "Deleted {$deletedTasks} old tasks\n";
+echo "Удалено {$deletedTasks} старых задач\n";
 
-// Clean logs older than 30 days
+// Очистить логи старше 30 дней
 $deletedLogs = sTask::cleanOldLogs(days: 30);
-echo "Deleted {$deletedLogs} old log files\n";
+echo "Удалено {$deletedLogs} старых файлов логов\n";
 
-// Custom cleanup
+// Собственная очистка
 $deleted = \Seiger\sTask\Models\sTaskModel::where('status', 30) // completed
     ->where('finished_at', '<', now()->subDays(7))
     ->delete();
 ```
 
-## Action Method Naming Convention
+## Конвенция именования методов действий
 
-Action methods must follow the `task{Action}` convention:
+Методы действий должны следовать конвенции `task{Action}`:
 
-| Action Name | Method Name | Example |
-|-------------|-------------|---------|
-| `import` | `taskImport()` | Import products |
-| `export` | `taskExport()` | Export products |
-| `sync_stock` | `taskSyncStock()` | Sync stock levels |
-| `generate_report` | `taskGenerateReport()` | Generate reports |
-| `send_emails` | `taskSendEmails()` | Send bulk emails |
+| Название действия | Название метода | Пример |
+|-------------------|-----------------|--------|
+| `import` | `taskImport()` | Импорт товаров |
+| `export` | `taskExport()` | Экспорт товаров |
+| `sync_stock` | `taskSyncStock()` | Синхронизация остатков |
+| `generate_report` | `taskGenerateReport()` | Генерация отчетов |
+| `send_emails` | `taskSendEmails()` | Массовая рассылка |
 
 ```php
-// Action name conversion examples:
+// Примеры преобразования названий действий:
 'import' → taskImport()
 'export' → taskExport()  
 'sync' → taskSync()
@@ -434,9 +434,9 @@ Action methods must follow the `task{Action}` convention:
 'cleanup-old-data' → taskCleanupOldData()
 ```
 
-## Progress Tracking
+## Отслеживание прогресса
 
-### Basic Progress Updates
+### Базовые обновления прогресса
 
 ```php
 public function taskProcess(sTaskModel $task, array $options = []): void
@@ -445,10 +445,10 @@ public function taskProcess(sTaskModel $task, array $options = []): void
     $total = count($items);
     
     foreach ($items as $i => $item) {
-        // Process item
-        sleep(0.01); // Simulate work
+        // Обработать элемент
+        sleep(0.01); // Симуляция работы
         
-        // Update progress
+        // Обновить прогресс
         $processed = $i + 1;
         $progress = (int)(($processed / $total) * 100);
         
@@ -456,7 +456,7 @@ public function taskProcess(sTaskModel $task, array $options = []): void
             'progress' => $progress,
             'processed' => $processed,
             'total' => $total,
-            'message' => "Processing item {$processed} of {$total}"
+            'message' => "Обработка элемента {$processed} из {$total}"
         ]);
     }
     
@@ -464,7 +464,7 @@ public function taskProcess(sTaskModel $task, array $options = []): void
 }
 ```
 
-### Progress with ETA Calculation
+### Прогресс с расчетом ETA
 
 ```php
 public function taskLongRunning(sTaskModel $task, array $options = []): void
@@ -473,13 +473,13 @@ public function taskLongRunning(sTaskModel $task, array $options = []): void
     $startTime = microtime(true);
     
     for ($i = 0; $i < $total; $i++) {
-        // Process item
+        // Обработать элемент
         $this->processItem($i);
         
-        // Update every 100 items
+        // Обновлять каждые 100 элементов
         if ($i > 0 && $i % 100 === 0) {
             $elapsed = microtime(true) - $startTime;
-            $rate = $i / $elapsed; // items per second
+            $rate = $i / $elapsed; // элементов в секунду
             $remaining = $total - $i;
             $etaSeconds = $remaining / $rate;
             
@@ -488,70 +488,70 @@ public function taskLongRunning(sTaskModel $task, array $options = []): void
                 'processed' => $i,
                 'total' => $total,
                 'eta' => $this->formatEta($etaSeconds),
-                'message' => "Processing... {$i}/{$total}"
+                'message' => "Обработка... {$i}/{$total}"
             ]);
         }
     }
     
-    $this->markFinished($task, null, "Processed {$total} items");
+    $this->markFinished($task, null, "Обработано {$total} элементов");
 }
 ```
 
-### Multi-stage Progress
+### Многоэтапный прогресс
 
 ```php
 public function taskMultiStage(sTaskModel $task, array $options = []): void
 {
     try {
-        // Stage 1: Preparation (0-20%)
+        // Этап 1: Подготовка (0-20%)
         $this->pushProgress($task, [
             'progress' => 5,
-            'message' => 'Preparing data...'
+            'message' => 'Подготовка данных...'
         ]);
         
         $data = $this->prepareData();
         
         $this->pushProgress($task, [
             'progress' => 20,
-            'message' => 'Data prepared'
+            'message' => 'Данные подготовлены'
         ]);
         
-        // Stage 2: Processing (20-80%)
+        // Этап 2: Обработка (20-80%)
         $total = count($data);
         foreach ($data as $i => $item) {
             $this->processItem($item);
             
-            // Progress from 20% to 80%
-            $stageProgress = ($i + 1) / $total; // 0.0 to 1.0
-            $overallProgress = 20 + ($stageProgress * 60); // 20 to 80
+            // Прогресс от 20% до 80%
+            $stageProgress = ($i + 1) / $total; // 0.0 до 1.0
+            $overallProgress = 20 + ($stageProgress * 60); // 20 до 80
             
             if ($i % 10 === 0) {
                 $this->pushProgress($task, [
                     'progress' => (int)$overallProgress,
                     'processed' => $i + 1,
                     'total' => $total,
-                    'message' => "Processing: {$i}/{$total}"
+                    'message' => "Обработка: {$i}/{$total}"
                 ]);
             }
         }
         
-        // Stage 3: Finalization (80-100%)
+        // Этап 3: Завершение (80-100%)
         $this->pushProgress($task, [
             'progress' => 85,
-            'message' => 'Generating report...'
+            'message' => 'Генерация отчета...'
         ]);
         
         $reportPath = $this->generateReport($data);
         
         $this->pushProgress($task, [
             'progress' => 95,
-            'message' => 'Saving results...'
+            'message' => 'Сохранение результатов...'
         ]);
         
         $this->saveResults($data);
         
-        // Done
-        $this->markFinished($task, $reportPath, 'All stages completed');
+        // Готово
+        $this->markFinished($task, $reportPath, 'Все этапы завершены');
         
     } catch (\Exception $e) {
         $this->markFailed($task, $e->getMessage());
@@ -559,26 +559,26 @@ public function taskMultiStage(sTaskModel $task, array $options = []): void
 }
 ```
 
-## Logging
+## Логирование
 
-### Automatic Logging
+### Автоматическое логирование
 
-sTask automatically logs:
-- Task start/completion
-- Task failures
-- Progress updates (in progress files)
+sTask автоматически логирует:
+- Старт/завершение задачи
+- Ошибки задачи
+- Обновления прогресса (в файлах прогресса)
 
-Log files are stored in `storage/stask/{task_id}.log`
+Файлы логов хранятся в `storage/stask/{task_id}.log`
 
-### Custom Logging
+### Собственное логирование
 
 ```php
 use Seiger\sTask\Facades\sTask;
 
 public function taskWithLogging(sTaskModel $task, array $options = []): void
 {
-    // Info log
-    sTask::log($task, 'info', 'Starting import process', [
+    // Info лог
+    sTask::log($task, 'info', 'Начало процесса импорта', [
         'file' => $options['file'],
         'user_id' => $task->started_by
     ]);
@@ -588,8 +588,8 @@ public function taskWithLogging(sTaskModel $task, array $options = []): void
             try {
                 $this->processItem($item);
             } catch (\Exception $e) {
-                // Warning for non-critical errors
-                sTask::log($task, 'warning', "Skipped item {$item->id}", [
+                // Warning для некритичных ошибок
+                sTask::log($task, 'warning', "Пропущен элемент {$item->id}", [
                     'reason' => $e->getMessage(),
                     'item' => $item->toArray()
                 ]);
@@ -597,16 +597,16 @@ public function taskWithLogging(sTaskModel $task, array $options = []): void
             }
         }
         
-        // Success info
-        sTask::log($task, 'info', 'Import completed successfully', [
+        // Успех info
+        sTask::log($task, 'info', 'Импорт завершен успешно', [
             'total_processed' => count($items)
         ]);
         
         $this->markFinished($task);
         
     } catch (\Exception $e) {
-        // Error log
-        sTask::log($task, 'error', 'Import failed', [
+        // Error лог
+        sTask::log($task, 'error', 'Импорт неудачен', [
             'exception' => get_class($e),
             'message' => $e->getMessage(),
             'file' => $e->getFile(),
@@ -618,12 +618,12 @@ public function taskWithLogging(sTaskModel $task, array $options = []): void
 }
 ```
 
-### Reading Logs
+### Чтение логов
 
 ```php
 $task = \Seiger\sTask\Models\sTaskModel::find(1);
 
-// Get all logs
+// Получить все логи
 $logs = $task->getLogs();
 foreach ($logs as $log) {
     echo "[{$log['timestamp']}] {$log['level']}: {$log['message']}\n";
@@ -632,38 +632,38 @@ foreach ($logs as $log) {
     }
 }
 
-// Get last 10 logs
+// Получить последние 10 логов
 $recentLogs = $task->getLastLogs(10);
 
-// Get error logs only
+// Получить только ошибки
 $errorLogs = $task->getErrorLogs();
 
-// Clear task logs
+// Очистить логи задачи
 $task->clearLogs();
 
-// Download logs
+// Скачать логи
 return $task->logger()->downloadLogs($task);
 ```
 
-## Error Handling
+## Обработка ошибок
 
-### Basic Error Handling
+### Базовая обработка ошибок
 
 ```php
 public function taskSafe(sTaskModel $task, array $options = []): void
 {
     try {
-        // Your logic
+        // Ваша логика
         $result = $this->doSomething();
         
         if (!$result) {
-            throw new \RuntimeException('Operation failed');
+            throw new \RuntimeException('Операция неудачна');
         }
         
         $this->markFinished($task);
         
     } catch (\Exception $e) {
-        // Log detailed error
+        // Логировать детальную ошибку
         sTask::log($task, 'error', $e->getMessage(), [
             'exception' => get_class($e),
             'file' => $e->getFile(),
@@ -676,7 +676,7 @@ public function taskSafe(sTaskModel $task, array $options = []): void
 }
 ```
 
-### Retry Logic
+### Логика повторных попыток
 
 ```php
 public function taskWithRetry(sTaskModel $task, array $options = []): void
@@ -685,58 +685,58 @@ public function taskWithRetry(sTaskModel $task, array $options = []): void
     $currentAttempt = $task->attempts;
     
     try {
-        // Attempt operation
+        // Попытка операции
         $this->doUnreliableOperation();
         
         $this->markFinished($task);
         
     } catch (\Exception $e) {
         if ($currentAttempt < $maxRetries) {
-            // Will retry
+            // Будет повторная попытка
             sTask::log($task, 'warning', 
-                "Attempt {$currentAttempt} failed, will retry", 
+                "Попытка {$currentAttempt} неудачна, будет повтор", 
                 ['error' => $e->getMessage()]
             );
             
-            // sTask will automatically retry
+            // sTask автоматически повторит
             throw $e;
         } else {
-            // Max retries reached
+            // Достигнут максимум попыток
             sTask::log($task, 'error', 
-                "All {$maxRetries} attempts failed", 
+                "Все {$maxRetries} попытки неудачны", 
                 ['last_error' => $e->getMessage()]
             );
             
-            $this->markFailed($task, "Failed after {$maxRetries} attempts: " . $e->getMessage());
+            $this->markFailed($task, "Неудачно после {$maxRetries} попыток: " . $e->getMessage());
         }
     }
 }
 ```
 
-### Validation Before Processing
+### Валидация перед обработкой
 
 ```php
 public function taskValidated(sTaskModel $task, array $options = []): void
 {
-    // Validate options
+    // Валидировать опции
     $errors = [];
     
     if (empty($options['file'])) {
-        $errors[] = 'File path is required';
+        $errors[] = 'Путь к файлу обязателен';
     } elseif (!file_exists($options['file'])) {
-        $errors[] = 'File does not exist: ' . $options['file'];
+        $errors[] = 'Файл не существует: ' . $options['file'];
     }
     
     if (empty($options['user_id'])) {
-        $errors[] = 'User ID is required';
+        $errors[] = 'ID пользователя обязателен';
     }
     
     if (!empty($errors)) {
-        $this->markFailed($task, 'Validation failed: ' . implode('; ', $errors));
+        $this->markFailed($task, 'Валидация неудачна: ' . implode('; ', $errors));
         return;
     }
     
-    // Process
+    // Обработать
     try {
         $this->processFile($options['file'], $options['user_id']);
         $this->markFinished($task);
@@ -746,10 +746,10 @@ public function taskValidated(sTaskModel $task, array $options = []): void
 }
 ```
 
-## Task Priorities
+## Приоритеты задач
 
 ```php
-// High priority - processed first
+// Высокий приоритет - обрабатывается первым
 $urgentTask = sTask::create(
     identifier: 'notification',
     action: 'send_urgent',
@@ -757,7 +757,7 @@ $urgentTask = sTask::create(
     priority: 'high'
 );
 
-// Normal priority - default
+// Обычный приоритет - по умолчанию
 $normalTask = sTask::create(
     identifier: 'report',
     action: 'generate',
@@ -765,7 +765,7 @@ $normalTask = sTask::create(
     priority: 'normal'
 );
 
-// Low priority - processed last
+// Низкий приоритет - обрабатывается последним
 $backgroundTask = sTask::create(
     identifier: 'cleanup',
     action: 'archive_old_data',
@@ -773,63 +773,63 @@ $backgroundTask = sTask::create(
     priority: 'low'
 );
 
-// Tasks are processed in priority order:
-// 1. All 'high' priority tasks
-// 2. All 'normal' priority tasks  
-// 3. All 'low' priority tasks
+// Задачи обрабатываются в порядке приоритета:
+// 1. Все задачи с приоритетом 'high'
+// 2. Все задачи с приоритетом 'normal'  
+// 3. Все задачи с приоритетом 'low'
 ```
 
-## Task Statuses
+## Статусы задач
 
 ```php
 use Seiger\sTask\Models\sTaskModel;
 
-// Status constants
-// 10 - pending
-// 20 - running
-// 30 - completed
-// 40 - failed
-// 50 - cancelled
+// Константы статусов
+// 10 - pending (ожидает)
+// 20 - running (выполняется)
+// 30 - completed (завершено)
+// 40 - failed (неудачно)
+// 50 - cancelled (отменено)
 
-// Check task status
+// Проверить статус задачи
 $task = sTaskModel::find(1);
 
 if ($task->isPending()) {
-    echo "Task is waiting to be processed\n";
+    echo "Задача ожидает обработки\n";
 }
 
 if ($task->isRunning()) {
-    echo "Task is currently executing\n";
+    echo "Задача выполняется сейчас\n";
 }
 
 if ($task->isFinished()) {
-    echo "Task is done (completed, failed, or cancelled)\n";
+    echo "Задача завершена (completed, failed или cancelled)\n";
 }
 
-// Get status text
+// Получить текстовый статус
 echo $task->status_text; // 'pending', 'running', 'completed', 'failed', 'cancelled'
 
-// Query by status
+// Запросы по статусу
 $pendingTasks = sTaskModel::pending()->get();
 $runningTasks = sTaskModel::running()->get();
 $completedTasks = sTaskModel::completed()->get();
 $failedTasks = sTaskModel::failed()->get();
 
-// Query by identifier and action
+// Запросы по идентификатору и действию
 $productImports = sTaskModel::byIdentifier('product')
     ->byAction('import')
     ->get();
 
-// Recent failed tasks
+// Последние неудачные задачи
 $recentFailures = sTaskModel::failed()
     ->where('created_at', '>', now()->subDays(7))
     ->orderBy('created_at', 'desc')
     ->get();
 ```
 
-## Advanced Examples
+## Расширенные примеры
 
-### Batch Processing with Chunking
+### Пакетная обработка с chunking
 
 ```php
 public function taskBatchProcess(sTaskModel $task, array $options = []): void
@@ -837,7 +837,7 @@ public function taskBatchProcess(sTaskModel $task, array $options = []): void
     $chunkSize = 100;
     $processed = 0;
     
-    // Get total count
+    // Получить общее количество
     $total = \DB::table('products')->count();
     
     \DB::table('products')->orderBy('id')->chunk($chunkSize, function($products) use ($task, &$processed, $total) {
@@ -846,20 +846,20 @@ public function taskBatchProcess(sTaskModel $task, array $options = []): void
             $processed++;
         }
         
-        // Update progress after each chunk
+        // Обновить прогресс после каждого chunk
         $this->pushProgress($task, [
             'progress' => (int)(($processed / $total) * 100),
             'processed' => $processed,
             'total' => $total,
-            'message' => "Processed {$processed}/{$total} products"
+            'message' => "Обработано {$processed}/{$total} товаров"
         ]);
     });
     
-    $this->markFinished($task, null, "Processed {$processed} products");
+    $this->markFinished($task, null, "Обработано {$processed} товаров");
 }
 ```
 
-### File Download Task
+### Задача загрузки файла
 
 ```php
 public function taskDownload(sTaskModel $task, array $options = []): void
@@ -879,7 +879,7 @@ public function taskDownload(sTaskModel $task, array $options = []): void
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_NOPROGRESS, false);
     
-    // Progress callback
+    // Callback прогресса
     curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function($resource, $downloadSize, $downloaded) use ($task) {
         if ($downloadSize > 0) {
             $progress = (int)(($downloaded / $downloadSize) * 100);
@@ -888,7 +888,7 @@ public function taskDownload(sTaskModel $task, array $options = []): void
                 'progress' => $progress,
                 'processed' => $downloaded,
                 'total' => $downloadSize,
-                'message' => "Downloaded " . $this->formatBytes($downloaded) . " of " . $this->formatBytes($downloadSize)
+                'message' => "Загружено " . $this->formatBytes($downloaded) . " из " . $this->formatBytes($downloadSize)
             ]);
         }
     });
@@ -900,15 +900,15 @@ public function taskDownload(sTaskModel $task, array $options = []): void
     
     if ($error) {
         unlink($destination);
-        $this->markFailed($task, "Download failed: {$error}");
+        $this->markFailed($task, "Загрузка неудачна: {$error}");
     } else {
-        $this->markFinished($task, $destination, "Downloaded {$filename}");
+        $this->markFinished($task, $destination, "Загружено {$filename}");
     }
 }
 
 private function formatBytes(int $bytes): string
 {
-    $units = ['B', 'KB', 'MB', 'GB'];
+    $units = ['Б', 'КБ', 'МБ', 'ГБ'];
     for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
         $bytes /= 1024;
     }
@@ -916,7 +916,7 @@ private function formatBytes(int $bytes): string
 }
 ```
 
-### API Sync Task
+### Задача синхронизации с API
 
 ```php
 public function taskApiSync(sTaskModel $task, array $options = []): void
@@ -925,49 +925,75 @@ public function taskApiSync(sTaskModel $task, array $options = []): void
     $apiKey = $this->settings()['api_key'];
     
     try {
-        // Fetch from API
+        // Получить из API
         $this->pushProgress($task, [
             'progress' => 10,
-            'message' => 'Fetching data from API...'
+            'message' => 'Получение данных из API...'
         ]);
         
         $response = $this->apiRequest($apiUrl, $apiKey);
         $items = json_decode($response, true);
         
         if (!is_array($items)) {
-            throw new \RuntimeException('Invalid API response');
+            throw new \RuntimeException('Невалидный ответ API');
         }
         
         $total = count($items);
         
-        // Process items
+        // Обработать элементы
         foreach ($items as $i => $item) {
             $this->syncItem($item);
             
             if (($i + 1) % 10 === 0) {
-                $progress = 10 + (int)((($i + 1) / $total) * 80); // 10% to 90%
+                $progress = 10 + (int)((($i + 1) / $total) * 80); // 10% до 90%
                 
                 $this->pushProgress($task, [
                     'progress' => $progress,
                     'processed' => $i + 1,
                     'total' => $total,
-                    'message' => "Synced {$i+1}/{$total} items"
+                    'message' => "Синхронизировано {$i+1}/{$total} элементов"
                 ]);
             }
         }
         
-        // Final cleanup
+        // Финальная очистка
         $this->pushProgress($task, [
             'progress' => 95,
-            'message' => 'Cleaning up...'
+            'message' => 'Очистка...'
         ]);
         
         $this->cleanup();
         
-        $this->markFinished($task, null, "Synced {$total} items from API");
+        $this->markFinished($task, null, "Синхронизировано {$total} элементов из API");
         
     } catch (\Exception $e) {
         $this->markFailed($task, $e->getMessage());
+    }
+}
+```
+
+## Настройки воркера
+
+```php
+class MyWorker extends BaseWorker
+{
+    public function settings(): array
+    {
+        return [
+            'api_key' => config('services.myservice.key'),
+            'timeout' => 300,
+            'batch_size' => 100,
+            'retry_attempts' => 3,
+        ];
+    }
+    
+    public function taskProcess(sTaskModel $task, array $options = []): void
+    {
+        $settings = $this->settings();
+        $apiKey = $settings['api_key'];
+        $timeout = $settings['timeout'];
+        
+        // Использование настроек
     }
 }
 ```

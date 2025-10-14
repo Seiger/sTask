@@ -58,4 +58,11 @@ return [
     // Common
     'refresh' => 'Оновити',
     'error' => 'Виникла помилка',
+    'done' => 'Готово',
+    'task_queued' => 'Завдання в черзі',
+    'process_tasks' => 'Обробити Завдання',
+    'clean_old_tasks' => 'Очистити Старі Завдання',
+    'rescan_workers' => 'Пересканувати Воркери',
+    'clean_orphaned' => 'Очистити Orphaned',
+    'scope' => 'Область',
 ];
