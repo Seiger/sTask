@@ -32,7 +32,7 @@ class sTaskController
 
         $data['stats'] = sTaskFacade::getStats();
 
-        return view('sTask::dashboardTab', $data);
+        return view('sTask::dashboard', $data);
     }
 
     /**
@@ -42,7 +42,7 @@ class sTaskController
     {
         $task->load(['user', 'worker']);
         $logs = $task->getLastLogs(100);
-        
+
         return view('sTask::task-details', compact('task', 'logs'));
     }
 
@@ -53,7 +53,7 @@ class sTaskController
     {
         $limit = request()->input('limit', 100);
         $logs = $task->getLogs($limit);
-        
+
         return response()->json([
             'success' => true,
             'logs' => $logs,
@@ -75,7 +75,7 @@ class sTaskController
     public function clearLogs(sTaskModel $task)
     {
         $result = $task->clearLogs();
-        
+
         return response()->json([
             'success' => $result,
             'message' => $result ? 'Logs cleared successfully' : 'Failed to clear logs'
@@ -202,7 +202,7 @@ class sTaskController
     public function clean(Request $request)
     {
         $days = $request->input('days', 30);
-        
+
         $deletedTasks = sTaskFacade::cleanOldTasks($days);
         $deletedLogs = sTaskFacade::cleanOldLogs($days);
 
@@ -227,7 +227,7 @@ class sTaskController
         $data['workers'] = sTaskFacade::getWorkers();
         $data['stats'] = sTaskFacade::getStats();
 
-        return view('sTask::workersTab', $data);
+        return view('sTask::workers', $data);
     }
 
     /**

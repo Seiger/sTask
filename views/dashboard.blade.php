@@ -75,7 +75,7 @@
                     <i data-lucide="activity" class="w-5 h-5 text-blue-500 darkness:text-sky-400"></i>
                     @lang('sTask::global.recent_tasks')
                 </div>
-                <a href="{{route('stask.index')}}" class="text-sm text-blue-600 hover:underline darkness:text-sky-400">
+                <a href="{{route('sTask.index')}}" class="text-sm text-blue-600 hover:underline darkness:text-sky-400">
                     @lang('sTask::global.view_all')
                 </a>
             </div>

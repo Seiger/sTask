@@ -87,7 +87,7 @@
 <script>
     function discoverWorkers() {
         alertify.confirm('@lang('sTask::global.discover_workers_confirm')', function() {
-            fetch('{{route('stask.workers.discover')}}', {
+            fetch('{{route('sTask.workers.discover')}}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -112,7 +112,7 @@
 
     function toggleWorker(identifier, activate) {
         const action = activate ? 'activate' : 'deactivate';
-        const route = activate ? '{{route('stask.workers.activate')}}' : '{{route('stask.workers.deactivate')}}';
+        const route = activate ? '{{route('sTask.workers.activate')}}' : '{{route('sTask.workers.deactivate')}}';
         
         fetch(route, {
             method: 'POST',

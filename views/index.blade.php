@@ -34,7 +34,7 @@
     <script src="media/script/main.js"></script>
     <script src="{{asset('site/stask.js')}}?{{evo()->getConfig('sTaskVer')}}"></script>
     @stack('scripts.top')
-    {!!EvolutionCMS()->getRegisteredClientStartupScripts()!!}
+    {!!evo()->getRegisteredClientStartupScripts()!!}
 </head>
 <body class="{{ManagerTheme::getTextDir()}} {{ManagerTheme::getThemeStyle()}}" data-evocp="color">
 <h1 style="display:none"><i class="@lang('sTask::global.icon')"></i> {{$tabName}} @lang('sTask::global.title')</h1>
