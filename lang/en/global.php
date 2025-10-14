@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Task Manager',
-    'icon' => 'fa fa-tasks',
     
     // Menu
     'dashboard' => 'Dashboard',
@@ -53,7 +52,7 @@ return [
     'deactivate' => 'Deactivate',
     'discover_workers' => 'Discover Workers',
     'discover_workers_confirm' => 'Scan system for new workers?',
-    'no_workers_found' => 'No workers found. Click button below to scan.',
+    'no_workers_found' => 'No workers found. Add your own worker or install a package with corresponding implementations.',
     
     // Common
     'refresh' => 'Refresh',
@@ -62,7 +61,6 @@ return [
     'task_queued' => 'Task queued',
     'process_tasks' => 'Process Tasks',
     'clean_old_tasks' => 'Clean Old Tasks',
-    'rescan_workers' => 'Rescan Workers',
     'clean_orphaned' => 'Clean Orphaned',
     'scope' => 'Scope',
 ];

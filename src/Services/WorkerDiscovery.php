@@ -11,7 +11,7 @@ use Throwable;
  *
  * Automatically discovers and registers workers that implement TaskInterface
  *
- * @package Seiger\sTask\Services
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */

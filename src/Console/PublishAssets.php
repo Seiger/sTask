@@ -12,7 +12,7 @@ use Composer\InstalledVersions;
  * - Calls vendor:publish for this provider
  * - Updates version in config file
  *
- * @package Seiger\sTask\Console
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */

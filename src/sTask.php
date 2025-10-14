@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
-use Seiger\sTask\Services\TaskLogger;
 use Seiger\sTask\Services\WorkerDiscovery;
 use Seiger\sTask\Contracts\TaskInterface;
 
@@ -58,13 +57,6 @@ class sTask
             // Mark task as running
             $task->markAsRunning();
 
-            // Log task start
-            $this->log($task, 'info', 'Task started', [
-                'identifier' => $task->identifier,
-                'action' => $task->action,
-                'attempt' => $task->attempts
-            ]);
-
             // Get worker for this task identifier
             $worker = $this->resolveWorker($task->identifier);
 
@@ -76,50 +68,17 @@ class sTask
             $worker->invokeAction($task->action, $task, $task->meta);
 
             $task->markAsCompleted('Task completed successfully');
-            $this->log($task, 'info', 'Task completed successfully');
             return true;
 
         } catch (\Exception $e) {
             $task->markAsFailed($e->getMessage());
 
-            $this->log($task, 'error', 'Task failed: ' . $e->getMessage(), [
-                'exception' => get_class($e),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage()
-            ]);
-
             // If max attempts reached, mark as failed permanently
             if ($task->attempts >= $task->max_attempts) {
                 $task->markAsFailed('Max retry attempts reached. Task failed permanently.');
-                $this->log($task, 'error', 'Max retry attempts reached. Task failed permanently.');
-            } else {
-                $this->retry($task);
             }
             return false;
         }
-    }
-
-
-    /**
-     * Retry a failed task
-     *
-     * @param sTaskModel $task
-     * @return void
-     */
-    public function retry(sTaskModel $task): void
-    {
-        $delay = 60;
-
-        $task->update([
-            'status' => 10, // pending
-            'message' => "Retrying in {$delay} seconds",
-        ]);
-
-        $this->log($task, 'info', "Task will be retried in {$delay} seconds", [
-            'attempt' => $task->attempts,
-            'max_attempts' => $task->max_attempts
-        ]);
     }
 
     /**
@@ -202,34 +161,6 @@ class sTask
     }
 
     /**
-     * Clean old log files
-     *
-     * @param int $days Number of days to keep logs
-     * @return int Number of deleted log files
-     */
-    public function cleanOldLogs(int $days = 30): int
-    {
-        $logger = app(TaskLogger::class);
-        return $logger->clearOldLogs($days);
-    }
-
-    /**
-     * Log a message for a task
-     *
-     * @param sTaskModel $task
-     * @param string $level
-     * @param string $message
-     * @param array $context
-     * @return void
-     */
-    public function log(sTaskModel $task, string $level, string $message, array $context = []): void
-    {
-        // Write to task log file
-        $logger = app(TaskLogger::class);
-        $logger->log($task, $level, $message, $context);
-    }
-
-    /**
      * Resolve worker class for task identifier
      *
      * @param string $identifier
@@ -292,23 +223,12 @@ class sTask
      * Register a single worker
      *
      * @param string $className
-     * @return Worker|null
+     * @return sWorker|null
      */
-    public function registerWorker(string $className): ?Worker
+    public function registerWorker(string $className): ?sWorker
     {
         $discovery = app(WorkerDiscovery::class);
         return $discovery->registerWorker($className);
-    }
-
-    /**
-     * Re-scan and update existing workers
-     *
-     * @return array
-     */
-    public function rescanWorkers(): array
-    {
-        $discovery = app(WorkerDiscovery::class);
-        return $discovery->rescan();
     }
 
     /**

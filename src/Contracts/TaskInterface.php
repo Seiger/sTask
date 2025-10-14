@@ -33,7 +33,7 @@
  * compatibility with the sTask system and provide consistent behavior
  * across different task types and execution scenarios.
  *
- * @package Seiger\sTask\Contracts
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */

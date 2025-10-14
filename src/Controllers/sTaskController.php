@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
  *
  * Controller for managing tasks and workers
  *
- * @package Seiger\sTask\Controllers
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */
@@ -41,45 +41,8 @@ class sTaskController
     public function show(sTaskModel $task)
     {
         $task->load(['user', 'worker']);
-        $logs = $task->getLastLogs(100);
 
-        return view('sTask::task-details', compact('task', 'logs'));
-    }
-
-    /**
-     * Get task logs
-     */
-    public function logs(sTaskModel $task)
-    {
-        $limit = request()->input('limit', 100);
-        $logs = $task->getLogs($limit);
-
-        return response()->json([
-            'success' => true,
-            'logs' => $logs,
-            'count' => count($logs)
-        ]);
-    }
-
-    /**
-     * Download task logs
-     */
-    public function downloadLogs(sTaskModel $task)
-    {
-        return $task->logger()->downloadLogs($task);
-    }
-
-    /**
-     * Clear task logs
-     */
-    public function clearLogs(sTaskModel $task)
-    {
-        $result = $task->clearLogs();
-
-        return response()->json([
-            'success' => $result,
-            'message' => $result ? 'Logs cleared successfully' : 'Failed to clear logs'
-        ]);
+        return view('sTask::task-details', compact('task'));
     }
 
     /**
@@ -106,69 +69,6 @@ class sTaskController
             'success' => true,
             'task' => $task,
             'message' => 'Task created successfully'
-        ]);
-    }
-
-    /**
-     * Execute a task manually
-     */
-    public function execute(sTaskModel $task)
-    {
-        if ($task->isRunning()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Task is already running'
-            ], 400);
-        }
-
-        $result = sTaskFacade::execute($task);
-
-        return response()->json([
-            'success' => $result,
-            'message' => $result ? 'Task executed successfully' : 'Task execution failed',
-            'task' => $task->fresh()
-        ]);
-    }
-
-    /**
-     * Cancel a task
-     */
-    public function cancel(sTaskModel $task)
-    {
-        if ($task->isFinished()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Task is already finished'
-            ], 400);
-        }
-
-        $task->markAsCancelled('Cancelled by user');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Task cancelled successfully',
-            'task' => $task
-        ]);
-    }
-
-    /**
-     * Retry a failed task
-     */
-    public function retry(sTaskModel $task)
-    {
-        if (!$task->canRetry()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Task cannot be retried'
-            ], 400);
-        }
-
-        sTaskFacade::retry($task);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Task scheduled for retry',
-            'task' => $task->fresh()
         ]);
     }
 
@@ -204,13 +104,11 @@ class sTaskController
         $days = $request->input('days', 30);
 
         $deletedTasks = sTaskFacade::cleanOldTasks($days);
-        $deletedLogs = sTaskFacade::cleanOldLogs($days);
 
         return response()->json([
             'success' => true,
-            'message' => "Cleaned {$deletedTasks} tasks and {$deletedLogs} logs",
-            'deleted_tasks' => $deletedTasks,
-            'deleted_logs' => $deletedLogs
+            'message' => "Cleaned {$deletedTasks} tasks",
+            'deleted_tasks' => $deletedTasks
         ]);
     }
 
@@ -219,6 +117,9 @@ class sTaskController
      */
     public function workers(Request $request)
     {
+        // Auto-discover new workers (like in sCommerce)
+        $this->autoDiscoverWorkers();
+
         $data = [
             'tabIcon' => '<i data-lucide="cpu" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
             'tabName' => __('sTask::global.workers'),
@@ -228,6 +129,19 @@ class sTaskController
         $data['stats'] = sTaskFacade::getStats();
 
         return view('sTask::workers', $data);
+    }
+
+    /**
+     * Auto-discover new workers (similar to sCommerce integration discovery)
+     */
+    private function autoDiscoverWorkers()
+    {
+        try {
+            sTaskFacade::discoverWorkers();
+        } catch (\Exception $e) {
+            // Silently continue if discovery fails
+            \Log::error('Auto-discovery failed: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -242,21 +156,6 @@ class sTaskController
             'message' => "Discovered and registered {count($registered)} new workers",
             'workers' => $registered,
             'count' => count($registered)
-        ]);
-    }
-
-    /**
-     * Rescan existing workers
-     */
-    public function rescanWorkers()
-    {
-        $updated = sTaskFacade::rescanWorkers();
-
-        return response()->json([
-            'success' => true,
-            'message' => "Updated {count($updated)} workers",
-            'workers' => $updated,
-            'count' => count($updated)
         ]);
     }
 

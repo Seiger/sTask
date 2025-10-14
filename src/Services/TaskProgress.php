@@ -11,7 +11,6 @@
  * Key Features:
  * - Filesystem-based storage for high performance
  * - Atomic writes with temporary files to prevent corruption
- * - Automatic garbage collection of old snapshots
  * - Thread-safe operations with file locking
  * - Minimal memory footprint and configuration
  *
@@ -19,31 +18,20 @@
  * - Progress files stored in storage/stask/
  * - Each task has a unique JSON file (taskId.json)
  * - Temporary files use .~ prefix for atomic operations
- * - Garbage collection marker prevents excessive cleanup
+ * - Cleanup handled by TaskWorker command when idle
  *
  * Usage Pattern:
  * 1. Initialize progress with TaskProgress::init()
  * 2. Update progress with TaskProgress::write()
  * 3. Read progress via TaskProgress::file() path
- * 4. Automatic cleanup via lazy garbage collection
+ * 4. Cleanup via TaskWorker command (stask:worker)
  *
- * @package Seiger\sTask\Services
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */
 class TaskProgress
 {
-    /**
-     * Time-to-live for progress snapshots in seconds.
-     * Snapshots older than this will be garbage collected.
-     */
-    private const TTL_SECONDS = 86400; // 24 hours
-
-    /**
-     * Minimum interval between garbage collection runs in seconds.
-     * Prevents excessive cleanup operations.
-     */
-    private const GC_MIN_INTERVAL = 3600; // 1 hour
 
     /**
      * Ensure and return directory for progress snapshots.
@@ -109,14 +97,13 @@ class TaskProgress
      *
      * This method performs an atomic write operation to prevent corruption during
      * concurrent access. It uses temporary files and atomic rename operations to
-     * ensure data integrity. The method also occasionally triggers garbage collection.
+     * ensure data integrity.
      *
      * The write process:
      * 1. Validates required 'id' key in payload
      * 2. Creates temporary file with unique name
      * 3. Writes JSON data with file locking
      * 4. Atomically renames temporary file to final location
-     * 5. Occasionally triggers garbage collection (1% chance)
      *
      * @param array<string,mixed> $payload The progress data to write
      * @throws \InvalidArgumentException If required 'id' key is missing
@@ -135,54 +122,7 @@ class TaskProgress
         file_put_contents($tmp, $json, LOCK_EX);
         @chmod($tmp, 0664);
         @rename($tmp, $file);
-
-        // Lazy GC: ~1% chance per write
-        if (\mt_rand(1, 100) === 1) {
-            self::gc();
-        }
     }
 
-    /**
-     * Garbage-collect old snapshots and temporary files.
-     *
-     * This method performs cleanup of old progress files to prevent disk space
-     * accumulation. It's designed to be efficient and safe, with throttling to
-     * prevent excessive cleanup operations.
-     *
-     * Cleanup process:
-     * 1. Checks throttling marker to prevent excessive runs
-     * 2. Removes expired progress snapshots (older than TTL_SECONDS)
-     * 3. Cleans up old temporary files (older than 1 hour)
-     * 4. Updates throttling marker for next run
-     *
-     * The method is throttled to run at most once per GC_MIN_INTERVAL to
-     * prevent performance impact during high-frequency operations.
-     */
-    public static function gc(): void
-    {
-        $dir = self::dir();
-        $now = time();
-
-        // throttle via marker
-        $mark = $dir . '/.gc_progress';
-        $last = @filemtime($mark) ?: 0;
-        if (($now - $last) < self::GC_MIN_INTERVAL) return;
-
-        // delete expired JSON snapshots
-        foreach (glob($dir . '/*.json') ?: [] as $path) {
-            clearstatcache(false, $path);
-            $mtime = @filemtime($path) ?: 0;
-            if ($mtime && ($now - $mtime) > self::TTL_SECONDS) @unlink($path);
-        }
-
-        // cleanup old temp files (1 hour)
-        foreach (glob($dir . '/\.~*.json') ?: [] as $path) {
-            clearstatcache(false, $path);
-            $mtime = @filemtime($path) ?: 0;
-            if ($mtime && ($now - $mtime) > 3600) @unlink($path);
-        }
-
-        @touch($mark);
-    }
 }
 

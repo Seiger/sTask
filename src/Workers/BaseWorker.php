@@ -31,7 +31,7 @@ use Seiger\sTask\Services\TaskProgress;
  * - Define action methods following naming convention (task{Action})
  * - Handle specific business logic for their worker type
  *
- * @package Seiger\sTask\Workers
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */

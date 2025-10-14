@@ -52,15 +52,21 @@ This creates two database tables:
 - `s_workers` - Worker configurations
 - `s_tasks` - Task records and execution history
 
-### Step 6: Discover Workers
+### Step 6: Setup Task Worker
+
+The task worker command processes pending tasks automatically. Add it to your cron or task scheduler:
 
 ```console
-php artisan stask:discover-workers
+php artisan stask:worker
 ```
 
-This scans your installed packages for workers that implement `TaskInterface` and registers them automatically.
+For continuous processing, add to your crontab:
 
-> **Note:** The package automatically integrates with Evolution CMS manager interface. No additional configuration needed!
+```cron
+* * * * * cd /path/to/your/project && php artisan stask:worker >> /dev/null 2>&1
+```
+
+> **Note:** Workers are automatically discovered when you access the Workers tab in the admin interface. No manual discovery needed!
 
 ## Where to Find the Module
 
@@ -70,8 +76,7 @@ After installation, access sTask through:
 
 You'll see:
 - **Dashboard Tab** - Task statistics and recent tasks
-- **Workers Tab** - Worker management and discovery
-- **Statistics Tab** - Detailed analytics
+- **Workers Tab** - Worker management and automatic discovery
 
 ## Quick Start Guide
 
@@ -126,6 +131,8 @@ echo "Started by: User #{$task->started_by}\n";
 ```
 
 ### 3. Process Pending Tasks
+
+Tasks are automatically processed by the worker command (`php artisan stask:worker`), but you can also process them programmatically:
 
 ```php
 // Process all pending tasks

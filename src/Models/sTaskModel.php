@@ -3,14 +3,13 @@
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use EvolutionCMS\Models\User;
-use Seiger\sTask\Services\TaskLogger;
 
 /**
  * Class sTaskModel
  *
  * Model for asynchronous tasks
  *
- * @package Seiger\sTask\Models
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */
@@ -40,46 +39,6 @@ class sTaskModel extends Model
         'start_at' => 'datetime',
         'finished_at' => 'datetime',
     ];
-
-    /**
-     * Get task logger
-     */
-    public function logger(): TaskLogger
-    {
-        return app(TaskLogger::class);
-    }
-
-    /**
-     * Get task logs from file
-     */
-    public function getLogs(int $limit = null): array
-    {
-        return $this->logger()->getLogs($this, $limit);
-    }
-
-    /**
-     * Get last logs
-     */
-    public function getLastLogs(int $count = 10): array
-    {
-        return $this->logger()->getLastLogs($this, $count);
-    }
-
-    /**
-     * Get error logs
-     */
-    public function getErrorLogs(): array
-    {
-        return $this->logger()->getErrorLogs($this);
-    }
-
-    /**
-     * Clear task logs
-     */
-    public function clearLogs(): bool
-    {
-        return $this->logger()->clearLogs($this);
-    }
 
     /**
      * Get user who started the task
@@ -297,4 +256,5 @@ class sTaskModel extends Model
         };
     }
 }
+
 

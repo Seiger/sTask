@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * Model for task workers configuration
  *
- * @package Seiger\sTask\Models
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */

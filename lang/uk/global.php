@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Менеджер Задач',
-    'icon' => 'fa fa-tasks',
     
     // Menu
     'dashboard' => 'Панель',
@@ -53,7 +52,7 @@ return [
     'deactivate' => 'Деактивувати',
     'discover_workers' => 'Знайти Воркери',
     'discover_workers_confirm' => 'Просканувати систему на нові воркери?',
-    'no_workers_found' => 'Воркери не знайдені. Натисніть кнопку нижче для сканування.',
+    'no_workers_found' => 'Воркери не знайдені. Додайте власний воркер або інсталюйте пакет з відповідними реалізаціями.',
     
     // Common
     'refresh' => 'Оновити',
@@ -62,7 +61,6 @@ return [
     'task_queued' => 'Завдання в черзі',
     'process_tasks' => 'Обробити Завдання',
     'clean_old_tasks' => 'Очистити Старі Завдання',
-    'rescan_workers' => 'Пересканувати Воркери',
     'clean_orphaned' => 'Очистити Orphaned',
     'scope' => 'Область',
 ];
