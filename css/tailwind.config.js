@@ -1,5 +1,5 @@
 /**
- * Tailwind configuration for sSeo package.
+ * Tailwind configuration for sTask package.
  * Extends the global manager config and adds package‑specific paths/tokens.
  */
 const path = require('path');
@@ -8,7 +8,7 @@ const path = require('path');
  * We climb to the root of the project regardless of whether
  * the package is in /packages or /core/vendor.
  *
- * __dirname → .../core/vendor/seiger/sseo/css
+ * __dirname → .../core/vendor/seiger/stask/css
  * root → .../ (root Evolution CMS)
  */
 const root = path.resolve(__dirname, '../../../../..');

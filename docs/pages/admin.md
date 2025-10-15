@@ -19,6 +19,8 @@ The interface consists of three main sections:
 
 ## Dashboard Tab
 
+![sTask Dashboard](/img/admin/stask.jpg)
+
 ### Overview Widgets
 
 The dashboard displays five key metrics:
@@ -58,6 +60,8 @@ Shows the 10 most recent tasks with:
 - Shows notification with cleanup results
 
 ## Workers Tab
+
+![sTask Workers](/img/admin/workers.jpg)
 
 ### Worker List
 
@@ -334,28 +338,6 @@ chown -R www-data:www-data storage/stask
 3. Check PHP file creation permissions
 
 ## Admin Interface Customization
-
-### Custom Branding
-
-The sTask logo and branding can be customized:
-
-1. Replace logo file: `public/assets/site/stask.svg`
-2. Update colors in CSS: `public/assets/site/stask.min.css`
-3. Modify menu item in `sTaskPlugin.php`
-
-### Custom Styles
-
-Add custom styles to your worker widgets:
-
-```php
-public function renderWidget(): string
-{
-    return view('mypackage::widgets.worker', [
-        'worker' => $this,
-        'customClass' => 'my-custom-style'
-    ])->render();
-}
-```
 
 ### Localization
 

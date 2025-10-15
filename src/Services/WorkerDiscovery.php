@@ -188,7 +188,7 @@ class WorkerDiscovery
         $workers = sWorker::all();
 
         foreach ($workers as $worker) {
-                try {
+            try {
                 if (!class_exists($worker->class)) {
                     Log::warning("Worker class not found: {$worker->class}", [
                         'identifier' => $worker->identifier

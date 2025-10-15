@@ -19,6 +19,8 @@ sidebar_position: 4
 
 ## Вкладка Панель
 
+![sTask Dashboard](/img/admin/stask.jpg)
+
 ### Віджети огляду
 
 Панель відображає п'ять ключових метрик:
@@ -58,6 +60,8 @@ sidebar_position: 4
 - Показує повідомлення з результатами очищення
 
 ## Вкладка Воркери
+
+![sTask Workers](/img/admin/workers.jpg)
 
 ### Список воркерів
 

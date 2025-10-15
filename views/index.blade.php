@@ -16,6 +16,7 @@
     <script defer src="https://unpkg.com/alpinejs@latest"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alertifyjs@latest/build/alertify.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <script>
         if (!evo){var evo = {};}
         if (!evo.config){evo.config = {};}
@@ -65,12 +66,22 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             @if(session('success'))
-            alertify.success("{{session('success')}}", 10);
+                alertify.success("{{session('success')}}", 10);
             @endif
 
             @if(session('error'))
-            alertify.error("{{session('error')}}", 10);
+                alertify.error("{{session('error')}}", 10);
             @endif
+
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    breaks: false,     // Don't convert \n to <br> (we handle line breaks ourselves)
+                    gfm: true,         // GitHub Flavored Markdown
+                    sanitize: false,   // We'll handle sanitization ourselves
+                    smartLists: true,  // Smart list handling
+                    smartypants: false // Disable smart quotes to avoid conflicts
+                });
+            }
         });
     </script>
 @endpush

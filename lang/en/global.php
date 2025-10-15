@@ -35,10 +35,12 @@ return [
     
     // Statuses
     'pending' => 'Pending',
+    'preparing' => 'Preparing',
     'running' => 'Running',
     'completed' => 'Completed',
     'failed' => 'Failed',
     'cancelled' => 'Cancelled',
+    'unknown' => 'Unknown',
     
     // Workers
     'identifier' => 'Identifier',
@@ -59,8 +61,12 @@ return [
     'worker_statistics' => 'Worker Statistics',
     'worker_actions' => 'Worker Actions',
     'worker_class' => 'Worker Class',
-    'created' => 'Created',
     'back_to_workers' => 'Back to Workers',
+    
+    // Worker errors
+    'worker_not_found_or_inactive' => 'Worker not found or inactive: :identifier',
+    'worker_class_not_found' => 'Worker class not found: :className',
+    'worker_must_implement_TaskInterface' => 'Worker must implement TaskInterface: :className',
 
     // Permissions
     'permissions_group' => 'sTask',
@@ -76,8 +82,19 @@ return [
     'error' => 'Error occurred',
     'done' => 'Done',
     'task_queued' => 'Task queued',
+    'task_created' => 'Task created successfully',
     'process_tasks' => 'Process Tasks',
     'clean_old_tasks' => 'Clean Old Tasks',
     'clean_orphaned' => 'Clean Orphaned',
-    'scope' => 'Scope',
+    
+    // File upload
+    'file_too_large' => 'File is too large',
+    'chunk_upload' => 'Chunked upload',
+    'chunks' => 'chunks',
+    'uploading_file' => 'Uploading',
+    'upload_failed' => 'Upload failed',
+    
+    // Default widget
+    'idle' => 'Idle',
+    'default_widget_description' => 'This is a default widget. Override the renderWidget() method in your worker to create a custom interface.',
 ];

@@ -233,6 +233,11 @@ abstract class BaseWorker implements TaskInterface
             'result'     => $task->result,
         ], $delta);
 
+        // Ensure message from delta takes precedence
+        if (isset($delta['message'])) {
+            $payload['message'] = $delta['message'];
+        }
+
         TaskProgress::write($payload);
     }
 
@@ -244,7 +249,7 @@ abstract class BaseWorker implements TaskInterface
      * It also pushes a final progress update to the TaskProgress system.
      *
      * @param sTaskModel $task The task to mark as finished
-     * @param string|null $result Path to the result file (for exports, downloads, etc.)
+     * @param string|null $result Path to the result file (for exports, downloads, etc.) - stored in storage/stask/uploads/
      * @param string|null $message Custom completion message (defaults to 'Done')
      * @return void
      */

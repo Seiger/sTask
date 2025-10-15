@@ -176,7 +176,7 @@
     }
 </style>
 
-<div class="worker-settings">
+<div class="max-w-7xl mx-auto py-3 px-6">
     <div class="worker-header">
         <div class="worker-info">
             <div class="worker-icon"><i class="fas fa-cog"></i></div>
@@ -252,15 +252,13 @@
         </div>
         <div class="form-group">
             <label>@lang('sTask::global.worker_description')</label>
-            <textarea class="form-control" rows="3" readonly>
-@php
-    if (method_exists($workerInstance, 'description')) {
-        echo $workerInstance->description();
-    } else {
-        echo __('sTask::global.worker_description');
-    }
-@endphp
-            </textarea>
+            <textarea class="form-control" rows="3" readonly>@php
+                if (method_exists($workerInstance, 'description')) {
+                    echo $workerInstance->description();
+                } else {
+                    echo __('sTask::global.worker_description');
+                }
+            @endphp</textarea>
         </div>
     </div>
     @endif
@@ -295,16 +293,17 @@
     }
 
     function runWorker(identifier) {
-        fetch('{{route('sTask.tasks.store')}}', {
+        // Create a new task for the worker using the new action controller
+        const baseUrl = '{{route('sTask.workers.tasks.run', ['identifier' => '__IDENTIFIER__', 'action' => 'make'])}}';
+        const url = baseUrl.replace('__IDENTIFIER__', identifier);
+        
+        fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{csrf_token()}}'
             },
-            body: JSON.stringify({ 
-                identifier: identifier,
-                action: 'make'
-            })
+            body: JSON.stringify({})
         })
         .then(response => response.json())
         .then(data => {
@@ -323,4 +322,6 @@
         });
     }
 </script>
+@include('sTask::scripts.task')
+@include('sTask::scripts.global')
 @endsection

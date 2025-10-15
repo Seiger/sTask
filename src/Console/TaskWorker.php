@@ -63,7 +63,7 @@ class TaskWorker extends Command
      */
     public function handle(): int
     {
-        $tasks = sTaskModel::pending()->get();
+        $tasks = sTaskModel::queued()->get();
         $processed = 0;
 
         foreach ($tasks as $task) {
@@ -72,10 +72,7 @@ class TaskWorker extends Command
         }
 
         $this->info("[stask:worker] processed {$processed} task(s).");
-
-        // Perform cleanup if no active tasks remain
         $this->cleanupIfIdle();
-
         return self::SUCCESS;
     }
 
@@ -95,7 +92,6 @@ class TaskWorker extends Command
     private function runOne(sTaskModel $task): void
     {
         try {
-            // Resolve worker by identifier from database
             $workerRecord = sWorker::where('identifier', $task->identifier)->where('active', true)->first();
 
             if (!$workerRecord) {
@@ -132,7 +128,7 @@ class TaskWorker extends Command
             // Ensure finalization if worker didn't mark finished
             $freshTask = $task->fresh();
             if (!$freshTask->isFinished()) {
-                $task->markAsCompleted('Task completed successfully');
+                $task->markAsFinished('Task completed successfully');
 
                 TaskProgress::write([
                     'id'         => (int)$task->id,
@@ -145,9 +141,7 @@ class TaskWorker extends Command
             }
         } catch (\Throwable $e) {
             Log::error('task.worker failed: ' . $e->getMessage(), ['task' => $task->id]);
-
             $task->markAsFailed('Failed: ' . $e->getMessage());
-
             TaskProgress::write([
                 'id'         => (int)$task->id,
                 'identifier' => $task->identifier ?? 'unknown',
@@ -177,8 +171,9 @@ class TaskWorker extends Command
     private function cleanupIfIdle(): void
     {
         // Only cleanup if no active tasks
-        $activeTasks = sTaskModel::where('status', 10) // pending
-            ->orWhere('status', 20) // running
+        $activeTasks = sTaskModel::where('status', sTaskModel::TASK_STATUS_QUEUED)
+            ->orWhere('status', sTaskModel::TASK_STATUS_PREPARING)
+            ->orWhere('status', sTaskModel::TASK_STATUS_RUNNING)
             ->count();
 
         if ($activeTasks > 0) {
@@ -201,11 +196,11 @@ class TaskWorker extends Command
             }
         }
 
-        // Cleanup old temp files (1 hour)
+        // Cleanup old temp files (10 hour)
         foreach (glob($dir . '/\.~*.json') ?: [] as $path) {
             clearstatcache(false, $path);
             $mtime = @filemtime($path) ?: 0;
-            if ($mtime && ($now - $mtime) > 3600) {
+            if ($mtime && ($now - $mtime) > 36000) {
                 @unlink($path);
             }
         }
@@ -229,4 +224,3 @@ class TaskWorker extends Command
         $schedule->command(static::class)->everyMinute();
     }
 }
-

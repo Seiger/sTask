@@ -233,13 +233,13 @@ if ($task->fresh()->isFinished()) {
 cd core
 composer update
 php artisan package:installrequire seiger/stask "*"
-php artisan vendor:publish --provider="Seiger\sTask\sTaskServiceProvider"
+php artisan vendor:publish --tag=stask
 php artisan migrate
 ```
 
 Налаштуйте cron для обробки задач:
 ```cron
-* * * * * cd /path/to/your/project && php artisan stask:worker >> /dev/null 2>&1
+* * * * * cd /path/to/your/project && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 Дивіться **[Початок роботи](./getting-started.md)** для детальних інструкцій встановлення.

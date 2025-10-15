@@ -75,12 +75,12 @@
                     <i data-lucide="activity" class="w-5 h-5 text-blue-500 darkness:text-sky-400"></i>
                     @lang('sTask::global.recent_tasks')
                 </div>
-                <a href="{{route('sTask.index')}}" class="text-sm text-blue-600 hover:underline darkness:text-sky-400">
+                {{--<a href="{{route('sTask.index')}}" class="text-sm text-blue-600 hover:underline darkness:text-sky-400">
                     @lang('sTask::global.view_all')
-                </a>
+                </a>--}}
             </div>
-            @if($tasks->count() > 0)
-                <div class="overflow-x-auto">
+            @if(($tasks?->count() ?? 0) > 0)
+                <div class="py-3 overflow-x-auto">
                     <table class="w-full">
                         <thead class="border-b border-slate-200 darkness:border-slate-700">
                             <tr class="text-left text-sm text-slate-600 darkness:text-slate-300">
@@ -90,7 +90,7 @@
                                 <th class="pb-3 font-medium">@lang('sTask::global.status')</th>
                                 <th class="pb-3 font-medium">@lang('sTask::global.progress')</th>
                                 <th class="pb-3 font-medium">@lang('sTask::global.created')</th>
-                                <th class="pb-3 font-medium text-right">@lang('sTask::global.actions')</th>
+                                {{--<th class="pb-3 font-medium text-right">@lang('sTask::global.actions')</th>--}}
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 darkness:divide-slate-700">
@@ -104,16 +104,18 @@
                                     </td>
                                     <td class="py-3">{{$task->action}}</td>
                                     <td class="py-3">
-                                        @if($task->status == 10)
+                                        @if($task->status == \Seiger\sTask\Models\sTaskModel::TASK_STATUS_QUEUED)
                                             <span class="px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs font-medium darkness:bg-gray-700 darkness:text-gray-300">@lang('sTask::global.pending')</span>
-                                        @elseif($task->status == 20)
+                                        @elseif($task->status == \Seiger\sTask\Models\sTaskModel::TASK_STATUS_PREPARING)
+                                            <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-medium darkness:bg-yellow-900 darkness:text-yellow-300">@lang('sTask::global.preparing')</span>
+                                        @elseif($task->status == \Seiger\sTask\Models\sTaskModel::TASK_STATUS_RUNNING)
                                             <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium darkness:bg-blue-900 darkness:text-blue-300">@lang('sTask::global.running')</span>
-                                        @elseif($task->status == 30)
+                                        @elseif($task->status == \Seiger\sTask\Models\sTaskModel::TASK_STATUS_FINISHED)
                                             <span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-medium darkness:bg-green-900 darkness:text-green-300">@lang('sTask::global.completed')</span>
-                                        @elseif($task->status == 40)
+                                        @elseif($task->status == \Seiger\sTask\Models\sTaskModel::TASK_STATUS_FAILED)
                                             <span class="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-medium darkness:bg-red-900 darkness:text-red-300">@lang('sTask::global.failed')</span>
-                                        @elseif($task->status == 50)
-                                            <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-medium darkness:bg-yellow-900 darkness:text-yellow-300">@lang('sTask::global.cancelled')</span>
+                                        @else
+                                            <span class="px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs font-medium darkness:bg-gray-700 darkness:text-gray-300">@lang('sTask::global.unknown')</span>
                                         @endif
                                     </td>
                                     <td class="py-3">
@@ -127,11 +129,11 @@
                                     <td class="py-3 text-xs text-slate-500 darkness:text-slate-400">
                                         {{$task->created_at->diffForHumans()}}
                                     </td>
-                                    <td class="py-3 text-right">
-                                        <a href="{{route('stask.tasks.show', $task)}}" class="text-blue-600 hover:underline text-xs darkness:text-sky-400">
+                                    {{--<td class="py-3 text-right">
+                                        <a href="{{route('stask.tasks.show', $task->id)}}" class="text-blue-600 hover:underline text-xs darkness:text-sky-400">
                                             @lang('sTask::global.details')
                                         </a>
-                                    </td>
+                                    </td>--}}
                                 </tr>
                             @endforeach
                         </tbody>

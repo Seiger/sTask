@@ -131,7 +131,7 @@ class ProductWorker extends BaseWorker
                         'progress' => $progress,
                         'processed' => $processed,
                         'total' => $total,
-                        'eta' => $this->formatEta($etaSeconds),
+                        'eta' => niceEta($etaSeconds),
                         'message' => "Імпортовано {$processed} з {$total} товарів"
                     ]);
                 }
@@ -161,7 +161,7 @@ class ProductWorker extends BaseWorker
             
             // Підготувати файл експорту
             $filename = 'products_' . date('Y-m-d_His') . '.csv';
-            $filepath = storage_path('exports/' . $filename);
+            $filepath = storage_path('stask/uploads/' . $filename);
             
             if (!is_dir(dirname($filepath))) {
                 mkdir(dirname($filepath), 0755, true);
@@ -487,7 +487,7 @@ public function taskLongRunning(sTaskModel $task, array $options = []): void
                 'progress' => (int)(($i / $total) * 100),
                 'processed' => $i,
                 'total' => $total,
-                'eta' => $this->formatEta($etaSeconds),
+                'eta' => niceEta($etaSeconds),
                 'message' => "Обробка... {$i}/{$total}"
             ]);
         }
@@ -814,6 +814,9 @@ $pendingTasks = sTaskModel::pending()->get();
 $runningTasks = sTaskModel::running()->get();
 $completedTasks = sTaskModel::completed()->get();
 $failedTasks = sTaskModel::failed()->get();
+
+// Отримати незавершені завдання (не finished і не failed)
+$incompleteTasks = sTaskModel::incomplete()->get();
 
 // Запити за ідентифікатором та дією
 $productImports = sTaskModel::byIdentifier('product')

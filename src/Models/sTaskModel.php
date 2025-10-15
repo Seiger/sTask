@@ -104,6 +104,17 @@ class sTaskModel extends Model
     }
 
     /**
+     * Scope for incomplete tasks (not finished and not failed)
+     */
+    public function scopeIncomplete($query)
+    {
+        return $query->whereNotIn('status', [
+            self::TASK_STATUS_FINISHED,
+            self::TASK_STATUS_FAILED
+        ]);
+    }
+
+    /**
      * Scope for high priority tasks
      */
     public function scopeHighPriority($query)
@@ -158,7 +169,7 @@ class sTaskModel extends Model
     /**
      * Mark task as finished
      */
-    public function markAsFinished(string $message = null): void
+    public function markAsFinished(?string $message = null): void
     {
         $this->update([
             'status' => self::TASK_STATUS_FINISHED,
@@ -183,7 +194,7 @@ class sTaskModel extends Model
     /**
      * Update task progress
      */
-    public function updateProgress(int $progress, string $message = null): void
+    public function updateProgress(int $progress, ?string $message = null): void
     {
         $this->update([
             'progress' => min(100, max(0, $progress)),
@@ -209,7 +220,7 @@ class sTaskModel extends Model
      */
     public function canRetry(): bool
     {
-        return $this->status === 40 && $this->attempts < $this->max_attempts;
+        return $this->status === self::TASK_STATUS_FAILED && $this->attempts < $this->max_attempts;
     }
 
     /**
@@ -217,7 +228,7 @@ class sTaskModel extends Model
      */
     public function isFinished(): bool
     {
-        return in_array($this->status, [30, 40, 50]);
+        return in_array($this->status, [self::TASK_STATUS_FINISHED, self::TASK_STATUS_FAILED]);
     }
 
     /**
@@ -225,7 +236,7 @@ class sTaskModel extends Model
      */
     public function isRunning(): bool
     {
-        return $this->status === 20;
+        return $this->status === self::TASK_STATUS_RUNNING;
     }
 
     /**
@@ -233,7 +244,7 @@ class sTaskModel extends Model
      */
     public function isPending(): bool
     {
-        return $this->status === 10;
+        return $this->status === self::TASK_STATUS_QUEUED;
     }
 
     /**
@@ -242,11 +253,11 @@ class sTaskModel extends Model
     public function getStatusTextAttribute(): string
     {
         return match($this->status) {
-            10 => 'pending',
-            20 => 'running',
-            30 => 'completed',
-            40 => 'failed',
-            50 => 'cancelled',
+            self::TASK_STATUS_QUEUED => 'pending',
+            self::TASK_STATUS_PREPARING => 'preparing',
+            self::TASK_STATUS_RUNNING => 'running',
+            self::TASK_STATUS_FINISHED => 'completed',
+            self::TASK_STATUS_FAILED => 'failed',
             default => 'unknown',
         };
     }

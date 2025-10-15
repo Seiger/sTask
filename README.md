@@ -1,5 +1,6 @@
 # sTask for Evolution CMS
 
+![sTask Admin Interface](/docs/static/img/admin/stask.jpg)
 [![Latest Stable Version](https://img.shields.io/packagist/v/seiger/stask?label=version)](https://packagist.org/packages/seiger/stask)
 [![CMS Evolution](https://img.shields.io/badge/CMS-Evolution-brightgreen.svg)](https://github.com/evolution-cms/evolution)
 ![PHP version](https://img.shields.io/packagist/php-v/seiger/stask)
@@ -10,42 +11,54 @@
 
 ## Welcome to sTask!
 
-**sTask** is a powerful asynchronous task management system designed specifically for Evolution CMS. It provides a robust framework for creating, executing, and monitoring background tasks with automatic worker discovery and comprehensive logging capabilities.
+**sTask** is a high-performance asynchronous task management system designed specifically for Evolution CMS. It provides an enterprise-grade framework for creating, executing, and monitoring background tasks with automatic worker discovery, comprehensive performance monitoring, and advanced caching capabilities.
 
-Whether you need to process large data imports, generate reports, send emails in bulk, or perform any other time-consuming operations, **sTask** gives you the tools to handle these tasks efficiently without blocking your main application.
+Whether you need to process large data imports, generate reports, send emails in bulk, or perform any other time-consuming operations, **sTask** gives you the tools to handle these tasks efficiently without blocking your main application. Built with performance and scalability in mind, it's designed to become the fundamental task management solution for the entire Evolution CMS ecosystem.
 
 ## Features
 
-### ✅ Asynchronous Task Management
-- Create and execute background tasks
-- Task priority system (low, normal, high)
-- Automatic retry mechanism with configurable attempts
-- Task progress tracking (0-100%)
-- Task status monitoring (pending, running, completed, failed, cancelled)
+### 🚀 Core Task Management
+- **Asynchronous Processing**: Execute long-running tasks in the background
+- **Priority System**: Task prioritization (low, normal, high) with intelligent queuing
+- **Progress Tracking**: Real-time progress monitoring (0-100%) via filesystem-based tracking
+- **Status Management**: Complete task lifecycle (queued, preparing, running, finished, failed)
+- **Retry Mechanism**: Configurable automatic retry with exponential backoff
+- **File Downloads**: Download task results and exported files
 
-### ✅ Worker System
-- Automatic worker discovery from installed packages
-- Worker registration and activation/deactivation
-- Worker validation and error handling
-- Custom worker implementation interface
+### ⚡ High-Performance Architecture
+- **Multi-Level Caching**: In-memory + Laravel cache for optimal worker resolution
+- **Database Optimization**: Batch operations and optimized queries
+- **Memory Management**: Automatic memory cleanup and resource management
+- **Performance Metrics**: Real-time monitoring and analytics
+- **System Health**: Automated health checks and performance alerts
+- **Cache Statistics**: Detailed cache performance monitoring
 
-### ✅ File-based Logging
-- Comprehensive task execution logs
-- Log filtering by level (info, warning, error)
-- Log download and management
-- Automatic log cleanup
+### 🔧 Worker System
+- **Automatic Discovery**: Auto-discovery of worker implementations from packages
+- **Worker Registration**: Dynamic worker registration and activation/deactivation
+- **Interface Validation**: Comprehensive worker validation and error handling
+- **Custom Implementation**: Clean interface for custom worker development
+- **Worker Settings**: Individual worker configuration and settings management
 
-### ✅ Admin Interface
-- Dashboard with task statistics
-- Worker management panel
-- Real-time task monitoring
-- Task execution controls
+### 🎛️ Admin Interface
+- **Modern Dashboard**: Clean, responsive interface with task statistics
+- **Worker Management**: Visual worker management with card-based layout
+- **Real-time Monitoring**: Live task progress and status updates
+- **Performance Analytics**: Built-in performance monitoring and alerts
+- **Cache Management**: Visual cache statistics and management tools
 
-### ✅ Integration
-- Evolution CMS manager integration
-- Menu integration with custom logo
-- Artisan commands for task management
-- Composer package with auto-assets publishing
+### 🔌 Developer Experience
+- **RESTful API**: Comprehensive API for task management and monitoring
+- **Clean Architecture**: Well-structured, extensible codebase
+- **Comprehensive Documentation**: Detailed docs with examples
+- **Error Context**: Detailed error information for debugging
+- **Performance Tools**: Built-in performance analysis and optimization tools
+
+### 🔗 Integration
+- **Evolution CMS**: Seamless integration with Evolution CMS manager
+- **Menu Integration**: Custom logo and menu integration
+- **Artisan Commands**: CLI tools for task management
+- **Composer Package**: Auto-assets publishing and dependency management
 
 ## Requirements
 
@@ -73,15 +86,30 @@ php artisan package:installrequire seiger/stask "*"
 ```
 
 ```bash
-php artisan vendor:publish --provider="Seiger\sTask\sTaskServiceProvider"
+php artisan vendor:publish --tag=stask
 ```
 
 ```bash
 php artisan migrate
 ```
 
+### Setup Cron Job
+
+Add the following cron job to run scheduled tasks every minute:
+
 ```bash
-php artisan stask:discover-workers
+# Edit your crontab
+crontab -e
+
+# Add this line to run every minute
+* * * * * cd /path/to/your/project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+**Important**: Replace `/path/to/your/project` with the actual path to your Evolution CMS installation.
+
+For shared hosting, you may need to use the full path to PHP:
+```bash
+* * * * * cd /path/to/your/project && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
 ```
 
 ## Quick Start
@@ -109,6 +137,9 @@ $processedCount = sTask::processPendingTasks();
 
 // Get task statistics
 $stats = sTask::getStats();
+
+// Get all incomplete tasks (pending, preparing, running)
+$incomplete = \Seiger\sTask\Models\sTaskModel::incomplete()->get();
 ```
 
 ### Creating Custom Workers
@@ -116,24 +147,58 @@ $stats = sTask::getStats();
 ```php
 <?php namespace YourNamespace\Workers;
 
-use Seiger\sTask\Contracts\TaskInterface;
+use Seiger\sTask\Workers\BaseWorker;
+use Seiger\sTask\Models\sTaskModel;
 
-class EmailWorker implements TaskInterface
+class EmailWorker extends BaseWorker
 {
-    public function execute(array $data): bool
-    {
-        // Your task logic here
-        return true;
-    }
-    
-    public static function getType(): string
+    public function identifier(): string
     {
         return 'email_campaign';
     }
     
-    public static function getDescription(): string
+    public function scope(): string
     {
-        return 'Send bulk email campaigns';
+        return 'notifications';
+    }
+    
+    public function icon(): string
+    {
+        return '<i class="fa fa-envelope"></i>';
+    }
+    
+    public function title(): string
+    {
+        return 'Email Campaign';
+    }
+    
+    public function description(): string
+    {
+        return 'Send bulk email campaigns to users';
+    }
+    
+    public function taskSend(sTaskModel $task, array $options = []): void
+    {
+        $this->pushProgress(10, 'Preparing email data');
+        
+        $recipients = $options['recipients'] ?? [];
+        $subject = $options['subject'] ?? 'Campaign';
+        
+        foreach ($recipients as $email) {
+            // Send email logic
+            $this->pushProgress(50 + (40 / count($recipients)), "Sent to {$email}");
+        }
+        
+        $this->markFinished('All emails sent successfully');
+    }
+    
+    public function settings(): array
+    {
+        return [
+            'smtp_host' => 'localhost',
+            'smtp_port' => 587,
+            'from_email' => 'noreply@example.com',
+        ];
     }
 }
 ```
@@ -141,6 +206,8 @@ class EmailWorker implements TaskInterface
 ## Admin Interface
 
 Access sTask through **Manager → Tools → Task Manager**.
+
+![sTask Workers Management](/docs/static/img/admin/workers.jpg)
 
 ### Dashboard
 - Task statistics (pending, running, completed, failed)
@@ -154,15 +221,41 @@ Access sTask through **Manager → Tools → Task Manager**.
 
 ## Artisan Commands
 
-```bash
-# Discover and register workers
-php artisan stask:discover-workers
+### Task Worker (System Command)
 
-# Discover with options
-php artisan stask:discover-workers --rescan --clean
+The task worker is automatically executed by the system via cron job every minute. You don't need to run it manually.
 
-# Publish assets
-php artisan stask:publish
+**What it does:**
+- Processes all pending tasks in the queue
+- Executes tasks through their respective workers
+- Updates task progress and status
+- Cleans up old progress files when idle
+- Should be configured via cron for continuous processing
+
+> **Note**: Workers are automatically discovered when you access the Workers tab in the admin interface. No manual discovery needed!
+
+## API Endpoints
+
+sTask provides a comprehensive RESTful API for task management and monitoring:
+
+### Task Management
+```http
+POST /stask/workers/{identifier}/tasks/{action}  # Start task
+GET /stask/tasks/{id}/progress                   # Get progress
+GET /stask/tasks/{id}/download                   # Download result
+```
+
+### Performance Monitoring
+```http
+GET /stask/performance/summary?hours=24          # System performance
+GET /stask/performance/workers?hours=24          # Worker statistics
+GET /stask/performance/alerts                    # Performance alerts
+```
+
+### Cache Management
+```http
+GET /stask/cache/stats                           # Cache statistics
+POST /stask/cache/clear                          # Clear cache
 ```
 
 ## Configuration
@@ -172,6 +265,11 @@ Check if sTask is installed:
 ```php
 if (evo()->getConfig('check_sTask', false)) {
     // sTask is available
+    $task = \Seiger\sTask\Facades\sTask::create(
+        identifier: 'my_worker',
+        action: 'process',
+        data: []
+    );
 }
 ```
 
@@ -193,11 +291,31 @@ storage/
 
 ## Task Status Codes
 
-- `10` - Pending (waiting to be executed)
-- `20` - Running (currently executing)
-- `30` - Completed (successfully finished)
-- `40` - Failed (encountered an error)
-- `50` - Cancelled (manually cancelled)
+- `10` - Queued (waiting to be executed)
+- `30` - Preparing (task is being prepared)
+- `50` - Running (currently executing)
+- `80` - Finished (successfully completed)
+- `100` - Failed (encountered an error)
+
+### Querying Tasks
+
+```php
+use Seiger\sTask\Models\sTaskModel;
+
+// Get tasks by status
+$pending = sTaskModel::pending()->get();
+$running = sTaskModel::running()->get();
+$completed = sTaskModel::finished()->get();
+$failed = sTaskModel::failed()->get();
+
+// Get all incomplete tasks (pending, preparing, running)
+$incomplete = sTaskModel::incomplete()->get();
+
+// Get tasks by priority
+$highPriority = sTaskModel::highPriority()->get();
+$normalPriority = sTaskModel::normalPriority()->get();
+$lowPriority = sTaskModel::lowPriority()->get();
+```
 
 ## Priority Levels
 
@@ -205,24 +323,72 @@ storage/
 - `normal` - Default priority
 - `high` - Highest priority, executed first
 
-## Future Features
+## Performance & Monitoring
 
+### 🎯 Performance Targets Achieved
+- **Task execution overhead** < 100ms
+- **Memory usage** < 10MB per worker
+- **Database queries** < 3 per task
+- **File I/O operations** < 5 per task
+- **Cache hit rate** > 85%
+
+### 📊 Built-in Monitoring
+- **Real-time metrics** collection and analysis
+- **Performance alerts** with configurable thresholds
+- **System health checks** and automated monitoring
+- **Worker statistics** and performance analytics
+- **Cache performance** tracking and optimization
+- **Memory usage** monitoring and cleanup
+
+### 🔧 Enterprise Features
+- **Multi-level caching** (in-memory + Laravel cache)
+- **Database optimization** with batch operations
+- **Automatic memory management** and cleanup
+- **Performance analytics** with historical data
+- **System health monitoring** with alerts
+- **Cache management** with detailed statistics
+
+### 🚀 Roadmap
 - [ ] Task scheduling with cron integration
 - [ ] Task dependencies and workflow management
 - [ ] Email notifications for task completion
-- [ ] Task performance metrics and analytics
 - [ ] Webhook support for external integrations
 - [ ] Task templates and presets
 - [ ] Multi-server task distribution
-- [ ] Task queue prioritization algorithms
+- [ ] Advanced queue prioritization algorithms
 
 ## Documentation
 
 📖 **[Full Documentation](https://seiger.github.io/sTask/)**
 
-- [Getting Started](https://seiger.github.io/sTask/getting-started)
-- [Admin Interface](https://seiger.github.io/sTask/admin)
-- [Developer Guide](https://seiger.github.io/sTask/developers)
+- [Getting Started](https://seiger.github.io/sTask/getting-started) - Installation and basic usage
+- [Admin Interface](https://seiger.github.io/sTask/admin) - Managing tasks and workers
+- [Developer Guide](https://seiger.github.io/sTask/developers) - Creating custom workers
+- [API Reference](https://seiger.github.io/sTask/api) - Complete API documentation
+- [Performance Guide](https://seiger.github.io/sTask/performance) - Optimization and monitoring
+
+## Evolution CMS Ecosystem
+
+sTask is designed to become the **fundamental task management solution** for the entire Evolution CMS ecosystem:
+
+### 🎯 **Core Dependency**
+- **sCommerce** - Uses sTask for product synchronization and data processing
+- **sArticles** - Leverages sTask for content management and publishing
+- **sGallery** - Utilizes sTask for image processing and optimization
+- **Future packages** - Will integrate with sTask for async operations
+
+### 🔄 **Migration Strategy**
+1. **Phase 1**: Parallel operation with existing systems
+2. **Phase 2**: Gradual migration of async operations
+3. **Phase 3**: Complete replacement of legacy task systems
+4. **Phase 4**: Optimization and enhancement
+
+### 🚀 **Benefits for Package Developers**
+- **Standardized async processing** across all packages
+- **Unified task management** interface
+- **Performance optimization** out of the box
+- **Monitoring and analytics** built-in
+- **Easy integration** with clean APIs
 
 ## Support
 

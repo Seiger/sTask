@@ -1,5 +1,6 @@
 <?php namespace Seiger\sTask\Controllers;
 
+use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
 use Illuminate\Http\Request;
@@ -20,39 +21,19 @@ class sTaskController
      */
     public function index()
     {
-        // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
 
         $data = [
             'tabIcon' => '<i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
             'tabName' => __('sTask::global.dashboard'),
         ];
 
-        $data['tasks'] = sTaskModel::with('user')
-            ->orderBy('created_at', 'desc')
+        $data['tasks'] = sTaskModel::orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
         $data['stats'] = sTaskFacade::getStats();
-
         return view('sTask::dashboard', $data);
-    }
-
-    /**
-     * Show specific task details
-     */
-    public function show(sTaskModel $task)
-    {
-        // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
-
-        $task->load(['user', 'worker']);
-
-        return view('sTask::task-details', compact('task'));
     }
 
     /**
@@ -60,10 +41,7 @@ class sTaskController
      */
     public function create(Request $request)
     {
-        // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
 
         $request->validate([
             'identifier' => 'required|string',
@@ -96,26 +74,11 @@ class sTaskController
     }
 
     /**
-     * Process pending tasks (for cron/manual execution)
-     */
-    public function process()
-    {
-        $processed = sTaskFacade::processPendingTasks();
-
-        return response()->json([
-            'success' => true,
-            'message' => "Processed {$processed} tasks",
-            'processed' => $processed
-        ]);
-    }
-
-    /**
      * Get task statistics
      */
     public function stats()
     {
         $stats = sTaskFacade::getStats();
-
         return response()->json($stats);
     }
 
@@ -125,7 +88,6 @@ class sTaskController
     public function clean(Request $request)
     {
         $days = $request->input('days', 30);
-
         $deletedTasks = sTaskFacade::cleanOldTasks($days);
 
         return response()->json([
@@ -140,12 +102,8 @@ class sTaskController
      */
     public function workers(Request $request)
     {
-        // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
 
-        // Auto-discover new workers (like in sCommerce)
         $this->autoDiscoverWorkers();
 
         $data = [
@@ -167,24 +125,8 @@ class sTaskController
         try {
             sTaskFacade::discoverWorkers();
         } catch (\Exception $e) {
-            // Silently continue if discovery fails
-            \Log::error('Auto-discovery failed: ' . $e->getMessage());
+            Log::error('Auto-discovery failed: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Discover new workers
-     */
-    public function discoverWorkers()
-    {
-        $registered = sTaskFacade::discoverWorkers();
-
-        return response()->json([
-            'success' => true,
-            'message' => "Discovered and registered {count($registered)} new workers",
-            'workers' => $registered,
-            'count' => count($registered)
-        ]);
     }
 
     /**
@@ -202,19 +144,108 @@ class sTaskController
     }
 
     /**
-     * Show worker settings page
+     * Get system performance summary
      */
-    public function workerSettings(Request $request, string $identifier)
+    public function getPerformanceSummary(Request $request)
     {
         // Check permissions
         if (!evo()->hasPermission('stask_access')) {
             abort(403, 'Access denied');
         }
 
-        $worker = sTaskFacade::getWorker($identifier);
-        if (!$worker) {
-            abort(404, 'Worker not found');
+        $hours = (int) $request->input('hours', 24);
+        $metrics = sTaskFacade::getPerformanceMetrics($hours);
+
+        return response()->json([
+            'success' => true,
+            'data' => $metrics,
+        ]);
+    }
+
+    /**
+     * Get worker performance statistics
+     */
+    public function getWorkerStats(Request $request)
+    {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
         }
+
+        $identifier = $request->input('identifier');
+        $hours = (int) $request->input('hours', 24);
+        $stats = sTaskFacade::getWorkerStats($identifier, $hours);
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Get performance alerts
+     */
+    public function getPerformanceAlerts()
+    {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
+        $alerts = sTaskFacade::getPerformanceAlerts();
+
+        return response()->json([
+            'success' => true,
+            'data' => $alerts,
+        ]);
+    }
+
+    /**
+     * Get cache statistics
+     */
+    public function getCacheStats()
+    {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
+        $stats = sTaskFacade::getCacheStats();
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Clear worker cache
+     */
+    public function clearCache(Request $request)
+    {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
+        $identifier = $request->input('identifier');
+        sTaskFacade::clearWorkerCache($identifier);
+
+        return response()->json([
+            'success' => true,
+            'message' => $identifier ? "Cache cleared for worker: {$identifier}" : 'All worker cache cleared',
+        ]);
+    }
+
+    /**
+     * Show worker settings page
+     */
+    public function workerSettings(Request $request, string $identifier)
+    {
+        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
+
+        $worker = sTaskFacade::getWorker($identifier);
+        if (!$worker) {abort(404, 'Worker not found');}
 
         $data = [
             'tabIcon' => '<i data-lucide="settings" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',

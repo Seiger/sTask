@@ -5,6 +5,8 @@ use Illuminate\Support\Collection;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Services\WorkerDiscovery;
+use Seiger\sTask\Services\WorkerService;
+use Seiger\sTask\Services\MetricsService;
 use Seiger\sTask\Contracts\TaskInterface;
 
 /**
@@ -20,6 +22,28 @@ use Seiger\sTask\Contracts\TaskInterface;
 class sTask
 {
     /**
+     * Worker service instance
+     *
+     * @var WorkerService
+     */
+    private WorkerService $workerService;
+
+    /**
+     * Metrics service instance
+     *
+     * @var MetricsService
+     */
+    private MetricsService $metricsService;
+
+    /**
+     * sTask constructor
+     */
+    public function __construct()
+    {
+        $this->workerService = app(WorkerService::class);
+        $this->metricsService = app(MetricsService::class);
+    }
+    /**
      * Create a new task
      *
      * @param string $identifier Worker identifier
@@ -29,7 +53,7 @@ class sTask
      * @param int $userId User ID who initiated the task
      * @return sTaskModel
      */
-    public function create(string $identifier, string $action, array $data = [], string $priority = 'normal', int $userId = null): sTaskModel
+    public function create(string $identifier, string $action, array $data = [], string $priority = 'normal', ?int $userId = null): sTaskModel
     {
         return sTaskModel::create([
             'identifier' => $identifier,
@@ -53,23 +77,29 @@ class sTask
     public function execute(sTaskModel $task): bool
     {
         try {
+            // Record task start metrics
+            $this->metricsService->recordTaskStart($task);
+            
             // Mark task as running
             $task->markAsRunning();
 
-            // Get worker for this task identifier
-            $worker = $this->resolveWorker($task->identifier);
-
-            if (!$worker) {
-                throw new \Exception("Worker for identifier '{$task->identifier}' not found");
-            }
+            // Get worker for this task identifier using optimized service
+            $worker = $this->workerService->resolveWorker($task->identifier);
 
             // Invoke the action method
             $worker->invokeAction($task->action, $task, $task->meta);
 
-            $task->markAsCompleted('Task completed successfully');
+            $task->markAsFinished('Task completed successfully');
+            
+            // Record successful completion metrics
+            $this->metricsService->recordTaskEnd($task, true);
+            
             return true;
         } catch (\Exception $e) {
             $task->markAsFailed($e->getMessage());
+            
+            // Record failed completion metrics
+            $this->metricsService->recordTaskEnd($task, false, $e->getMessage());
 
             // If max attempts reached, mark as failed permanently
             if ($task->attempts >= $task->max_attempts) {
@@ -110,7 +140,7 @@ class sTask
      * @param int $batchSize
      * @return int Number of processed tasks
      */
-    public function processPendingTasks(int $batchSize = null): int
+    public function processPendingTasks(?int $batchSize = null): int
     {
         $batchSize = $batchSize ?? 10;
         $processed = 0;
@@ -134,13 +164,68 @@ class sTask
     public function getStats(): array
     {
         return [
-            'pending' => sTaskModel::where('status', 10)->count(),
-            'running' => sTaskModel::where('status', 20)->count(),
-            'completed' => sTaskModel::where('status', 30)->count(),
-            'failed' => sTaskModel::where('status', 40)->count(),
-            'cancelled' => sTaskModel::where('status', 50)->count(),
+            'pending' => sTaskModel::queued()->count(),
+            'running' => sTaskModel::running()->count(),
+            'completed' => sTaskModel::finished()->count(),
+            'failed' => sTaskModel::failed()->count(),
             'total' => sTaskModel::count(),
+            'total_workers' => sWorker::count(),
+            'active_workers' => sWorker::active()->count(),
         ];
+    }
+
+    /**
+     * Get performance metrics
+     *
+     * @param int $hours Number of hours to analyze
+     * @return array Performance metrics
+     */
+    public function getPerformanceMetrics(int $hours = 24): array
+    {
+        return $this->metricsService->getSystemSummary($hours);
+    }
+
+    /**
+     * Get worker performance statistics
+     *
+     * @param string|null $identifier Specific worker identifier
+     * @param int $hours Number of hours to analyze
+     * @return array Worker statistics
+     */
+    public function getWorkerStats(?string $identifier = null, int $hours = 24): array
+    {
+        return $this->metricsService->getWorkerStats($identifier, $hours);
+    }
+
+    /**
+     * Get performance alerts
+     *
+     * @return array Performance alerts
+     */
+    public function getPerformanceAlerts(): array
+    {
+        return $this->metricsService->getPerformanceAlerts();
+    }
+
+    /**
+     * Get worker service cache statistics
+     *
+     * @return array Cache statistics
+     */
+    public function getCacheStats(): array
+    {
+        return $this->workerService->getCacheStats();
+    }
+
+    /**
+     * Clear worker cache
+     *
+     * @param string|null $identifier Worker identifier to clear, or null for all
+     * @return void
+     */
+    public function clearWorkerCache(?string $identifier = null): void
+    {
+        $this->workerService->clearCache($identifier);
     }
 
     /**
@@ -153,8 +238,8 @@ class sTask
     {
         $cutoff = now()->subDays($days);
 
-        return sTaskModel::where('status', 30) // completed
-        ->where('finished_at', '<', $cutoff)
+        return sTaskModel::finished()
+            ->where('finished_at', '<', $cutoff)
             ->delete();
     }
 

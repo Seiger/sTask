@@ -34,7 +34,7 @@ php artisan package:installrequire seiger/stask "*"
 ### Step 4: Publish Assets
 
 ```console
-php artisan vendor:publish --provider="Seiger\sTask\sTaskServiceProvider"
+php artisan vendor:publish --tag=stask
 ```
 
 This command will publish:
@@ -54,19 +54,68 @@ This creates two database tables:
 
 It also creates the `stask_access` permission for controlling access to the sTask interface.
 
-### Step 6: Setup Task Worker
+## Key Features
 
-The task worker command processes pending tasks automatically. Add it to your cron or task scheduler:
+### Core Features
+- **Asynchronous Task Processing**: Execute long-running tasks in the background
+- **Worker System**: Extensible worker architecture for different task types
+- **Progress Tracking**: Real-time progress monitoring via filesystem-based tracking
+- **Task Management**: Complete task lifecycle management (create, execute, monitor, retry)
+- **Admin Interface**: Built-in administrative interface for task management
+- **API Integration**: RESTful API for task operations
+- **Automatic Discovery**: Auto-discovery of worker implementations
+- **File Downloads**: Download task results and exported files
+- **Error Handling**: Comprehensive error handling and retry mechanisms
 
-```console
-php artisan stask:worker
+### Performance Features
+- **High-Performance Caching**: Multi-level worker caching (in-memory + Laravel cache)
+- **Optimized Database Queries**: Batch operations and query optimization
+- **Memory Management**: Automatic memory cleanup and resource management
+- **Performance Metrics**: Real-time performance monitoring and analytics
+- **Cache Statistics**: Detailed cache performance metrics
+- **System Health Monitoring**: Automated health checks and alerts
+
+### Developer Features
+- **Clean API Design**: Consistent and intuitive API endpoints
+- **Comprehensive Documentation**: Detailed documentation with examples
+- **Error Context**: Detailed error information for debugging
+- **Performance Analytics**: Built-in performance analysis tools
+- **Cache Management**: API endpoints for cache control and monitoring
+
+### Step 6: Setup Cron Job
+
+The task worker processes pending tasks automatically. You need to configure a cron job to run it every minute:
+
+#### For Linux/Unix systems:
+
+```bash
+# Edit your crontab
+crontab -e
+
+# Add this line to run every minute
+* * * * * cd /path/to/your/project && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-For continuous processing, add to your crontab:
+#### For shared hosting:
 
-```cron
-* * * * * cd /path/to/your/project && php artisan stask:worker >> /dev/null 2>&1
+You may need to use the full path to PHP:
+
+```bash
+* * * * * cd /path/to/your/project && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
 ```
+
+#### For cPanel:
+
+1. Go to **Cron Jobs** in your cPanel
+2. Add a new cron job with these settings:
+   - **Minute**: `*`
+   - **Hour**: `*`
+   - **Day**: `*`
+   - **Month**: `*`
+   - **Weekday**: `*`
+   - **Command**: `cd /home/username/public_html && php artisan schedule:run >> /dev/null 2>&1`
+
+**Important**: Replace `/path/to/your/project` with the actual path to your Evolution CMS installation.
 
 > **Note:** Workers are automatically discovered when you access the Workers tab in the admin interface. No manual discovery needed!
 
@@ -134,7 +183,7 @@ echo "Started by: User #{$task->started_by}\n";
 
 ### 3. Process Pending Tasks
 
-Tasks are automatically processed by the worker command (`php artisan stask:worker`), but you can also process them programmatically:
+Tasks are automatically processed by the scheduled worker command, but you can also process them programmatically:
 
 ```php
 // Process all pending tasks
@@ -368,6 +417,10 @@ $deleted = sTaskModel::failed()
     ->delete();
 
 echo "Deleted {$deleted} old failed tasks\n";
+
+// Get all incomplete tasks (pending, preparing, running)
+$incomplete = sTaskModel::incomplete()->get();
+echo "Found " . count($incomplete) . " incomplete tasks\n";
 ```
 
 
@@ -375,32 +428,182 @@ echo "Deleted {$deleted} old failed tasks\n";
 
 ### Task Worker
 
-```console
-# Process pending tasks
-php artisan stask:worker
-```
+The task worker is automatically executed by the system via cron job every minute. You don't need to run it manually.
 
 **What it does:**
 - Processes all pending tasks in the queue
 - Executes tasks through their respective workers
 - Updates task progress and status
 - Cleans up old progress files when idle
-- Should be run via cron every minute for continuous processing
+- Should be configured via cron for continuous processing (see Setup section)
 
-### Publish Assets
+> **Note**: Workers are automatically discovered when you access the Workers tab in the admin interface. No manual discovery needed!
 
-```console
-# Publish or update assets
-php artisan stask:publish
+## API Endpoints
+
+sTask provides a comprehensive RESTful API for task management and monitoring.
+
+### Task Management
+
+#### Start Task
+```http
+POST /stask/workers/{identifier}/tasks/{action}
+Content-Type: application/json
+X-CSRF-TOKEN: {csrf_token}
+
+{
+    "force": true,
+    "batch_size": 100
+}
 ```
 
-This command republishes all package assets:
-- CSS files
-- JavaScript files
-- Images and icons
-- Configuration files
+**Response:**
+```json
+{
+    "success": true,
+    "id": 123,
+    "message": "Task created successfully"
+}
+```
 
-Use this after package updates to get the latest assets.
+#### Get Task Progress
+```http
+GET /stask/tasks/{id}/progress
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "code": 200,
+    "id": 123,
+    "status": "running",
+    "progress": 45,
+    "message": "Processing items...",
+    "eta": "2m 30s"
+}
+```
+
+#### Download Task Result
+```http
+GET /stask/tasks/{id}/download
+```
+
+Returns the result file for completed tasks.
+
+### Performance Monitoring
+
+#### Get System Performance
+```http
+GET /stask/performance/summary?hours=24
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "period": {
+        "hours": 24,
+        "from": "2025-01-15T00:00:00Z",
+        "to": "2025-01-16T00:00:00Z"
+    },
+    "tasks": {
+        "total": 150,
+        "completed": 142,
+        "failed": 5,
+        "running": 2,
+        "queued": 1
+    },
+    "performance": {
+        "success_rate": 94.67,
+        "average_duration": 45.2,
+        "average_memory": 15728640
+    }
+}
+```
+
+#### Get Worker Statistics
+```http
+GET /stask/performance/workers?hours=24
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "workers": {
+        "product_sync": {
+            "identifier": "product_sync",
+            "total_tasks": 50,
+            "success_rate": 96.0,
+            "average_duration": 30.5,
+            "last_execution": "2025-01-16T10:30:00Z"
+        }
+    }
+}
+```
+
+#### Get Performance Alerts
+```http
+GET /stask/performance/alerts
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "alerts": [
+        {
+            "type": "low_success_rate",
+            "severity": "warning",
+            "message": "Task success rate is below threshold: 92%",
+            "value": 92,
+            "threshold": 95
+        }
+    ]
+}
+```
+
+### Cache Management
+
+#### Get Cache Statistics
+```http
+GET /stask/cache/stats
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "cache_stats": {
+        "hits": 1250,
+        "misses": 150,
+        "evictions": 25,
+        "hit_rate": 89.29,
+        "cache_size": 75,
+        "memory_usage": 52428800
+    }
+}
+```
+
+#### Clear Cache
+```http
+POST /stask/cache/clear
+Content-Type: application/json
+X-CSRF-TOKEN: {csrf_token}
+
+{
+    "identifier": "product_sync"  // Optional: clear specific worker cache
+}
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Cache cleared successfully"
+}
+```
 
 ## Configuration Check
 

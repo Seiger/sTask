@@ -35,10 +35,12 @@ return [
     
     // Statuses
     'pending' => 'Очікує',
+    'preparing' => 'Підготовка',
     'running' => 'Виконується',
     'completed' => 'Завершено',
     'failed' => 'Помилка',
     'cancelled' => 'Скасовано',
+    'unknown' => 'Невідомо',
     
     // Workers
     'identifier' => 'Ідентифікатор',
@@ -59,8 +61,12 @@ return [
     'worker_statistics' => 'Статистика Воркера',
     'worker_actions' => 'Дії Воркера',
     'worker_class' => 'Клас Воркера',
-    'created' => 'Створено',
     'back_to_workers' => 'Назад до Воркерів',
+    
+    // Worker errors
+    'worker_not_found_or_inactive' => 'Воркер не знайдено або неактивний: :identifier',
+    'worker_class_not_found' => 'Клас воркера не знайдено: :className',
+    'worker_must_implement_TaskInterface' => 'Воркер повинен імплементувати TaskInterface: :className',
 
     // Permissions
     'permissions_group' => 'sTask',
@@ -76,8 +82,19 @@ return [
     'error' => 'Виникла помилка',
     'done' => 'Готово',
     'task_queued' => 'Завдання в черзі',
+    'task_created' => 'Завдання успішно створено',
     'process_tasks' => 'Обробити Завдання',
     'clean_old_tasks' => 'Очистити Старі Завдання',
-    'clean_orphaned' => 'Очистити Orphaned',
-    'scope' => 'Область',
+    'clean_orphaned' => 'Очистити Осиротілі',
+    
+    // File upload
+    'file_too_large' => 'Файл занадто великий',
+    'chunk_upload' => 'Завантаження частинами',
+    'chunks' => 'частин',
+    'uploading_file' => 'Завантаження',
+    'upload_failed' => 'Помилка завантаження',
+    
+    // Default widget
+    'idle' => 'Очікує',
+    'default_widget_description' => 'Це віджет за замовчуванням. Перевизначте метод renderWidget() у вашому воркері для створення власного інтерфейсу.',
 ];

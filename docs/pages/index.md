@@ -48,6 +48,7 @@ efficiently without blocking your main application.
 - **Multiple actions per worker** - One worker can handle multiple task types
 - **Scope-based organization** - Filter workers by module/package
 - **Custom worker implementation** - Extend `BaseWorker` for custom logic
+- **Advanced querying** - Built-in scopes for task filtering (`pending`, `running`, `incomplete`, etc.)
 
 ### ✅ File-based Logging
 - **Comprehensive task execution logs** - Detailed logs for each task
@@ -80,41 +81,41 @@ efficiently without blocking your main application.
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     sTask Architecture                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────┐      ┌──────────────┐                    │
-│  │   Workers    │      │    Tasks     │                    │
-│  ├──────────────┤      ├──────────────┤                    │
-│  │ Product      │─────>│ Import CSV   │                    │
-│  │ Email        │─────>│ Send Campaign│                    │
-│  │ Report       │─────>│ Generate PDF │                    │
-│  │ Cleanup      │─────>│ Archive Data │                    │
-│  └──────────────┘      └──────────────┘                    │
-│         │                      │                             │
-│         v                      v                             │
-│  ┌──────────────────────────────────┐                      │
-│  │       BaseWorker Class            │                      │
-│  ├───────────────────────────────────┤                      │
-│  │ - createTask()                    │                      │
-│  │ - invokeAction()                  │                      │
-│  │ - pushProgress()                  │                      │
-│  │ - markFinished()                  │                      │
-│  │ - markFailed()                    │                      │
-│  └──────────────────────────────────┘                      │
-│         │                      │                             │
-│         v                      v                             │
-│  ┌──────────────┐      ┌──────────────┐                    │
-│  │  Progress    │      │    Logs      │                    │
-│  │  Tracking    │      │   System     │                    │
-│  ├──────────────┤      ├──────────────┤                    │
-│  │ storage/     │      │ storage/     │                    │
-│  │ stask/       │      │ stask/       │                    │
-│  │ {id}.json    │      │ {id}.log     │                    │
-│  └──────────────┘      └──────────────┘                    │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│            sTask Architecture            │
+├──────────────────────────────────────────┤
+│                                          │
+│  ┌──────────────┐      ┌──────────────┐  │
+│  │   Workers    │      │    Tasks     │  │
+│  ├──────────────┤      ├──────────────┤  │
+│  │ Product      │─────>│ Import CSV   │  │
+│  │ Email        │─────>│ Send Campaign│  │
+│  │ Report       │─────>│ Generate PDF │  │
+│  │ Cleanup      │─────>│ Archive Data │  │
+│  └──────────────┘      └──────────────┘  │
+│         │                      │         │
+│         v                      v         │
+│   ┌──────────────────────────────────┐   │
+│   │       BaseWorker Class           │   │
+│   ├──────────────────────────────────┤   │
+│   │ - createTask()                   │   │
+│   │ - invokeAction()                 │   │
+│   │ - pushProgress()                 │   │
+│   │ - markFinished()                 │   │
+│   │ - markFailed()                   │   │
+│   └──────────────────────────────────┘   │
+│         │                      │         │
+│         v                      v         │
+│  ┌──────────────┐      ┌──────────────┐  │
+│  │  Progress    │      │    Logs      │  │
+│  │  Tracking    │      │   System     │  │
+│  ├──────────────┤      ├──────────────┤  │
+│  │ storage/     │      │ storage/     │  │
+│  │ stask/       │      │ stask/       │  │
+│  │ {id}.json    │      │ {id}.log     │  │
+│  └──────────────┘      └──────────────┘  │
+│                                          │
+└──────────────────────────────────────────┘
 ```
 
 ## Quick Example
@@ -188,6 +189,10 @@ $processed = sTask::processPendingTasks();
 if ($task->fresh()->isFinished()) {
     echo "Import completed!\n";
 }
+
+// Get all incomplete tasks
+$incompleteTasks = \Seiger\sTask\Models\sTaskModel::incomplete()->get();
+echo "Found " . count($incompleteTasks) . " incomplete tasks\n";
 ```
 
 ## Use Cases
@@ -233,13 +238,13 @@ if ($task->fresh()->isFinished()) {
 cd core
 composer update
 php artisan package:installrequire seiger/stask "*"
-php artisan vendor:publish --provider="Seiger\sTask\sTaskServiceProvider"
+php artisan vendor:publish --tag=stask
 php artisan migrate
 ```
 
 Setup cron for task processing:
 ```cron
-* * * * * cd /path/to/your/project && php artisan stask:worker >> /dev/null 2>&1
+* * * * * cd /path/to/your/project && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 See **[Getting Started](./getting-started.md)** for detailed installation instructions.
@@ -312,10 +317,3 @@ sTask is open-source software licensed under the [MIT license](https://opensourc
 ## Credits
 
 Developed and maintained by [Seiger](https://github.com/Seiger).
-
-Built with:
-- [Evolution CMS](https://github.com/evolution-cms/evolution)
-- [Laravel Components](https://laravel.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Alpine.js](https://alpinejs.dev/)
-- [Lucide Icons](https://lucide.dev/)
