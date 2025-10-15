@@ -5,14 +5,14 @@ slug: /
 sidebar_position: 1
 ---
 
-![sTask Admin Interface](/docs/static/img/admin/stask.jpg)
-[![Остання стабільна версія](https://img.shields.io/packagist/v/seiger/stask?label=version)](https://packagist.org/packages/seiger/stask)
+![sTask](https://github.com/user-attachments/assets/1431d4ab-c2ab-4b16-b14d-ceb49227930b)
+[![Latest Stable Version](https://img.shields.io/packagist/v/seiger/stask?label=version)](https://packagist.org/packages/seiger/stask)
 [![CMS Evolution](https://img.shields.io/badge/CMS-Evolution-brightgreen.svg)](https://github.com/evolution-cms/evolution)
-![PHP версія](https://img.shields.io/packagist/php-v/seiger/stask)
-[![Ліцензія](https://img.shields.io/packagist/l/seiger/stask)](https://packagist.org/packages/seiger/stask)
-[![Проблеми](https://img.shields.io/github/issues/Seiger/stask)](https://github.com/Seiger/stask/issues)
-[![Зірки](https://img.shields.io/packagist/stars/Seiger/stask)](https://packagist.org/packages/seiger/stask)
-[![Загальна кількість завантажень](https://img.shields.io/packagist/dt/seiger/stask)](https://packagist.org/packages/seiger/stask)
+![PHP version](https://img.shields.io/packagist/php-v/seiger/stask)
+[![License](https://img.shields.io/packagist/l/seiger/stask)](https://packagist.org/packages/seiger/stask)
+[![Issues](https://img.shields.io/github/issues/Seiger/stask)](https://github.com/Seiger/stask/issues)
+[![Stars](https://img.shields.io/packagist/stars/Seiger/stask)](https://packagist.org/packages/seiger/stask)
+[![Total Downloads](https://img.shields.io/packagist/dt/seiger/stask)](https://packagist.org/packages/seiger/stask)
 
 ## Ласкаво просимо до sTask!
 

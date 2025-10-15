@@ -5,7 +5,7 @@ slug: /
 sidebar_position: 1
 ---
 
-![sTask Admin Interface](/docs/static/img/admin/stask.jpg)
+![sTask](https://github.com/user-attachments/assets/1431d4ab-c2ab-4b16-b14d-ceb49227930b)
 [![Latest Stable Version](https://img.shields.io/packagist/v/seiger/stask?label=version)](https://packagist.org/packages/seiger/stask)
 [![CMS Evolution](https://img.shields.io/badge/CMS-Evolution-brightgreen.svg)](https://github.com/evolution-cms/evolution)
 ![PHP version](https://img.shields.io/packagist/php-v/seiger/stask)
