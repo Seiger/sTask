@@ -53,10 +53,23 @@ return [
     'discover_workers' => 'Discover Workers',
     'discover_workers_confirm' => 'Scan system for new workers?',
     'no_workers_found' => 'No workers found. Add your own worker or install a package with corresponding implementations.',
+    'add_worker_or_install_package' => 'Add your own worker or install a package with corresponding implementations.',
+    'worker_description' => 'Task worker for processing background jobs.',
+    'worker_settings' => 'Worker Settings',
+    'worker_statistics' => 'Worker Statistics',
+    'worker_actions' => 'Worker Actions',
+    'worker_class' => 'Worker Class',
+    'created' => 'Created',
+    'back_to_workers' => 'Back to Workers',
 
     // Permissions
     'permissions_group' => 'sTask',
     'permission_access' => 'Access sTask Interface',
+    
+    // Widget
+    'run_task' => 'Run Task',
+    'settings' => 'Settings',
+    'scope' => 'Scope',
     
     // Common
     'refresh' => 'Refresh',

@@ -41,7 +41,6 @@ return new class extends Migration {
             ]
         );
 
-        // Assign permission to administrator role (role_id = 1)
         RolePermissions::firstOrCreate([
             'role_id' => 1,
             'permission' => 'stask_access',

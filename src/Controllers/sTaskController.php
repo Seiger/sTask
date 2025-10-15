@@ -88,6 +88,14 @@ class sTaskController
     }
 
     /**
+     * Store a new task (alias for create)
+     */
+    public function store(Request $request)
+    {
+        return $this->create($request);
+    }
+
+    /**
      * Process pending tasks (for cron/manual execution)
      */
     public function process()
@@ -191,6 +199,30 @@ class sTaskController
             'message' => "Removed {$deleted} orphaned workers",
             'deleted' => $deleted
         ]);
+    }
+
+    /**
+     * Show worker settings page
+     */
+    public function workerSettings(Request $request, string $identifier)
+    {
+        // Check permissions
+        if (!evo()->hasPermission('stask_access')) {
+            abort(403, 'Access denied');
+        }
+
+        $worker = sTaskFacade::getWorker($identifier);
+        if (!$worker) {
+            abort(404, 'Worker not found');
+        }
+
+        $data = [
+            'tabIcon' => '<i data-lucide="settings" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
+            'tabName' => __('sTask::global.worker_settings'),
+            'worker' => $worker,
+        ];
+
+        return view('sTask::workerSettings', $data);
     }
 
     /**

@@ -1,6 +1,5 @@
 <?php namespace Seiger\sTask;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 use Seiger\sTask\Models\sTaskModel;
@@ -38,7 +37,7 @@ class sTask
             'meta' => $data,
             'priority' => $priority,
             'started_by' => $userId,
-            'status' => 10, // pending
+            'status' => sTaskModel::TASK_STATUS_QUEUED,
             'progress' => 0,
             'attempts' => 0,
             'max_attempts' => 3,
@@ -69,7 +68,6 @@ class sTask
 
             $task->markAsCompleted('Task completed successfully');
             return true;
-
         } catch (\Exception $e) {
             $task->markAsFailed($e->getMessage());
 
@@ -159,7 +157,6 @@ class sTask
         ->where('finished_at', '<', $cutoff)
             ->delete();
     }
-
 
     /**
      * Resolve worker class for task identifier
@@ -307,7 +304,3 @@ class sTask
         return $worker->save();
     }
 }
-
-
-
-

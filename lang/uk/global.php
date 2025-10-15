@@ -53,10 +53,23 @@ return [
     'discover_workers' => 'Знайти Воркери',
     'discover_workers_confirm' => 'Просканувати систему на нові воркери?',
     'no_workers_found' => 'Воркери не знайдені. Додайте власний воркер або інсталюйте пакет з відповідними реалізаціями.',
+    'add_worker_or_install_package' => 'Додайте власний воркер або інсталюйте пакет з відповідними реалізаціями.',
+    'worker_description' => 'Воркер завдань для обробки фонових операцій.',
+    'worker_settings' => 'Налаштування Воркера',
+    'worker_statistics' => 'Статистика Воркера',
+    'worker_actions' => 'Дії Воркера',
+    'worker_class' => 'Клас Воркера',
+    'created' => 'Створено',
+    'back_to_workers' => 'Назад до Воркерів',
 
     // Permissions
     'permissions_group' => 'sTask',
     'permission_access' => 'Доступ до інтерфейсу sTask',
+    
+    // Widget
+    'run_task' => 'Запустити завдання',
+    'settings' => 'Налаштування',
+    'scope' => 'Область',
     
     // Common
     'refresh' => 'Оновити',

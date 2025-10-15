@@ -15,8 +15,15 @@ use EvolutionCMS\Models\User;
  */
 class sTaskModel extends Model
 {
+    // Task status constants
+    public const TASK_STATUS_QUEUED = 10;      // Task is queued for execution
+    public const TASK_STATUS_PREPARING = 30;   // Task is being prepared
+    public const TASK_STATUS_RUNNING = 50;     // Task is currently running
+    public const TASK_STATUS_FINISHED = 80;    // Task completed successfully
+    public const TASK_STATUS_FAILED = 100;     // Task failed with error
+
     protected $table = 's_tasks';
-    
+
     protected $fillable = [
         'identifier',
         'action',
@@ -57,11 +64,19 @@ class sTaskModel extends Model
     }
 
     /**
-     * Scope for pending tasks
+     * Scope for queued tasks
      */
-    public function scopePending($query)
+    public function scopeQueued($query)
     {
-        return $query->where('status', 10);
+        return $query->where('status', self::TASK_STATUS_QUEUED);
+    }
+
+    /**
+     * Scope for preparing tasks
+     */
+    public function scopePreparing($query)
+    {
+        return $query->where('status', self::TASK_STATUS_PREPARING);
     }
 
     /**
@@ -69,15 +84,15 @@ class sTaskModel extends Model
      */
     public function scopeRunning($query)
     {
-        return $query->where('status', 20);
+        return $query->where('status', self::TASK_STATUS_RUNNING);
     }
 
     /**
-     * Scope for completed tasks
+     * Scope for finished tasks
      */
-    public function scopeCompleted($query)
+    public function scopeFinished($query)
     {
-        return $query->where('status', 30);
+        return $query->where('status', self::TASK_STATUS_FINISHED);
     }
 
     /**
@@ -85,15 +100,7 @@ class sTaskModel extends Model
      */
     public function scopeFailed($query)
     {
-        return $query->where('status', 40);
-    }
-
-    /**
-     * Scope for cancelled tasks
-     */
-    public function scopeCancelled($query)
-    {
-        return $query->where('status', 50);
+        return $query->where('status', self::TASK_STATUS_FAILED);
     }
 
     /**
@@ -142,19 +149,19 @@ class sTaskModel extends Model
     public function markAsRunning(): void
     {
         $this->update([
-            'status' => 20,
+            'status' => self::TASK_STATUS_RUNNING,
             'start_at' => now(),
             'attempts' => $this->attempts + 1,
         ]);
     }
 
     /**
-     * Mark task as completed
+     * Mark task as finished
      */
-    public function markAsCompleted(string $message = null): void
+    public function markAsFinished(string $message = null): void
     {
         $this->update([
-            'status' => 30,
+            'status' => self::TASK_STATUS_FINISHED,
             'progress' => 100,
             'finished_at' => now(),
             'message' => $message ?? 'Task completed successfully',
@@ -167,21 +174,9 @@ class sTaskModel extends Model
     public function markAsFailed(string $message): void
     {
         $this->update([
-            'status' => 40,
+            'status' => self::TASK_STATUS_FAILED,
             'finished_at' => now(),
             'message' => $message,
-        ]);
-    }
-
-    /**
-     * Mark task as cancelled
-     */
-    public function markAsCancelled(string $message = null): void
-    {
-        $this->update([
-            'status' => 50,
-            'finished_at' => now(),
-            'message' => $message ?? 'Task cancelled',
         ]);
     }
 
@@ -256,5 +251,3 @@ class sTaskModel extends Model
         };
     }
 }
-
-

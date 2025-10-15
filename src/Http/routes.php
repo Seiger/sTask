@@ -12,6 +12,7 @@ Route::middleware(['mgr'])->group(function () {
         
         // Task management
         Route::post('/tasks', [sTaskController::class, 'create'])->name('tasks.create');
+        Route::post('/tasks/store', [sTaskController::class, 'store'])->name('tasks.store');
         Route::get('/tasks/{task}', [sTaskController::class, 'show'])->name('tasks.show');
         
         // System operations
@@ -20,6 +21,7 @@ Route::middleware(['mgr'])->group(function () {
         
         // Workers management
         Route::get('/workers', [sTaskController::class, 'workers'])->name('workers.index');
+        Route::get('/workers/{identifier}/settings', [sTaskController::class, 'workerSettings'])->name('workers.settings');
         Route::post('/workers/discover', [sTaskController::class, 'discoverWorkers'])->name('workers.discover');
         Route::post('/workers/clean-orphaned', [sTaskController::class, 'cleanOrphanedWorkers'])->name('workers.clean');
         Route::post('/workers/activate', [sTaskController::class, 'activateWorker'])->name('workers.activate');

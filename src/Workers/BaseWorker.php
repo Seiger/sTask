@@ -77,6 +77,38 @@ abstract class BaseWorker implements TaskInterface
     }
 
     /**
+     * Render the worker widget for the administrative interface.
+     *
+     * This method provides a default widget rendering implementation that can be
+     * overridden in concrete worker classes for custom widget layouts. The default
+     * widget includes basic worker information and a standard action button layout.
+     *
+     * The widget includes:
+     * - Worker identification (icon, title, description)
+     * - Available actions as buttons
+     * - Worker settings and status
+     * - Standard layout and styling
+     *
+     * Override this method in concrete workers to provide custom widget functionality,
+     * additional controls, or specialized interfaces.
+     *
+     * @return string HTML content for the worker widget
+     */
+    public function renderWidget(): string
+    {
+        return view('sTask::partials.defaultWorkerWidget', [
+            'worker' => $this->worker,
+            'identifier' => $this->identifier(),
+            'scope' => $this->scope(),
+            'icon' => $this->icon(),
+            'title' => $this->title(),
+            'description' => $this->description(),
+            'settings' => $this->settings(),
+            'class' => static::class,
+        ])->render();
+    }
+
+    /**
      * Create a new worker task and initialize progress tracking.
      *
      * This method creates a new sTaskModel record with the specified action and options,
@@ -106,7 +138,7 @@ abstract class BaseWorker implements TaskInterface
         $task = sTaskModel::create([
             'identifier' => $this->identifier(),
             'action'     => $action,
-            'status'     => 10, // pending
+            'status'     => sTaskModel::TASK_STATUS_QUEUED,
             'message'    => '_' . __('sTask::global.task_queued') . '..._',
             'started_by' => $startedBy,
             'meta'       => $options,
@@ -207,7 +239,7 @@ abstract class BaseWorker implements TaskInterface
     /**
      * Mark task as finished with optional result file path and custom message.
      *
-     * This method finalizes a task by updating its status to completed (30), setting the
+     * This method finalizes a task by updating its status to finished, setting the
      * finished timestamp, and optionally providing a result file path and custom message.
      * It also pushes a final progress update to the TaskProgress system.
      *
@@ -219,14 +251,14 @@ abstract class BaseWorker implements TaskInterface
     protected function markFinished(sTaskModel $task, ?string $result = null, ?string $message = null): void
     {
         $task->update([
-            'status' => 30, // completed
+            'status' => sTaskModel::TASK_STATUS_FINISHED,
             'message' => $message ?? __('sTask::global.done'),
             'result' => $result,
             'finished_at' => now(),
         ]);
 
         $this->pushProgress($task, [
-            'status' => 'completed',
+            'status' => 'finished',
             'progress' => 100,
             'message' => $message ?? __('sTask::global.done'),
             'result' => $result,
@@ -236,7 +268,7 @@ abstract class BaseWorker implements TaskInterface
     /**
      * Mark task as failed with error message.
      *
-     * This method finalizes a task by updating its status to failed (40), setting the
+     * This method finalizes a task by updating its status to failed, setting the
      * finished timestamp, and providing an error message. It also pushes a final
      * progress update to the TaskProgress system with the error information.
      *
@@ -247,7 +279,7 @@ abstract class BaseWorker implements TaskInterface
     protected function markFailed(sTaskModel $task, string $message): void
     {
         $task->update([
-            'status' => 40, // failed
+            'status' => sTaskModel::TASK_STATUS_FAILED,
             'message' => $message,
             'finished_at' => now(),
         ]);
@@ -257,37 +289,4 @@ abstract class BaseWorker implements TaskInterface
             'message' => $message,
         ]);
     }
-
-    /**
-     * Format ETA seconds into human-readable format.
-     *
-     * Converts seconds into a user-friendly time format:
-     * - Less than 60 seconds: "45s"
-     * - Less than 1 hour: "5m 30s"
-     * - 1 hour or more: "2h 15m"
-     *
-     * @param float $seconds Number of seconds to format
-     * @return string Human-readable time format
-     * 
-     * @example
-     * $this->formatEta(45.5);     // "46s"
-     * $this->formatEta(150);      // "2m 30s"
-     * $this->formatEta(3600);     // "1h 0m"
-     * $this->formatEta(8100);     // "2h 15m"
-     */
-    protected function formatEta(float $seconds): string
-    {
-        if ($seconds < 60) {
-            return sprintf('%.0fs', $seconds);
-        } elseif ($seconds < 3600) {
-            $minutes = floor($seconds / 60);
-            $remainingSeconds = $seconds % 60;
-            return sprintf('%.0fm %.0fs', $minutes, $remainingSeconds);
-        } else {
-            $hours = floor($seconds / 3600);
-            $minutes = floor(($seconds % 3600) / 60);
-            return sprintf('%.0fh %.0fm', $hours, $minutes);
-        }
-    }
 }
-
