@@ -221,8 +221,8 @@ if ($task->fresh()->isFinished()) {
 
 ## Вимоги
 
-- Evolution CMS **3.2.0+**
-- PHP **8.2+**
+- Evolution CMS **3.7+**
+- PHP **8.3+**
 - Composer **2.2+**
 - Одна з: **MySQL 8.0+** / **MariaDB 10.5+** / **PostgreSQL 10+** / **SQLite 3.25+**
 
