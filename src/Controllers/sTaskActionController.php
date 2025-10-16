@@ -8,6 +8,7 @@ use Seiger\sTask\Contracts\TaskInterface;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Services\TaskProgress;
+use Seiger\sTask\Services\WorkerService;
 
 /**
  * sTaskActionController - Controller for task management
@@ -128,7 +129,7 @@ class sTaskActionController extends BaseController
             }
 
             $file = TaskProgress::file($id);
-            
+
             if (!is_file($file)) {
                 return response()->json([
                     'success' => false,
@@ -142,7 +143,7 @@ class sTaskActionController extends BaseController
 
             $json = file_get_contents($file);
             $data = json_decode($json, true);
-            
+
             if (!is_array($data)) {
                 return response()->json([
                     'success' => false,
@@ -213,7 +214,7 @@ class sTaskActionController extends BaseController
     {
         try {
             $task = sTaskModel::findOrFail($id);
-            
+
             // Check if task is finished
             if ((int)$task->status !== sTaskModel::TASK_STATUS_FINISHED) {
                 return response()->json([
@@ -223,7 +224,7 @@ class sTaskActionController extends BaseController
                     'message' => 'Task must be completed before downloading'
                 ], 400);
             }
-            
+
             // Check if result file exists
             if (!$task->result || !is_file($task->result)) {
                 return response()->json([
@@ -233,7 +234,7 @@ class sTaskActionController extends BaseController
                     'message' => 'Export file is not available'
                 ], 404);
             }
-            
+
             // Return file download response
             $filename = basename($task->result);
             return response()->download(
@@ -282,9 +283,9 @@ class sTaskActionController extends BaseController
     {
         try {
             $task = sTaskModel::findOrFail($id);
-            
+
             // Check if task is in correct status for file upload
-            if ((int)$task->status !== sTaskModel::TASK_STATUS_QUEUED && 
+            if ((int)$task->status !== sTaskModel::TASK_STATUS_QUEUED &&
                 (int)$task->status !== sTaskModel::TASK_STATUS_PREPARING) {
                 return response()->json([
                     'success' => false,
@@ -293,7 +294,7 @@ class sTaskActionController extends BaseController
                     'message' => 'Task must be queued or preparing to accept file uploads'
                 ], 400);
             }
-            
+
             // Validate file upload
             if (!request()->hasFile('file')) {
                 return response()->json([
@@ -303,12 +304,12 @@ class sTaskActionController extends BaseController
                     'message' => 'Please select a file to upload'
                 ], 400);
             }
-            
+
             $file = request()->file('file');
-            
+
             // Get file size before moving
             $fileSize = $file->getSize();
-            
+
             // Validate file size (max 50MB)
             $maxSize = 50 * 1024 * 1024; // 50MB
             if ($fileSize > $maxSize) {
@@ -319,32 +320,32 @@ class sTaskActionController extends BaseController
                     'message' => 'File size must not exceed 50MB'
                 ], 400);
             }
-            
-            // Validate file type (only CSV for now)
-            $allowedExtensions = ['csv'];
+
+            // Get allowed extensions from worker settings
+            $allowedExtensions = $this->getWorkerAllowedExtensions($task->identifier);
             $extension = strtolower($file->getClientOriginalExtension());
             if (!in_array($extension, $allowedExtensions)) {
                 return response()->json([
                     'success' => false,
                     'code' => 400,
                     'error' => 'Invalid file type',
-                    'message' => 'Only CSV files are allowed'
+                    'message' => 'Allowed file types: ' . implode(', ', $allowedExtensions)
                 ], 400);
             }
-            
+
             // Create upload directory
             $uploadDir = storage_path('stask/uploads');
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            
+
             // Generate unique filename with task ID prefix
             $filename = 'task_' . $id . '_' . time() . '_' . uniqid() . '.' . $extension;
             $filePath = $uploadDir . '/' . $filename;
-            
+
             // Store the file
             $file->move($uploadDir, $filename);
-            
+
             // Update task with file information
             $task->update([
                 'meta' => array_merge($task->meta ?? [], [
@@ -354,7 +355,7 @@ class sTaskActionController extends BaseController
                     'uploaded_at' => now()->toISOString()
                 ])
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'code' => 200,
@@ -364,7 +365,6 @@ class sTaskActionController extends BaseController
                 'file_size' => $fileSize,
                 'file_path' => $filePath
             ]);
-            
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::channel('stask')->warning('Task not found for upload', [
                 'id' => $id,
@@ -425,7 +425,14 @@ class sTaskActionController extends BaseController
                     'message' => 'Worker with identifier "' . $identifier . '" not found or inactive'
                 ], 404);
             }
-            
+
+            // Check if this is a chunked upload
+            $isChunkedUpload = request()->has('chunk_index') && request()->has('total_chunks');
+
+            if ($isChunkedUpload) {
+                return $this->handleChunkedUpload($identifier);
+            }
+
             // Validate file upload
             if (!request()->hasFile('file')) {
                 return response()->json([
@@ -435,12 +442,12 @@ class sTaskActionController extends BaseController
                     'message' => 'Please select a file to upload'
                 ], 400);
             }
-            
+
             $file = request()->file('file');
-            
+
             // Get file size before moving
             $fileSize = $file->getSize();
-            
+
             // Validate file size (max 50MB)
             $maxSize = 50 * 1024 * 1024; // 50MB
             if ($fileSize > $maxSize) {
@@ -451,32 +458,32 @@ class sTaskActionController extends BaseController
                     'message' => 'File size must not exceed 50MB'
                 ], 400);
             }
-            
-            // Validate file type (only CSV for now)
-            $allowedExtensions = ['csv'];
+
+            // Get allowed extensions from worker settings
+            $allowedExtensions = $this->getWorkerAllowedExtensions($identifier);
             $extension = strtolower($file->getClientOriginalExtension());
             if (!in_array($extension, $allowedExtensions)) {
                 return response()->json([
                     'success' => false,
                     'code' => 400,
                     'error' => 'Invalid file type',
-                    'message' => 'Only CSV files are allowed'
+                    'message' => 'Allowed file types: ' . implode(', ', $allowedExtensions)
                 ], 400);
             }
-            
+
             // Create upload directory
             $uploadDir = storage_path('stask/uploads');
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            
+
             // Generate unique filename with identifier prefix
             $filename = $identifier . '_' . time() . '_' . uniqid() . '.' . $extension;
             $filePath = $uploadDir . '/' . $filename;
-            
+
             // Store the file
             $file->move($uploadDir, $filename);
-            
+
             return response()->json([
                 'success' => true,
                 'code' => 200,
@@ -486,7 +493,6 @@ class sTaskActionController extends BaseController
                 'file_size' => $fileSize,
                 'file_path' => $filePath
             ]);
-            
         } catch (\Throwable $e) {
             Log::channel('stask')->error('Failed to upload file for worker', [
                 'identifier' => $identifier,
@@ -627,7 +633,7 @@ class sTaskActionController extends BaseController
                 exec($command);
                 return;
             }
-            
+
             if (function_exists('shell_exec') && !in_array('shell_exec', explode(',', ini_get('disable_functions')))) {
                 $command = "php \"{$artisanPath}\" stask:worker > /dev/null 2>&1 &";
                 shell_exec($command);
@@ -645,6 +651,130 @@ class sTaskActionController extends BaseController
             });
         } catch (\Throwable $e) {
             // Silent fail - cron will handle task execution
+        }
+    }
+
+    /**
+     * Handle chunked file upload
+     *
+     * @param string $identifier Worker identifier
+     * @return JsonResponse
+     */
+    private function handleChunkedUpload(string $identifier): JsonResponse
+    {
+        try {
+            $chunkIndex = (int) request()->input('chunk_index');
+            $totalChunks = (int) request()->input('total_chunks');
+            $sessionId = request()->input('session_id');
+            $originalFilename = request()->input('original_filename');
+
+            if (!request()->hasFile('file')) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 400,
+                    'error' => 'No file chunk uploaded',
+                    'message' => 'Please upload a file chunk'
+                ], 400);
+            }
+
+            $file = request()->file('file');
+
+            // Get allowed extensions from worker settings
+            $allowedExtensions = $this->getWorkerAllowedExtensions($identifier);
+            $extension = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
+            if (!in_array($extension, $allowedExtensions)) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 400,
+                    'error' => 'Invalid file type',
+                    'message' => 'Allowed file types: ' . implode(', ', $allowedExtensions)
+                ], 400);
+            }
+
+            // Create temporary directory for chunks
+            $tempDir = storage_path('stask/temp/' . $sessionId);
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            // Store chunk
+            $chunkFilename = 'chunk_' . $chunkIndex;
+            $file->move($tempDir, $chunkFilename);
+
+            // If this is the last chunk, combine all chunks
+            if ($chunkIndex === $totalChunks - 1) {
+                $finalFilename = $identifier . '_' . time() . '_' . uniqid() . '.' . $extension;
+                $finalPath = storage_path('stask/uploads/' . $finalFilename);
+
+                // Ensure upload directory exists
+                $uploadDir = storage_path('stask/uploads');
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                // Combine chunks
+                $finalFile = fopen($finalPath, 'wb');
+                for ($i = 0; $i < $totalChunks; $i++) {
+                    $chunkPath = $tempDir . '/chunk_' . $i;
+                    if (is_file($chunkPath)) {
+                        $chunkData = file_get_contents($chunkPath);
+                        fwrite($finalFile, $chunkData);
+                        unlink($chunkPath); // Clean up chunk
+                    }
+                }
+                fclose($finalFile);
+
+                // Clean up temp directory
+                rmdir($tempDir);
+
+                return response()->json([
+                    'success' => true,
+                    'code' => 200,
+                    'message' => 'File uploaded successfully',
+                    'filename' => $finalFilename,
+                    'file_path' => $finalPath
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'code' => 200,
+                'message' => 'Chunk uploaded successfully',
+                'chunk_index' => $chunkIndex,
+                'total_chunks' => $totalChunks
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('stask')->error('Failed to handle chunked upload', [
+                'identifier' => $identifier,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'code' => 500,
+                'error' => 'Chunked upload failed',
+                'message' => 'Failed to handle chunked upload: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get allowed file extensions from worker settings
+     *
+     * @param string $identifier Worker identifier
+     * @return array Allowed file extensions
+     */
+    private function getWorkerAllowedExtensions(string $identifier): array
+    {
+        try {
+            $worker = app(WorkerService::class)->resolveWorker($identifier);
+            $settings = $worker->settings();
+
+            return $settings['allowed_extensions'] ?? ['csv'];
+        } catch (Exception $e) {
+            Log::warning("Failed to get worker settings for {$identifier}: " . $e->getMessage());
+            return ['csv']; // Fallback to CSV
         }
     }
 }

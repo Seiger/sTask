@@ -126,7 +126,15 @@ abstract class BaseWorker implements TaskInterface
      */
     public function createTask(string $action, ?array $options = null): sTaskModel
     {
-        $options ??= (array)request()->input('options', []);
+        if ($options === null) {
+            // Get options from request, including direct parameters
+            $options = (array)request()->input('options', []);
+            // Also include direct request parameters (like filename)
+            $requestData = request()->all();
+            if (isset($requestData['filename'])) {
+                $options['filename'] = $requestData['filename'];
+            }
+        }
 
         $startedBy = 0;
         try {
