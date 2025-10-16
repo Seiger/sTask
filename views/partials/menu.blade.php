@@ -8,7 +8,7 @@
             <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
             <span x-show="open">@lang('sTask::global.dashboard')</span>
         </a>
-        <a href="{{route('sTask.workers.index')}}" @class(['s-nav-menu-item', 's-nav-menu-item--active' => 'sTask.workers.index' == Route::currentRouteName()])>
+        <a href="{{route('sTask.workers')}}" @class(['s-nav-menu-item', 's-nav-menu-item--active' => 'sTask.workers' == Route::currentRouteName()])>
             <i data-lucide="cpu" class="w-5 h-5"></i>
             <span x-show="open">@lang('sTask::global.workers')</span>
         </a>

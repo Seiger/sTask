@@ -130,7 +130,7 @@
                                         {{$task->created_at->diffForHumans()}}
                                     </td>
                                     {{--<td class="py-3 text-right">
-                                        <a href="{{route('stask.tasks.show', $task->id)}}" class="text-blue-600 hover:underline text-xs darkness:text-sky-400">
+                                        <a href="{{route('stask.task.show', $task->id)}}" class="text-blue-600 hover:underline text-xs darkness:text-sky-400">
                                             @lang('sTask::global.details')
                                         </a>
                                     </td>--}}

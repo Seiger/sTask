@@ -441,7 +441,7 @@
      *
      * @example
      * // With custom URLs
-     * await uploadFile(file, document.getElementById('log'), 'csvImport', '{{route('sTask.workers.upload', ['identifier' => 'example'])}}');
+     * await uploadFile(file, document.getElementById('log'), 'csvImport', '{{route('sTask.worker.upload', ['identifier' => 'example'])}}');
      */
     async function uploadFile(file, root, widgetIdentifier, uploadUrl) {
         try {

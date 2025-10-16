@@ -48,7 +48,7 @@ declare function widgetLogLine(root: HTMLElement, text: string, level?: WidgetLo
  * @returns     `stop()` function to terminate polling and clear timers.
  *
  * @example
- * const stop = widgetWatcher(document.getElementById('taskLog')!, `/stask/tasks/${id}/progress`);
+ * const stop = widgetWatcher(document.getElementById('taskLog')!, `/stask/task/${id}/progress`);
  * // later on completion/cancel:
  * stop();
  */
@@ -78,7 +78,7 @@ declare function widgetWatcher(root: HTMLElement, url: string): () => void;
  *
  * @example
  * // With custom URLs
- * await uploadFile(file, document.getElementById('log'), 'csvImport', '{{route('sTask.workers.upload', ['identifier' => 's_import_export_csv'])}}');
+ * await uploadFile(file, document.getElementById('log'), 'csvImport', '{{route('sTask.worker.upload', ['identifier' => 's_import_export_csv'])}}');
  */
 declare function uploadFile(file: File, root: HTMLElement, widgetIdentifier: string, uploadUrl: string): Promise<void>;
 

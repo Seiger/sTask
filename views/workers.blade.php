@@ -44,7 +44,7 @@
 @push('scripts.bot')
     <script>
         function openWorkerSettings(identifier) {
-            const baseUrl = '{{route('sTask.workers.settings', ['identifier' => '__IDENTIFIER__'])}}';
+            const baseUrl = '{{route('sTask.worker.settings', ['identifier' => '__IDENTIFIER__'])}}';
             window.location.href = baseUrl.replace('__IDENTIFIER__', identifier);
         }
 

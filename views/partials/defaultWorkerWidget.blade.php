@@ -82,7 +82,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         @if($task && (int)$task->id > 0)
-        widgetWatcher("", "{{route('sTask.tasks.progress', ['id' => $task->id])}}", '{{$key}}');
+        widgetWatcher("", "{{route('sTask.task.progress', ['id' => $task->id])}}", '{{$key}}');
         @endif
     });
 </script>
