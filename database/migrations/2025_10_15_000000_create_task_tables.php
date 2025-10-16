@@ -30,10 +30,10 @@ return new class extends Migration {
         );
 
         Permissions::firstOrCreate(
-            ['key' => 'stask_access'],
+            ['key' => 'stask'],
             [
                 'name' => 'Access sTask Interface',
-                'key' => 'stask_access',
+                'key' => 'stask',
                 'lang_key' => 'sTask::global.permission_access',
                 'group_id' => $staskGroup->id,
                 'createdon' => time(),
@@ -43,7 +43,7 @@ return new class extends Migration {
 
         RolePermissions::firstOrCreate([
             'role_id' => 1,
-            'permission' => 'stask_access',
+            'permission' => 'stask',
         ]);
 
         /*

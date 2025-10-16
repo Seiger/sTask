@@ -1,7 +1,5 @@
 <?php
 
-use Seiger\sTask\Facades\sTask;
-
 /**
  * sTask Plugin
  *
@@ -11,15 +9,13 @@ use Seiger\sTask\Facades\sTask;
  * @author Seiger IT Team
  * @since 1.0.0
  */
-
 Event::listen('evolution.OnManagerMenuPrerender', function($params) {
-    // Check permissions
-    if (evo()->hasPermission('stask_access')) {
+    if (evo()->hasPermission('stask')) {
         $menu['stask'] = [
             'stask',
             'tools',
             '<img src="' . asset('site/stask.svg') . '" width="20" height="20" style="display:inline-block;vertical-align:middle;margin-right:8px;transition:filter 0.2s ease;" class="stask-logo">' .  __('sTask::global.title'),
-            'stask/',
+            route('sTask.index'),
             __('sTask::global.title'),
             "",
             "",
@@ -31,4 +27,3 @@ Event::listen('evolution.OnManagerMenuPrerender', function($params) {
         return serialize(array_merge($params['menu'], $menu));
     }
 });
-

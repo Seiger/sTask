@@ -21,7 +21,7 @@ class sTaskController
      */
     public function index()
     {
-        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $data = [
             'tabIcon' => '<i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
@@ -41,7 +41,7 @@ class sTaskController
      */
     public function create(Request $request)
     {
-        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $request->validate([
             'identifier' => 'required|string',
@@ -102,7 +102,7 @@ class sTaskController
      */
     public function workers(Request $request)
     {
-        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $this->autoDiscoverWorkers();
 
@@ -149,9 +149,7 @@ class sTaskController
     public function getPerformanceSummary(Request $request)
     {
         // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $hours = (int) $request->input('hours', 24);
         $metrics = sTaskFacade::getPerformanceMetrics($hours);
@@ -168,9 +166,7 @@ class sTaskController
     public function getWorkerStats(Request $request)
     {
         // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $identifier = $request->input('identifier');
         $hours = (int) $request->input('hours', 24);
@@ -187,10 +183,7 @@ class sTaskController
      */
     public function getPerformanceAlerts()
     {
-        // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $alerts = sTaskFacade::getPerformanceAlerts();
 
@@ -205,10 +198,7 @@ class sTaskController
      */
     public function getCacheStats()
     {
-        // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $stats = sTaskFacade::getCacheStats();
 
@@ -223,10 +213,7 @@ class sTaskController
      */
     public function clearCache(Request $request)
     {
-        // Check permissions
-        if (!evo()->hasPermission('stask_access')) {
-            abort(403, 'Access denied');
-        }
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $identifier = $request->input('identifier');
         sTaskFacade::clearWorkerCache($identifier);
@@ -242,7 +229,7 @@ class sTaskController
      */
     public function workerSettings(Request $request, string $identifier)
     {
-        if (!evo()->hasPermission('stask_access')) {abort(403, 'Access denied');}
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
 
         $worker = sTaskFacade::getWorker($identifier);
         if (!$worker) {abort(404, 'Worker not found');}

@@ -52,7 +52,7 @@ This creates two database tables:
 - `s_workers` - Worker configurations
 - `s_tasks` - Task records and execution history
 
-It also creates the `stask_access` permission for controlling access to the sTask interface.
+It also creates the `stask` permission for controlling access to the sTask interface.
 
 ## Key Features
 
