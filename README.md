@@ -238,22 +238,16 @@ sTask provides a comprehensive RESTful API for task management and monitoring:
 
 ### Task Management
 ```http
-POST /stask/workers/{identifier}/tasks/{action}  # Start task
-GET /stask/tasks/{id}/progress                   # Get progress
-GET /stask/tasks/{id}/download                   # Download result
+POST /stask/worker/{identifier}/run/{action} # Start task
+GET /stask/task/{id}/progress                # Get progress
+GET /stask/task/{id}/download                # Download result
 ```
 
 ### Performance Monitoring
 ```http
-GET /stask/performance/summary?hours=24          # System performance
-GET /stask/performance/workers?hours=24          # Worker statistics
-GET /stask/performance/alerts                    # Performance alerts
-```
-
-### Cache Management
-```http
-GET /stask/cache/stats                           # Cache statistics
-POST /stask/cache/clear                          # Clear cache
+GET /stask/performance/summary?hours=24      # System performance
+GET /stask/performance/workers?hours=24      # Worker statistics
+GET /stask/performance/alerts                # Performance alerts
 ```
 
 ## Configuration
