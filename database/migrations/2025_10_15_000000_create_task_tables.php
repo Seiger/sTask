@@ -80,7 +80,7 @@ return new class extends Migration {
             $table->bigIncrements('id')->comment('Primary key - auto-incrementing task ID');
             $table->string('identifier')->comment('Worker identifier reference (matches s_workers.identifier)');
             $table->string('action')->comment('Specific action being performed (e.g., "import", "export", "sync")');
-            $table->unsignedSmallInteger('status')->default(10)->comment('Task execution status: 10=pending, 20=running, 30=completed, 40=failed, 50=cancelled');
+            $table->unsignedSmallInteger('status')->default(10)->comment('Task execution status: 10=queued, 30=preparing, 50=running, 80=finished, 100=failed');
             $table->string('message', 255)->nullable()->comment('Current status message or error description');
             $table->unsignedInteger('started_by')->nullable()->comment('User ID who initiated the task');
             $table->longText('meta')->nullable()->comment('JSON-encoded task metadata and configuration');

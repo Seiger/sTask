@@ -42,19 +42,19 @@
 @endsection
 
 @push('scripts.bot')
-<script>
-    function openWorkerSettings(identifier) {
-        const baseUrl = '{{route('sTask.workers.settings', ['identifier' => '__IDENTIFIER__'])}}';
-        window.location.href = baseUrl.replace('__IDENTIFIER__', identifier);
-    }
-
-    // Initialize Lucide icons
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
+    <script>
+        function openWorkerSettings(identifier) {
+            const baseUrl = '{{route('sTask.workers.settings', ['identifier' => '__IDENTIFIER__'])}}';
+            window.location.href = baseUrl.replace('__IDENTIFIER__', identifier);
         }
-    });
-</script>
-@include('sTask::scripts.task')
-@include('sTask::scripts.global')
+
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+    @include('sTask::scripts.task')
+    @include('sTask::scripts.global')
 @endpush
