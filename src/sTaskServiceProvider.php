@@ -39,6 +39,9 @@ class sTaskServiceProvider extends ServiceProvider
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
         
+        // Run seeder after migrations to setup permissions
+        $this->runPermissionsSeeder();
+        
         // Load routes
         $this->loadRoutes();
         
@@ -61,6 +64,20 @@ class sTaskServiceProvider extends ServiceProvider
         if (!file_exists($logPath)) {
             mkdir($logPath, 0755, true);
         }
+    }
+
+    /**
+     * Run permissions seeder after migrations.
+     * Uses afterMigrating event to ensure tables exist.
+     */
+    protected function runPermissionsSeeder(): void
+    {
+        $this->app->make('events')->listen('Illuminate\Database\Events\MigrationsEnded', function() {
+            // Run seeder only if permissions table exists
+            if (\Illuminate\Support\Facades\Schema::hasTable('daisy_permissions_groups')) {
+                (new \Seiger\sTask\Database\Seeders\STaskPermissionsSeeder())->run();
+            }
+        });
     }
 
     /**
