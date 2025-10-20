@@ -16,31 +16,24 @@ return new class extends Migration {
     {
         /*
         |--------------------------------------------------------------------------
-        | Fix PostgreSQL sequence if needed
+        | Fix PostgreSQL sequence before migration starts
         |--------------------------------------------------------------------------
         */
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            try {
-                $tableName = (new PermissionsGroups())->getTable();
-                DB::statement("SELECT setval(pg_get_serial_sequence('{$tableName}', 'id'), COALESCE((SELECT MAX(id) FROM {$tableName}), 1), true)");
-            } catch (\Exception $e) {
-                // Ignore if table doesn't exist yet
-            }
-        }
+        $this->fixPostgresSequences();
 
         /*
         |--------------------------------------------------------------------------
         | Create sTask permission group
         |--------------------------------------------------------------------------
         */
-        // Check if sTask permission group exists, create or update
-        $staskGroup = PermissionsGroups::where('name', 'sTask')->first();
-        if (!$staskGroup) {
-            $staskGroup = PermissionsGroups::create([
-                'name' => 'sTask',
-                'lang_key' => 'sTask::global.permissions_group'
-            ]);
-        } else {
+        // Use firstOrCreate to avoid duplicate key conflicts
+        $staskGroup = PermissionsGroups::firstOrCreate(
+            ['name' => 'sTask'],
+            ['lang_key' => 'sTask::global.permissions_group']
+        );
+        
+        // Update lang_key if group already existed
+        if (!$staskGroup->wasRecentlyCreated) {
             $staskGroup->update(['lang_key' => 'sTask::global.permissions_group']);
         }
 
@@ -49,27 +42,19 @@ return new class extends Migration {
         | Create sTask permission
         |--------------------------------------------------------------------------
         */
-        // Fix PostgreSQL sequence for permissions table
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            try {
-                $tableName = (new Permissions())->getTable();
-                DB::statement("SELECT setval(pg_get_serial_sequence('{$tableName}', 'id'), COALESCE((SELECT MAX(id) FROM {$tableName}), 1), true)");
-            } catch (\Exception $e) {
-                // Ignore if table doesn't exist yet
-            }
-        }
-
-        $permission = Permissions::where('key', 'stask')->first();
-        if (!$permission) {
-            Permissions::create([
+        $permission = Permissions::firstOrCreate(
+            ['key' => 'stask'],
+            [
                 'name' => 'Access sTask Interface',
-                'key' => 'stask',
                 'lang_key' => 'sTask::global.permission_access',
                 'group_id' => $staskGroup->id,
                 'createdon' => time(),
                 'editedon' => time(),
-            ]);
-        } else {
+            ]
+        );
+        
+        // Update if permission already existed
+        if (!$permission->wasRecentlyCreated) {
             $permission->update([
                 'name' => 'Access sTask Interface',
                 'lang_key' => 'sTask::global.permission_access',
@@ -83,15 +68,10 @@ return new class extends Migration {
         | Create role permission
         |--------------------------------------------------------------------------
         */
-        $rolePermission = RolePermissions::where('role_id', 1)
-            ->where('permission', 'stask')
-            ->first();
-        if (!$rolePermission) {
-            RolePermissions::create([
-                'role_id' => 1,
-                'permission' => 'stask',
-            ]);
-        }
+        RolePermissions::firstOrCreate([
+            'role_id' => 1,
+            'permission' => 'stask',
+        ]);
 
         /*
         |--------------------------------------------------------------------------
@@ -154,6 +134,57 @@ return new class extends Migration {
             $table->index('created_at')->comment('Index for chronological task ordering');
             $table->index('priority')->comment('Index for priority-based ordering');
         });
+    }
+
+    /**
+     * Fix PostgreSQL sequences to prevent duplicate key violations
+     */
+    private function fixPostgresSequences(): void
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            return;
+        }
+
+        // Fix sequences for permissions_groups table
+        try {
+            $tableName = (new PermissionsGroups())->getTable();
+            // Use DO block to handle errors gracefully within PostgreSQL
+            DB::unprepared("
+                DO $$
+                BEGIN
+                    PERFORM setval(
+                        pg_get_serial_sequence('{$tableName}', 'id'),
+                        GREATEST(COALESCE((SELECT MAX(id) FROM {$tableName}), 0), 1),
+                        COALESCE((SELECT MAX(id) FROM {$tableName}), 0) > 0
+                    );
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        NULL; -- Ignore errors (table might not exist yet)
+                END $$;
+            ");
+        } catch (\Exception $e) {
+            // Silently ignore - table might not exist yet
+        }
+
+        // Fix sequences for permissions table
+        try {
+            $tableName = (new Permissions())->getTable();
+            DB::unprepared("
+                DO $$
+                BEGIN
+                    PERFORM setval(
+                        pg_get_serial_sequence('{$tableName}', 'id'),
+                        GREATEST(COALESCE((SELECT MAX(id) FROM {$tableName}), 0), 1),
+                        COALESCE((SELECT MAX(id) FROM {$tableName}), 0) > 0
+                    );
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        NULL; -- Ignore errors (table might not exist yet)
+                END $$;
+            ");
+        } catch (\Exception $e) {
+            // Silently ignore - table might not exist yet
+        }
     }
 
     public function down(): void
