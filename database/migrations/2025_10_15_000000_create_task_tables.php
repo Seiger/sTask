@@ -16,6 +16,20 @@ return new class extends Migration {
     {
         /*
         |--------------------------------------------------------------------------
+        | Fix PostgreSQL sequence if needed
+        |--------------------------------------------------------------------------
+        */
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            try {
+                $tableName = (new PermissionsGroups())->getTable();
+                DB::statement("SELECT setval(pg_get_serial_sequence('{$tableName}', 'id'), COALESCE((SELECT MAX(id) FROM {$tableName}), 1), true)");
+            } catch (\Exception $e) {
+                // Ignore if table doesn't exist yet
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | Create sTask permission group
         |--------------------------------------------------------------------------
         */
@@ -35,6 +49,16 @@ return new class extends Migration {
         | Create sTask permission
         |--------------------------------------------------------------------------
         */
+        // Fix PostgreSQL sequence for permissions table
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            try {
+                $tableName = (new Permissions())->getTable();
+                DB::statement("SELECT setval(pg_get_serial_sequence('{$tableName}', 'id'), COALESCE((SELECT MAX(id) FROM {$tableName}), 1), true)");
+            } catch (\Exception $e) {
+                // Ignore if table doesn't exist yet
+            }
+        }
+
         $permission = Permissions::where('key', 'stask')->first();
         if (!$permission) {
             Permissions::create([
