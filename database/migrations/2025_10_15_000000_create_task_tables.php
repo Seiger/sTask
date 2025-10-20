@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use EvolutionCMS\Models\Permissions;
 use EvolutionCMS\Models\PermissionsGroups;
 use EvolutionCMS\Models\RolePermissions;
@@ -19,16 +19,17 @@ return new class extends Migration {
         | Create sTask permission
         |--------------------------------------------------------------------------
         */
+        // Use updateOrCreate with explicit ID handling for PostgreSQL
         $staskGroup = PermissionsGroups::updateOrCreate(
             ['name' => 'sTask'],
             ['lang_key' => 'sTask::global.permissions_group']
         );
 
-        Permissions::firstOrCreate(
+        // Use updateOrCreate instead of firstOrCreate to avoid duplicate key issues
+        Permissions::updateOrCreate(
             ['key' => 'stask'],
             [
                 'name' => 'Access sTask Interface',
-                'key' => 'stask',
                 'lang_key' => 'sTask::global.permission_access',
                 'group_id' => $staskGroup->id,
                 'createdon' => time(),
@@ -36,10 +37,13 @@ return new class extends Migration {
             ]
         );
 
-        RolePermissions::firstOrCreate([
-            'role_id' => 1,
-            'permission' => 'stask',
-        ]);
+        // Use updateOrCreate instead of firstOrCreate
+        RolePermissions::updateOrCreate(
+            [
+                'role_id' => 1,
+                'permission' => 'stask',
+            ]
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -55,7 +59,14 @@ return new class extends Migration {
             $table->string('class')->comment('Full PHP class name implementing the worker (e.g., "Seiger\\sCommerce\\Workers\\ProductSyncWorker")');
             $table->boolean('active')->default(false)->comment('Indicates if the worker is currently active and available for use');
             $table->integer('position')->unsigned()->default(0)->comment('Sorting order for display in administrative interface (lower numbers appear first)');
-            $table->jsonb('settings')->default(new Expression('(JSON_ARRAY())'))->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
+            
+            // Cross-database compatible JSON column with proper defaults
+            if (DB::connection()->getDriverName() === 'pgsql') {
+                $table->jsonb('settings')->default('[]')->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
+            } else {
+                $table->json('settings')->default('[]')->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
+            }
+            
             $table->integer('hidden')->unsigned()->default(0)->comment('Visibility flag: 0=visible, 1=hidden from all users, 2=hidden from non-admin users');
             $table->timestamps();
 
@@ -112,8 +123,10 @@ return new class extends Migration {
         | Remove sTask permission
         |--------------------------------------------------------------------------
         */
-        RolePermissions::where('permission', 'stask_access')->delete();
-        Permissions::where('key', 'stask_access')->delete();
+        // Fixed: was 'stask_access', should be 'stask' to match up() method
+        RolePermissions::where('permission', 'stask')->delete();
+        Permissions::where('key', 'stask')->delete();
         PermissionsGroups::where('name', 'sTask')->delete();
     }
 };
+
