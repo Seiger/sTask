@@ -90,18 +90,18 @@ return new class extends Migration {
 
             // Cross-database compatible JSON column with proper defaults
             if (DB::connection()->getDriverName() === 'pgsql') {
-                $table->jsonb('settings')->default('[]')->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
+                $table->jsonb('settings')->default(DB::raw("'[]'::jsonb"))->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
             } else {
-                $table->json('settings')->default('[]')->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
+                $table->json('settings')->nullable()->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
             }
 
             $table->integer('hidden')->unsigned()->default(0)->comment('Visibility flag: 0=visible, 1=hidden from all users, 2=hidden from non-admin users');
             $table->timestamps();
 
-            $table->index('identifier')->comment('Index for worker identifier queries');
-            $table->index('scope')->comment('Index for scope-based filtering');
-            $table->index('active')->comment('Index for active workers filtering');
-            $table->index('position')->comment('Index for position-based ordering');
+            $table->index('identifier');
+            $table->index('scope');
+            $table->index('active');
+            $table->index('position');
         });
 
         /*
@@ -127,17 +127,18 @@ return new class extends Migration {
             $table->integer('progress')->default(0)->comment('Task progress percentage (0-100)');
             $table->timestamps();
 
-            $table->index(['identifier', 'action'])->comment('Composite index for worker-specific task queries');
-            $table->index('status')->comment('Index for status-based filtering and monitoring');
-            $table->index('started_by')->comment('Index for user-specific task queries');
-            $table->index('start_at')->comment('Index for scheduled task processing');
-            $table->index('created_at')->comment('Index for chronological task ordering');
-            $table->index('priority')->comment('Index for priority-based ordering');
+            $table->index(['identifier', 'action']);
+            $table->index('status');
+            $table->index('started_by');
+            $table->index('start_at');
+            $table->index('created_at');
+            $table->index('priority');
         });
     }
 
     /**
      * Fix PostgreSQL sequences to prevent duplicate key violations
+     * Handles both serial and identity column types correctly
      */
     private function fixPostgresSequences(): void
     {
@@ -145,45 +146,63 @@ return new class extends Migration {
             return;
         }
 
-        // Fix sequences for permissions_groups table
-        try {
-            $tableName = (new PermissionsGroups())->getTable();
-            // Use DO block to handle errors gracefully within PostgreSQL
-            DB::unprepared("
-                DO $$
-                BEGIN
-                    PERFORM setval(
-                        pg_get_serial_sequence('{$tableName}', 'id'),
-                        GREATEST(COALESCE((SELECT MAX(id) FROM {$tableName}), 0), 1),
-                        COALESCE((SELECT MAX(id) FROM {$tableName}), 0) > 0
-                    );
-                EXCEPTION
-                    WHEN OTHERS THEN
-                        NULL; -- Ignore errors (table might not exist yet)
-                END $$;
-            ");
-        } catch (\Exception $e) {
-            // Silently ignore - table might not exist yet
-        }
+        // List of tables that need id sequence synchronization
+        $tables = [
+            (new PermissionsGroups())->getTable(), // usually daisy_permissions_groups
+            (new Permissions())->getTable(),       // usually daisy_permissions
+            // Add others if they have PK=serial/identity
+        ];
 
-        // Fix sequences for permissions table
-        try {
-            $tableName = (new Permissions())->getTable();
-            DB::unprepared("
-                DO $$
-                BEGIN
-                    PERFORM setval(
-                        pg_get_serial_sequence('{$tableName}', 'id'),
-                        GREATEST(COALESCE((SELECT MAX(id) FROM {$tableName}), 0), 1),
-                        COALESCE((SELECT MAX(id) FROM {$tableName}), 0) > 0
-                    );
-                EXCEPTION
-                    WHEN OTHERS THEN
-                        NULL; -- Ignore errors (table might not exist yet)
-                END $$;
-            ");
-        } catch (\Exception $e) {
-            // Silently ignore - table might not exist yet
+        foreach ($tables as $tableName) {
+            // Work carefully with identifiers and handle both serial and identity
+            $sql = "
+            DO $$
+            DECLARE
+                seq_name text;
+                max_id bigint;
+                tbl regclass;
+            BEGIN
+                -- convert to regclass and avoid quoting issues
+                SELECT to_regclass(%L)::regclass INTO tbl;
+
+                IF tbl IS NULL THEN
+                    RETURN; -- table doesn't exist yet
+                END IF;
+
+                -- try to find associated sequence for serial/identity
+                SELECT pg_get_serial_sequence(%L, 'id') INTO seq_name;
+
+                -- if sequence not found (identity may not have seq directly),
+                -- try to get it through information views
+                IF seq_name IS NULL THEN
+                    SELECT
+                        (quote_ident(n.nspname) || '.' || quote_ident(s.relname))::text
+                    INTO seq_name
+                    FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'id'
+                    JOIN pg_attrdef d ON d.adrelid = c.oid AND d.adnum = a.attnum
+                    JOIN pg_class s ON s.relkind = 'S' AND d.adsrc LIKE '%' || s.relname || '%'
+                    WHERE c.oid = tbl
+                    LIMIT 1;
+                END IF;
+
+                -- if there's really no sequence — do nothing
+                IF seq_name IS NULL THEN
+                    RETURN;
+                END IF;
+
+                EXECUTE format('SELECT COALESCE(MAX(id),0) FROM %s', tbl) INTO max_id;
+
+                -- Set setval: if there are records, next nextval will be max_id+1
+                PERFORM setval(seq_name, max_id, max_id > 0);
+            EXCEPTION WHEN OTHERS THEN
+                -- safely ignore so migration doesn't fail on foreign DBs
+                RETURN;
+            END $$;
+            ";
+
+            DB::unprepared(sprintf($sql, $tableName, $tableName));
         }
     }
 
