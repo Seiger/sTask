@@ -22,8 +22,9 @@ return new class extends Migration {
         // PostgreSQL-compatible: use raw SQL with ON CONFLICT
         if (DB::connection()->getDriverName() === 'pgsql') {
             // For PostgreSQL: INSERT ... ON CONFLICT DO UPDATE
+            $tableName = DB::getTablePrefix() . (new PermissionsGroups())->getTable();
             DB::statement("
-                INSERT INTO " . (new PermissionsGroups())->getTable() . " (name, lang_key, created_at, updated_at) 
+                INSERT INTO {$tableName} (name, lang_key, created_at, updated_at) 
                 VALUES ('sTask', 'sTask::global.permissions_group', NOW(), NOW())
                 ON CONFLICT (name) DO UPDATE SET 
                     lang_key = EXCLUDED.lang_key,
@@ -44,8 +45,9 @@ return new class extends Migration {
         |--------------------------------------------------------------------------
         */
         if (DB::connection()->getDriverName() === 'pgsql') {
+            $tableName = DB::getTablePrefix() . (new Permissions())->getTable();
             DB::statement("
-                INSERT INTO " . (new Permissions())->getTable() . " (name, key, lang_key, group_id, createdon, editedon) 
+                INSERT INTO {$tableName} (name, key, lang_key, group_id, createdon, editedon) 
                 VALUES ('Access sTask Interface', 'stask', 'sTask::global.permission_access', ?, ?, ?)
                 ON CONFLICT (key) DO UPDATE SET 
                     name = EXCLUDED.name,
@@ -72,8 +74,9 @@ return new class extends Migration {
         |--------------------------------------------------------------------------
         */
         if (DB::connection()->getDriverName() === 'pgsql') {
+            $tableName = DB::getTablePrefix() . (new RolePermissions())->getTable();
             DB::statement("
-                INSERT INTO " . (new RolePermissions())->getTable() . " (role_id, permission) 
+                INSERT INTO {$tableName} (role_id, permission) 
                 VALUES (1, 'stask')
                 ON CONFLICT (role_id, permission) DO NOTHING
             ");
