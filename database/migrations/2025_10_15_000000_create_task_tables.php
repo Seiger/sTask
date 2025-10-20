@@ -19,24 +19,15 @@ return new class extends Migration {
         | Create sTask permission group
         |--------------------------------------------------------------------------
         */
-        // PostgreSQL-compatible: use raw SQL with ON CONFLICT
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            // For PostgreSQL: INSERT ... ON CONFLICT DO UPDATE
-            $tableName = DB::getTablePrefix() . (new PermissionsGroups())->getTable();
-            DB::statement("
-                INSERT INTO {$tableName} (name, lang_key, created_at, updated_at) 
-                VALUES ('sTask', 'sTask::global.permissions_group', NOW(), NOW())
-                ON CONFLICT (name) DO UPDATE SET 
-                    lang_key = EXCLUDED.lang_key,
-                    updated_at = EXCLUDED.updated_at
-            ");
-            $staskGroup = PermissionsGroups::where('name', 'sTask')->first();
+        // Check if sTask permission group exists, create or update
+        $staskGroup = PermissionsGroups::where('name', 'sTask')->first();
+        if (!$staskGroup) {
+            $staskGroup = PermissionsGroups::create([
+                'name' => 'sTask',
+                'lang_key' => 'sTask::global.permissions_group'
+            ]);
         } else {
-            // For MySQL/MariaDB: use updateOrCreate
-            $staskGroup = PermissionsGroups::updateOrCreate(
-                ['name' => 'sTask'],
-                ['lang_key' => 'sTask::global.permissions_group']
-            );
+            $staskGroup->update(['lang_key' => 'sTask::global.permissions_group']);
         }
 
         /*
@@ -44,28 +35,23 @@ return new class extends Migration {
         | Create sTask permission
         |--------------------------------------------------------------------------
         */
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            $tableName = DB::getTablePrefix() . (new Permissions())->getTable();
-            DB::statement("
-                INSERT INTO {$tableName} (name, key, lang_key, group_id, createdon, editedon) 
-                VALUES ('Access sTask Interface', 'stask', 'sTask::global.permission_access', ?, ?, ?)
-                ON CONFLICT (key) DO UPDATE SET 
-                    name = EXCLUDED.name,
-                    lang_key = EXCLUDED.lang_key,
-                    group_id = EXCLUDED.group_id,
-                    editedon = EXCLUDED.editedon
-            ", [$staskGroup->id, time(), time()]);
+        $permission = Permissions::where('key', 'stask')->first();
+        if (!$permission) {
+            Permissions::create([
+                'name' => 'Access sTask Interface',
+                'key' => 'stask',
+                'lang_key' => 'sTask::global.permission_access',
+                'group_id' => $staskGroup->id,
+                'createdon' => time(),
+                'editedon' => time(),
+            ]);
         } else {
-            Permissions::updateOrCreate(
-                ['key' => 'stask'],
-                [
-                    'name' => 'Access sTask Interface',
-                    'lang_key' => 'sTask::global.permission_access',
-                    'group_id' => $staskGroup->id,
-                    'createdon' => time(),
-                    'editedon' => time(),
-                ]
-            );
+            $permission->update([
+                'name' => 'Access sTask Interface',
+                'lang_key' => 'sTask::global.permission_access',
+                'group_id' => $staskGroup->id,
+                'editedon' => time(),
+            ]);
         }
 
         /*
@@ -73,15 +59,11 @@ return new class extends Migration {
         | Create role permission
         |--------------------------------------------------------------------------
         */
-        if (DB::connection()->getDriverName() === 'pgsql') {
-            $tableName = DB::getTablePrefix() . (new RolePermissions())->getTable();
-            DB::statement("
-                INSERT INTO {$tableName} (role_id, permission) 
-                VALUES (1, 'stask')
-                ON CONFLICT (role_id, permission) DO NOTHING
-            ");
-        } else {
-            RolePermissions::updateOrCreate([
+        $rolePermission = RolePermissions::where('role_id', 1)
+            ->where('permission', 'stask')
+            ->first();
+        if (!$rolePermission) {
+            RolePermissions::create([
                 'role_id' => 1,
                 'permission' => 'stask',
             ]);
@@ -101,14 +83,14 @@ return new class extends Migration {
             $table->string('class')->comment('Full PHP class name implementing the worker (e.g., "Seiger\\sCommerce\\Workers\\ProductSyncWorker")');
             $table->boolean('active')->default(false)->comment('Indicates if the worker is currently active and available for use');
             $table->integer('position')->unsigned()->default(0)->comment('Sorting order for display in administrative interface (lower numbers appear first)');
-            
+
             // Cross-database compatible JSON column with proper defaults
             if (DB::connection()->getDriverName() === 'pgsql') {
                 $table->jsonb('settings')->default('[]')->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
             } else {
                 $table->json('settings')->default('[]')->comment('JSON-encoded settings specific to this worker (configuration options, default parameters)');
             }
-            
+
             $table->integer('hidden')->unsigned()->default(0)->comment('Visibility flag: 0=visible, 1=hidden from all users, 2=hidden from non-admin users');
             $table->timestamps();
 
@@ -159,7 +141,7 @@ return new class extends Migration {
         */
         Schema::dropIfExists('s_tasks');
         Schema::dropIfExists('s_workers');
-        
+
         /*
         |--------------------------------------------------------------------------
         | Remove sTask permission
