@@ -19,14 +19,9 @@ return new class extends Migration {
         | Create sTask permission
         |--------------------------------------------------------------------------
         */
-        $staskGroup = PermissionsGroups::firstOrCreate(
+        $staskGroup = PermissionsGroups::updateOrCreate(
             ['name' => 'sTask'],
-            [
-                'name' => 'sTask',
-                'lang_key' => 'sTask::global.permissions_group',
-                'createdon' => time(),
-                'editedon' => time(),
-            ]
+            ['lang_key' => 'sTask::global.permissions_group']
         );
 
         Permissions::firstOrCreate(
