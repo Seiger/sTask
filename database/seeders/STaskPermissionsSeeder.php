@@ -14,18 +14,18 @@ class STaskPermissionsSeeder extends Seeder
     public function run(): void
     {
         // Create or update permission group
-        DB::table('daisy_permissions_groups')->updateOrInsert(
+        DB::table('permissions_groups')->updateOrInsert(
             ['name' => 'sTask'],
             ['lang_key' => 'sTask::global.permissions_group']
         );
 
         // Get group ID
-        $groupId = DB::table('daisy_permissions_groups')
+        $groupId = DB::table('permissions_groups')
             ->where('name', 'sTask')
             ->value('id');
 
         // Create or update permission
-        DB::table('daisy_permissions')->updateOrInsert(
+        DB::table('permissions')->updateOrInsert(
             ['key' => 'stask'],
             [
                 'name' => 'Access sTask Interface',
@@ -37,7 +37,7 @@ class STaskPermissionsSeeder extends Seeder
         );
 
         // Bind permission to admin role
-        DB::table('daisy_role_permissions')->updateOrInsert(
+        DB::table('role_permissions')->updateOrInsert(
             ['role_id' => 1, 'permission' => 'stask'],
             []
         );
