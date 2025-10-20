@@ -155,22 +155,23 @@ return new class extends Migration {
 
         foreach ($tables as $tableName) {
             // Work carefully with identifiers and handle both serial and identity
+            // Use direct string interpolation since PostgreSQL format() will handle quoting
             $sql = "
-            DO $$
+            DO \$\$
             DECLARE
                 seq_name text;
                 max_id bigint;
                 tbl regclass;
             BEGIN
                 -- convert to regclass and avoid quoting issues
-                SELECT to_regclass(%L)::regclass INTO tbl;
+                tbl := to_regclass('{$tableName}');
 
                 IF tbl IS NULL THEN
                     RETURN; -- table doesn't exist yet
                 END IF;
 
                 -- try to find associated sequence for serial/identity
-                SELECT pg_get_serial_sequence(%L, 'id') INTO seq_name;
+                seq_name := pg_get_serial_sequence('{$tableName}', 'id');
 
                 -- if sequence not found (identity may not have seq directly),
                 -- try to get it through information views
@@ -182,7 +183,7 @@ return new class extends Migration {
                     JOIN pg_namespace n ON n.oid = c.relnamespace
                     JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'id'
                     JOIN pg_attrdef d ON d.adrelid = c.oid AND d.adnum = a.attnum
-                    JOIN pg_class s ON s.relkind = 'S' AND d.adsrc LIKE '%' || s.relname || '%'
+                    JOIN pg_class s ON s.relkind = 'S' AND d.adsrc LIKE '%%' || s.relname || '%%'
                     WHERE c.oid = tbl
                     LIMIT 1;
                 END IF;
@@ -199,10 +200,10 @@ return new class extends Migration {
             EXCEPTION WHEN OTHERS THEN
                 -- safely ignore so migration doesn't fail on foreign DBs
                 RETURN;
-            END $$;
+            END \$\$;
             ";
 
-            DB::unprepared(sprintf($sql, $tableName, $tableName));
+            DB::unprepared($sql);
         }
     }
 
