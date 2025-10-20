@@ -16,34 +16,73 @@ return new class extends Migration {
     {
         /*
         |--------------------------------------------------------------------------
+        | Create sTask permission group
+        |--------------------------------------------------------------------------
+        */
+        // PostgreSQL-compatible: use raw SQL with ON CONFLICT
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            // For PostgreSQL: INSERT ... ON CONFLICT DO UPDATE
+            DB::statement("
+                INSERT INTO " . (new PermissionsGroups())->getTable() . " (name, lang_key, created_at, updated_at) 
+                VALUES ('sTask', 'sTask::global.permissions_group', NOW(), NOW())
+                ON CONFLICT (name) DO UPDATE SET 
+                    lang_key = EXCLUDED.lang_key,
+                    updated_at = EXCLUDED.updated_at
+            ");
+            $staskGroup = PermissionsGroups::where('name', 'sTask')->first();
+        } else {
+            // For MySQL/MariaDB: use updateOrCreate
+            $staskGroup = PermissionsGroups::updateOrCreate(
+                ['name' => 'sTask'],
+                ['lang_key' => 'sTask::global.permissions_group']
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | Create sTask permission
         |--------------------------------------------------------------------------
         */
-        // Use updateOrCreate with explicit ID handling for PostgreSQL
-        $staskGroup = PermissionsGroups::updateOrCreate(
-            ['name' => 'sTask'],
-            ['lang_key' => 'sTask::global.permissions_group']
-        );
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("
+                INSERT INTO " . (new Permissions())->getTable() . " (name, key, lang_key, group_id, createdon, editedon) 
+                VALUES ('Access sTask Interface', 'stask', 'sTask::global.permission_access', ?, ?, ?)
+                ON CONFLICT (key) DO UPDATE SET 
+                    name = EXCLUDED.name,
+                    lang_key = EXCLUDED.lang_key,
+                    group_id = EXCLUDED.group_id,
+                    editedon = EXCLUDED.editedon
+            ", [$staskGroup->id, time(), time()]);
+        } else {
+            Permissions::updateOrCreate(
+                ['key' => 'stask'],
+                [
+                    'name' => 'Access sTask Interface',
+                    'lang_key' => 'sTask::global.permission_access',
+                    'group_id' => $staskGroup->id,
+                    'createdon' => time(),
+                    'editedon' => time(),
+                ]
+            );
+        }
 
-        // Use updateOrCreate instead of firstOrCreate to avoid duplicate key issues
-        Permissions::updateOrCreate(
-            ['key' => 'stask'],
-            [
-                'name' => 'Access sTask Interface',
-                'lang_key' => 'sTask::global.permission_access',
-                'group_id' => $staskGroup->id,
-                'createdon' => time(),
-                'editedon' => time(),
-            ]
-        );
-
-        // Use updateOrCreate instead of firstOrCreate
-        RolePermissions::updateOrCreate(
-            [
+        /*
+        |--------------------------------------------------------------------------
+        | Create role permission
+        |--------------------------------------------------------------------------
+        */
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("
+                INSERT INTO " . (new RolePermissions())->getTable() . " (role_id, permission) 
+                VALUES (1, 'stask')
+                ON CONFLICT (role_id, permission) DO NOTHING
+            ");
+        } else {
+            RolePermissions::updateOrCreate([
                 'role_id' => 1,
                 'permission' => 'stask',
-            ]
-        );
+            ]);
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -129,4 +168,3 @@ return new class extends Migration {
         PermissionsGroups::where('name', 'sTask')->delete();
     }
 };
-
