@@ -14,17 +14,16 @@ class STaskPermissionsSeeder extends Seeder
     public function run(): void
     {
         // Create or update permission group
-        if (DB::table('permissions_groups')->where('name', 'sTask')->exists()) {
-            // Update existing group
-            DB::table('permissions_groups')
-                ->where('name', 'sTask')
-                ->update(['lang_key' => 'sTask::global.permissions_group']);
-        } else {
-            // Create new group
+        try {
             DB::table('permissions_groups')->insert([
                 'name' => 'sTask',
                 'lang_key' => 'sTask::global.permissions_group',
             ]);
+        } catch (\Exception $e) {
+            // If already exists, update it
+            DB::table('permissions_groups')
+                ->where('name', 'sTask')
+                ->update(['lang_key' => 'sTask::global.permissions_group']);
         }
 
         // Get group ID
@@ -33,8 +32,16 @@ class STaskPermissionsSeeder extends Seeder
             ->value('id');
 
         // Create or update permission
-        if (DB::table('permissions')->where('key', 'stask')->exists()) {
-            // Update existing permission
+        try {
+            DB::table('permissions')->insert([
+                'name' => 'Access sTask Interface',
+                'key' => 'stask',
+                'lang_key' => 'sTask::global.permission_access',
+                'group_id' => $groupId,
+                'disabled' => 0,
+            ]);
+        } catch (\Exception $e) {
+            // If already exists, update it
             DB::table('permissions')
                 ->where('key', 'stask')
                 ->update([
@@ -43,23 +50,16 @@ class STaskPermissionsSeeder extends Seeder
                     'group_id' => $groupId,
                     'disabled' => 0,
                 ]);
-        } else {
-            // Create new permission
-            DB::table('permissions')->insert([
-                'name' => 'Access sTask Interface',
-                'key' => 'stask',
-                'lang_key' => 'sTask::global.permission_access',
-                'group_id' => $groupId,
-                'disabled' => 0,
-            ]);
         }
 
         // Create role permission binding if not exists
-        if (!DB::table('role_permissions')->where('role_id', 1)->where('permission', 'stask')->exists()) {
+        try {
             DB::table('role_permissions')->insert([
                 'role_id' => 1,
                 'permission' => 'stask',
             ]);
+        } catch (\Exception $e) {
+            // Already exists, skip
         }
     }
 }
