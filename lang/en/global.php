@@ -87,6 +87,13 @@ return [
     'clean_old_tasks' => 'Clean Old Tasks',
     'clean_orphaned' => 'Clean Orphaned',
     
+    // Composer Update Worker
+    'composer_update' => 'Composer Update',
+    'composer_update_desc' => 'Update all Composer dependencies to their latest versions',
+    'task_preparing' => 'Task preparing',
+    'composer_updating' => 'Updating Composer dependencies',
+    'composer_updated_successfully' => 'Composer dependencies updated successfully',
+    
     // File upload
     'file_too_large' => 'File is too large',
     'chunk_upload' => 'Chunked upload',

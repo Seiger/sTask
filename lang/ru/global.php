@@ -87,6 +87,13 @@ return [
     'clean_old_tasks' => 'Очистить Старые Задачи',
     'clean_orphaned' => 'Очистить Осиротевшие',
     
+    // Composer Update Worker
+    'composer_update' => 'Обновление Composer',
+    'composer_update_desc' => 'Обновить все зависимости Composer до последних версий',
+    'task_preparing' => 'Подготовка задачи',
+    'composer_updating' => 'Обновление зависимостей Composer',
+    'composer_updated_successfully' => 'Зависимости Composer успешно обновлены',
+    
     // File upload
     'file_too_large' => 'Файл слишком большой',
     'chunk_upload' => 'Загрузка частями',
