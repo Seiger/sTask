@@ -1,13 +1,11 @@
-<?php
-
-return [
+<?php return [
     'title' => 'Task Manager',
-    
+
     // Menu
     'dashboard' => 'Dashboard',
     'workers' => 'Workers',
     'statistics' => 'Statistics',
-    
+
     // Dashboard
     'pending_tasks' => 'Pending Tasks',
     'running_tasks' => 'Running Tasks',
@@ -22,7 +20,7 @@ return [
     'recent_tasks' => 'Recent Tasks',
     'view_all' => 'View All',
     'no_tasks_yet' => 'No tasks yet.',
-    
+
     // Tasks
     'task' => 'Task',
     'worker' => 'Worker',
@@ -32,7 +30,7 @@ return [
     'created' => 'Created',
     'actions' => 'Actions',
     'details' => 'Details',
-    
+
     // Statuses
     'pending' => 'Pending',
     'preparing' => 'Preparing',
@@ -41,7 +39,7 @@ return [
     'failed' => 'Failed',
     'cancelled' => 'Cancelled',
     'unknown' => 'Unknown',
-    
+
     // Workers
     'identifier' => 'Identifier',
     'class' => 'Class',
@@ -62,7 +60,7 @@ return [
     'worker_actions' => 'Worker Actions',
     'worker_class' => 'Worker Class',
     'back_to_workers' => 'Back to Workers',
-    
+
     // Worker errors
     'worker_not_found_or_inactive' => 'Worker not found or inactive: :identifier',
     'worker_class_not_found' => 'Worker class not found: :className',
@@ -71,12 +69,12 @@ return [
     // Permissions
     'permissions_group' => 'sTask',
     'permission_access' => 'Access sTask Interface',
-    
+
     // Widget
     'run_task' => 'Run Task',
     'settings' => 'Settings',
     'scope' => 'Scope',
-    
+
     // Common
     'refresh' => 'Refresh',
     'error' => 'Error occurred',
@@ -86,7 +84,7 @@ return [
     'process_tasks' => 'Process Tasks',
     'clean_old_tasks' => 'Clean Old Tasks',
     'clean_orphaned' => 'Clean Orphaned',
-    
+
     // Composer Update Worker
     'composer_update' => 'Composer Update',
     'composer_update_desc' => 'Update all Composer dependencies to their latest versions',
@@ -102,7 +100,6 @@ return [
     'trying_direct_php_execution' => 'Trying direct PHP execution (exec functions disabled)',
     'composer_update_failed' => 'Composer update failed (exit code',
     'finalizing_composer_update' => 'Finalizing composer update',
-    'package_discovery_failed' => 'Package discovery failed (non-critical)',
     'preparing_direct_execution' => 'Preparing direct Composer execution',
     'using_composer_api' => 'Using Composer API',
     'running_composer' => 'Running',
@@ -116,14 +113,14 @@ return [
     'starting_task' => 'Starting task',
     'please_wait' => 'Please wait',
     'error_starting_task' => 'Error starting task',
-    
+
     // File upload
     'file_too_large' => 'File is too large',
     'chunk_upload' => 'Chunked upload',
     'chunks' => 'chunks',
     'uploading_file' => 'Uploading',
     'upload_failed' => 'Upload failed',
-    
+
     // Default widget
     'idle' => 'Idle',
     'default_widget_description' => 'This is a default widget. Override the renderWidget() method in your worker to create a custom interface.',

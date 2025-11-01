@@ -4,27 +4,29 @@
  * TaskProgress - Filesystem-based task progress tracking system
  *
  * This class provides a lightweight, configuration-free service for tracking
- * task progress through filesystem-based JSON snapshots. It's designed to be
+ * task progress through filesystem-based structured LOG files. It's designed to be
  * efficient, reliable, and suitable for high-frequency updates without causing
  * database churn during long-running tasks.
  *
  * Key Features:
  * - Filesystem-based storage for high performance
- * - Atomic writes with temporary files to prevent corruption
- * - Thread-safe operations with file locking
+ * - Append-only log format (no file locking needed)
+ * - Structured format: status|progress|processed|total|eta|message
+ * - Full history of all progress updates
  * - Minimal memory footprint and configuration
  *
  * Storage Structure:
  * - Progress files stored in storage/stask/
- * - Each task has a unique JSON file (taskId.json)
- * - Temporary files use .~ prefix for atomic operations
+ * - Each task has a unique LOG file (taskId.log)
+ * - Structured format with pipe-separated values
  * - Cleanup handled by TaskWorker command when idle
  *
  * Usage Pattern:
  * 1. Initialize progress with TaskProgress::init()
- * 2. Update progress with TaskProgress::write()
- * 3. Read progress via TaskProgress::file() path
- * 4. Cleanup via TaskWorker command (stask:worker)
+ * 2. Update progress with TaskProgress::write() (appends new line)
+ * 3. Read current state with TaskProgress::readProgress() (last line)
+ * 4. Read log history with TaskProgress::readLog() (last N messages)
+ * 5. Cleanup via TaskWorker command (stask:worker)
  *
  * @package Seiger\sTask
  * @author Seiger IT Team
@@ -32,7 +34,6 @@
  */
 class TaskProgress
 {
-
     /**
      * Ensure and return directory for progress snapshots.
      *
@@ -50,23 +51,111 @@ class TaskProgress
     }
 
     /**
-     * Get the file path for a task's progress snapshot.
+     * Get the file path for a task's progress log.
      *
-     * This method constructs the full file path for a task's progress snapshot
-     * based on the task ID. The file will be a JSON file in the progress directory.
+     * This method constructs the full file path for a task's progress log
+     * based on the task ID. The file will be a structured LOG file with format:
+     * status|progress|processed|total|eta|message
      *
      * @param int|string $taskId The task ID to get the file path for
-     * @return string The full file path to the task's progress snapshot
+     * @return string The full file path to the task's progress log
      */
     public static function file(int|string $taskId): string
     {
-        return self::dir() . '/' . $taskId . '.json';
+        return self::dir() . '/' . $taskId . '.log';
     }
 
     /**
-     * Initialize a new progress snapshot with default values and persist it.
+     * Read the current progress state from the last line of the log file.
      *
-     * This method creates the initial progress snapshot for a task with sensible
+     * Parses the last line of the log to extract current status, progress, etc.
+     * Format: status|progress|processed|total|eta|message
+     *
+     * @param int|string $taskId The task ID
+     * @return array|null Parsed progress data or null if file doesn't exist
+     */
+    public static function readProgress(int|string $taskId): ?array
+    {
+        $file = self::file($taskId);
+
+        if (!is_file($file)) {
+            return null;
+        }
+
+        // Read last line efficiently
+        $handle = @fopen($file, 'r');
+        if ($handle === false) {
+            return null;
+        }
+
+        $lastLine = '';
+        while (!feof($handle)) {
+            $line = fgets($handle);
+            if ($line !== false) {
+                $lastLine = $line;
+            }
+        }
+        fclose($handle);
+
+        // Parse last line: status|progress|processed|total|eta|message
+        $parts = explode('|', trim($lastLine), 6);
+
+        if (count($parts) < 6) {
+            return null;
+        }
+
+        return [
+            'id' => (int)$taskId,
+            'status' => $parts[0],
+            'progress' => (int)$parts[1],
+            'processed' => (int)$parts[2],
+            'total' => (int)$parts[3],
+            'eta' => $parts[4],
+            'message' => $parts[5] ?? '',
+        ];
+    }
+
+    /**
+     * Read the last N log entries (messages only).
+     *
+     * @param int|string $taskId The task ID
+     * @param int $lines Number of lines to read (default: 50)
+     * @return array Array of log messages
+     */
+    public static function readLog(int|string $taskId, int $lines = 50): array
+    {
+        $file = self::file($taskId);
+
+        if (!is_file($file)) {
+            return [];
+        }
+
+        // Read file into array of lines
+        $allLines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if ($allLines === false) {
+            return [];
+        }
+
+        // Get last N lines
+        $recentLines = array_slice($allLines, -$lines);
+
+        // Extract message part (6th column)
+        $messages = [];
+        foreach ($recentLines as $line) {
+            $parts = explode('|', $line, 6);
+            if (count($parts) >= 6) {
+                $messages[] = $parts[5]; // message column
+            }
+        }
+
+        return $messages;
+    }
+
+    /**
+     * Initialize a new progress log with default values.
+     *
+     * This method creates the initial progress log entry for a task with sensible
      * default values. It's typically called when a task is first created to establish
      * the initial state before any processing begins.
      *
@@ -74,11 +163,12 @@ class TaskProgress
      * - id (required) - The task ID
      *
      * Optional payload keys (with defaults):
-     * - identifier - Worker identifier
-     * - action - Task action name
-     * - status - Task status (default: from payload)
+     * - status - Task status (default: 'queued')
      * - progress - Progress percentage (default: 0)
-     * - message - Status message (default: "Queued…")
+     * - processed - Processed items (default: 0)
+     * - total - Total items (default: 0)
+     * - eta - Estimated time (default: '—')
+     * - message - Status message (default: '')
      *
      * @param array<string,mixed> $payload The initial progress data
      * @throws \InvalidArgumentException If required 'id' key is missing
@@ -93,17 +183,15 @@ class TaskProgress
     }
 
     /**
-     * Atomically write a progress snapshot with thread-safe operations.
+     * Write a progress entry to the log file.
      *
-     * This method performs an atomic write operation to prevent corruption during
-     * concurrent access. It uses temporary files and atomic rename operations to
-     * ensure data integrity.
+     * This method appends a structured log entry to the task's progress log.
+     * Format: status|progress|processed|total|eta|message
      *
      * The write process:
      * 1. Validates required 'id' key in payload
-     * 2. Creates temporary file with unique name
-     * 3. Writes JSON data with file locking
-     * 4. Atomically renames temporary file to final location
+     * 2. Formats data as pipe-separated line
+     * 3. Appends to log file (no locking needed for append operations)
      *
      * @param array<string,mixed> $payload The progress data to write
      * @throws \InvalidArgumentException If required 'id' key is missing
@@ -114,15 +202,24 @@ class TaskProgress
             throw new \InvalidArgumentException('Progress payload must contain "id".');
         }
 
-        $dir  = self::dir();
         $file = self::file((string)$payload['id']);
-        $tmp  = $dir . '/.~' . uniqid((string)$payload['id'] . '_', true) . '.json';
 
-        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
-        file_put_contents($tmp, $json, LOCK_EX);
-        @chmod($tmp, 0664);
-        @rename($tmp, $file);
+        // Format: status|progress|processed|total|eta|message
+        $status = $payload['status'] ?? 'unknown';
+        $progress = $payload['progress'] ?? 0;
+        $processed = $payload['processed'] ?? 0;
+        $total = $payload['total'] ?? 0;
+        $eta = $payload['eta'] ?? '—';
+        $message = $payload['message'] ?? '';
+
+        // Escape pipe characters in message to avoid breaking format
+        $message = str_replace('|', '¦', $message);
+
+        // Build line
+        $line = implode('|', [$status, $progress, $processed, $total, $eta, $message]);
+
+        // Append to log file (FILE_APPEND is atomic on most systems)
+        file_put_contents($file, $line . "\n", FILE_APPEND);
+        @chmod($file, 0664);
     }
-
 }
-

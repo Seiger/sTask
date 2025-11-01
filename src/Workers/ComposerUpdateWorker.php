@@ -32,12 +32,6 @@ use Seiger\sTask\Models\sTaskModel;
 class ComposerUpdateWorker extends BaseWorker
 {
     /**
-     * Store recent log messages for UI display (last 50 messages)
-     * @var array
-     */
-    protected array $recentMessages = [];
-
-    /**
      * Get the unique identifier for this worker.
      *
      * @return string The worker identifier
@@ -129,27 +123,24 @@ class ComposerUpdateWorker extends BaseWorker
                 'message' => '_' . __('sTask::global.task_preparing') . '..._',
             ]);
 
-            $this->addRecentMessage(__('sTask::global.task_preparing') . '...');
-            $this->pushProgress($task);
+            $this->pushProgress($task, [
+                'message' => __('sTask::global.task_preparing') . '...',
+            ]);
 
             // Set working directory to core (where composer.json is located)
             $projectRoot = base_path(); // In Evolution CMS this is the core/ directory
 
-            $message = __('sTask::global.checking_working_directory') . ': ' . basename($projectRoot);
-            $this->addRecentMessage($message);
             $this->pushProgress($task, [
                 'progress' => 2,
-                'message' => $message,
+                'message' => __('sTask::global.checking_working_directory') . ': ' . basename($projectRoot),
             ]);
 
             // Get composer path
             $composerPath = $this->findComposerExecutable();
 
-            $message = __('sTask::global.found_composer') . ': ' . basename($composerPath);
-            $this->addRecentMessage($message);
             $this->pushProgress($task, [
                 'progress' => 4,
-                'message' => $message,
+                'message' => __('sTask::global.found_composer') . ': ' . basename($composerPath),
             ]);
 
             // Verify composer.json exists in working directory
@@ -438,65 +429,23 @@ class ComposerUpdateWorker extends BaseWorker
             if ($removeCount > 0) $summaryParts[] = "$removeCount removed";
             $summary = !empty($summaryParts) ? ' (' . implode(', ', $summaryParts) . ')' : '';
 
-            // Run package:discover manually (since we skipped scripts)
-            try {
-                $message = '> @php artisan package:discover';
-                $this->addRecentMessage($message);
-                $this->pushProgress($task, [
-                    'progress' => 95,
-                    'message' => $message,
-                ]);
-
-                // Call artisan command and capture output
-                \Illuminate\Support\Facades\Artisan::call('package:discover');
-                $discoverOutput = \Illuminate\Support\Facades\Artisan::output();
-
-                // Show discovered packages line by line
-                if ($discoverOutput) {
-                    $lines = explode("\n", trim($discoverOutput));
-                    foreach ($lines as $line) {
-                        $trimmed = trim($line);
-                        if (!empty($trimmed)) {
-                            $this->addRecentMessage($trimmed);
-                            $this->pushProgress($task, [
-                                'progress' => 95,
-                                'message' => $trimmed,
-                            ]);
-                        }
-                    }
-                }
-            } catch (\Throwable $e) {
-                // Not critical if package discovery fails
-                $message = __('sTask::global.package_discovery_failed');
-                $this->addRecentMessage($message);
-                $this->pushProgress($task, [
-                    'progress' => 95,
-                    'message' => $message,
-                ]);
-                Log::warning('Package discovery failed (non-critical)', [
-                    'task_id' => $task->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
             // Done
             $finalMessage = '**' . __('sTask::global.composer_updated_successfully') . $summary . ' (' . round($totalTime, 2) . ' s)**';
-            $this->addRecentMessage($finalMessage);
-
-            $this->pushProgress($task, [
-                'progress' => 100,
-                'message' => $finalMessage,
-            ]);
 
             $task->update([
                 'status' => sTaskModel::TASK_STATUS_FINISHED,
                 'progress' => 100,
-                'message' => $this->getRecentMessagesText(),
+                'message' => $finalMessage,
                 'result' => $outputText,
                 'finished_at' => now(),
             ]);
 
-            $this->pushProgress($task, ['progress' => 100]);
+            // Write final progress with completed status
+            $this->pushProgress($task, [
+                'status' => 'completed',
+                'progress' => 100,
+                'message' => $finalMessage,
+            ]);
         } catch (\Throwable $e) {
             $where = basename($e->getFile()) . ':' . $e->getLine();
             $message = 'Failed @ ' . $where . ' — ' . $e->getMessage();
@@ -517,7 +466,6 @@ class ComposerUpdateWorker extends BaseWorker
             ]);
 
             $this->pushProgress($task);
-
             throw $e;
         }
     }
@@ -566,42 +514,12 @@ class ComposerUpdateWorker extends BaseWorker
         }
 
         // Add raw line to UI (as is, like in console)
-        $this->addRecentMessage($cleanLine);
-
-        // Update progress in UI immediately for each line
-        // Pass ALL recent messages so JavaScript can display them
         $this->pushProgress($task, [
             'progress' => min($newProgress, 95),
-            'message' => $this->getRecentMessagesText(), // Всі повідомлення
+            'message' => $cleanLine,
         ]);
 
         return $newProgress;
-    }
-
-    /**
-     * Add message to recent messages buffer (last 50 messages)
-     *
-     * @param string $message Message to add
-     * @return void
-     */
-    protected function addRecentMessage(string $message): void
-    {
-        $this->recentMessages[] = $message;
-
-        // Keep only last 50 messages
-        if (count($this->recentMessages) > 50) {
-            array_shift($this->recentMessages);
-        }
-    }
-
-    /**
-     * Get recent messages as formatted text
-     *
-     * @return string Formatted messages text
-     */
-    protected function getRecentMessagesText(): string
-    {
-        return implode("\n", $this->recentMessages);
     }
 
     /**
@@ -635,9 +553,7 @@ class ComposerUpdateWorker extends BaseWorker
             // Composer API has issues in this context, use direct script execution
             // This method loads composer.phar directly and executes it
             $this->runComposerViaScript($task, $composerPath, $command, $projectRoot, $opt);
-
             chdir($oldDir);
-
         } catch (\Throwable $e) {
             chdir($oldDir);
             throw $e;
@@ -731,16 +647,22 @@ class ComposerUpdateWorker extends BaseWorker
 
         if ($exitCode === 0) {
             $totalTime = microtime(true) - $startTime;
+            $finalMessage = '**' . __('sTask::global.composer_updated_successfully') . ' (' . round($totalTime, 2) . ' s)**';
 
             $task->update([
                 'status' => sTaskModel::TASK_STATUS_FINISHED,
                 'progress' => 100,
-                'message' => '**' . __('sTask::global.composer_updated_successfully') . ' (' . round($totalTime, 2) . ' s)**',
+                'message' => $finalMessage,
                 'result' => $outputText,
                 'finished_at' => now(),
             ]);
 
-            $this->pushProgress($task);
+            // Write final progress with completed status
+            $this->pushProgress($task, [
+                'status' => 'completed',
+                'progress' => 100,
+                'message' => $finalMessage,
+            ]);
         } else {
             // Log full output for debugging
             Log::error('Composer update failed via API', [
@@ -786,10 +708,6 @@ class ComposerUpdateWorker extends BaseWorker
 
         // Build arguments for Composer
         $args = ['update', '--no-interaction', '--verbose'];
-
-        // Skip scripts to avoid proc_open issues with Laravel hooks
-        // Laravel tries to run "artisan package:discover" via Process which requires proc_open
-        $args[] = '--no-scripts';
 
         if (!empty($opt['optimize']) || !isset($opt['optimize'])) {
             $args[] = '--optimize-autoloader';
@@ -935,66 +853,20 @@ class ComposerUpdateWorker extends BaseWorker
         }
 
         $totalTime = microtime(true) - $startTime;
-
-        // Run package:discover manually (since we skipped scripts)
-        try {
-            $message = '> @php artisan package:discover';
-            $this->addRecentMessage($message);
-            $this->pushProgress($task, [
-                'progress' => 95,
-                'message' => $message,
-            ]);
-
-            // Call artisan command and capture output
-            \Illuminate\Support\Facades\Artisan::call('package:discover');
-            $discoverOutput = \Illuminate\Support\Facades\Artisan::output();
-
-            // Show discovered packages line by line
-            if ($discoverOutput) {
-                $lines = explode("\n", trim($discoverOutput));
-                foreach ($lines as $line) {
-                    $trimmed = trim($line);
-                    if (!empty($trimmed)) {
-                        $this->addRecentMessage($trimmed);
-                        $this->pushProgress($task, [
-                            'progress' => 95,
-                            'message' => $trimmed,
-                        ]);
-                    }
-                }
-            }
-        } catch (\Throwable $e) {
-            // Not critical if package discovery fails
-            $message = __('sTask::global.package_discovery_failed');
-            $this->addRecentMessage($message);
-            $this->pushProgress($task, [
-                'progress' => 95,
-                'message' => $message,
-            ]);
-            Log::warning('Package discovery failed (non-critical)', [
-                'task_id' => $task->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
         $finalMessage = '**' . __('sTask::global.composer_updated_successfully') . ' (' . round($totalTime, 2) . ' s)**';
-        $this->addRecentMessage($finalMessage);
-
-        $this->pushProgress($task, [
-            'progress' => 100,
-            'message' => $finalMessage,
-            'append' => true,
-        ]);
 
         $task->update([
             'status' => sTaskModel::TASK_STATUS_FINISHED,
             'progress' => 100,
-            'message' => $this->getRecentMessagesText(),
+            'message' => $finalMessage,
             'result' => $outputText,
             'finished_at' => now(),
         ]);
 
-        $this->pushProgress($task);
+        $this->pushProgress($task, [
+            'progress' => 100,
+            'message' => $finalMessage,
+        ]);
     }
 
     /**
@@ -1027,14 +899,36 @@ class ComposerUpdateWorker extends BaseWorker
         foreach ($possiblePaths as $path) {
             $searchPaths[] = $path;
             if (file_exists($path) && is_readable($path)) {
-                // If it's a .phar file, prepend with php
-                if (str_ends_with($path, '.phar')) {
-                    return PHP_OS_FAMILY === 'Windows' ?
-                        'php "' . $path . '"' :
-                        'php ' . escapeshellarg($path);
+                // Skip directories
+                if (is_dir($path)) {
+                    continue;
                 }
 
-                return $path;
+                // For non-PHAR files, check if executable
+                if (!str_ends_with($path, '.phar')) {
+                    // Non-PHAR files must be executable
+                    if (!is_executable($path)) {
+                        continue; // Skip this file
+                    }
+
+                    // Check if it's a symlink and resolve it
+                    if (is_link($path)) {
+                        $realPath = realpath($path);
+                        if ($realPath && str_ends_with($realPath, '.phar')) {
+                            // Symlink points to a .phar file - use with php
+                            return PHP_OS_FAMILY === 'Windows' ?
+                                'php "' . $realPath . '"' :
+                                'php ' . escapeshellarg($realPath);
+                        }
+                    }
+
+                    return $path;
+                }
+
+                // If it's a .phar file, prepend with php
+                return PHP_OS_FAMILY === 'Windows' ?
+                    'php "' . $path . '"' :
+                    'php ' . escapeshellarg($path);
             }
         }
 

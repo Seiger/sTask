@@ -269,7 +269,7 @@
         let stopped = false;
         let inFlight = false;
         let lastResponse = null;
-        let lastMessage = null;
+        let lastLogLineCount = 0; // Number of rows already displayed
         let changeCount = 0;
         let timer = null;
 
@@ -301,24 +301,19 @@
 
                     // Check if task is complete FIRST (regardless of success status)
                     if (result.status === 'finished' || result.status === 'failed' || result.status === 'completed') {
-                        // Only log if message changed to avoid duplicates
-                        const currentMessage = result.message || result.error || 'Unknown status';
-                        if (currentMessage !== lastMessage) {
-                            // Clear the log and display all messages
-                            const logElement = root.querySelector('.widget-log');
-                            if (logElement) {
-                                logElement.innerHTML = '';
-                            }
+                        // Process log lines (skip duplicates)
+                        const logLines = result.log_lines || [];
 
-                            // Split by newlines and add each line separately
-                            const lines = currentMessage.split('\n');
-                            lines.forEach(line => {
+                        // Add only NEW lines that we haven't displayed yet
+                        if (logLines.length > lastLogLineCount) {
+                            const newLines = logLines.slice(lastLogLineCount);
+                            newLines.forEach(line => {
                                 const trimmed = line.trim();
                                 if (trimmed) {
                                     widgetLogLine(root, trimmed, (result.status === 'finished' || result.status === 'completed') ? 'success' : 'info');
                                 }
                             });
-                            lastMessage = currentMessage;
+                            lastLogLineCount = logLines.length;
                         }
 
                         // Update progress bar if progress is available
@@ -346,39 +341,26 @@
                             widgetProgressBar(actualWidgetIdentifier, result.progress, result.eta);
                         }
 
-                        // Log the change based on success status (only if message changed)
-                        const currentMessage = result.message || result.error || 'Unknown status';
-                        if (currentMessage !== lastMessage) {
+                        // Process log lines (skip duplicates)
+                        const logLines = result.log_lines || [];
+
+                        // Add only NEW lines that we haven't displayed yet
+                        if (logLines.length > lastLogLineCount) {
                             try {
-                                // Find new lines to add (потоковий вивід як в чаті)
-                                const logElement = root.querySelector('.widget-log');
-                                if (logElement) {
-                                    // Split both messages into lines
-                                    const currentLines = currentMessage.split('\n').filter(l => l.trim());
-                                    const previousLines = lastMessage ? lastMessage.split('\n').filter(l => l.trim()) : [];
-
-                                    // Find only NEW lines that weren't in previous message
-                                    const newLines = currentLines.slice(previousLines.length);
-
-                                    // Add only NEW lines (like in chat - incremental output)
-                                    newLines.forEach(line => {
-                                        const trimmed = line.trim();
-                                        if (trimmed) {
-                                            widgetLogLine(root, trimmed, result.success ? 'info' : 'error');
-                                        }
-                                    });
-                                }
-
-                                // Always update lastMessage after calling widgetLogLine
-                                lastMessage = currentMessage;
-                                lastResponse = currentResponse;
+                                const newLines = logLines.slice(lastLogLineCount);
+                                newLines.forEach(line => {
+                                    const trimmed = line.trim();
+                                    if (trimmed) {
+                                        widgetLogLine(root, trimmed, result.success ? 'info' : 'error');
+                                    }
+                                });
+                                lastLogLineCount = logLines.length;
                             } catch (e) {
                                 console.error(`[widgetWatcher] Failed to log message: ${e.message}`);
                             }
-                        } else {
-                            // Message didn't change, but response did - still update lastResponse
-                            lastResponse = currentResponse;
                         }
+
+                        lastResponse = currentResponse;
                     } else {
                         // Response unchanged - slightly increase delay (but not too much)
                         delay = Math.min(MAX_DELAY, delay + DELTA_STEP);

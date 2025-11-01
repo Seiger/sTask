@@ -83,16 +83,49 @@ class sTaskActionController extends BaseController
             $worker = $this->resolveWorkerOrFail($identifier);
             $task = $worker->createTask($action, $options);
 
+            // Send response IMMEDIATELY, then launch worker
+            $response = response()->json(['success' => true, 'id' => (int)$task->id, 'message' => 'Task created successfully']);
+
             if ($task && Carbon::parse($task->created_at) <= Carbon::now()) {
-                // Launch worker (will use fastcgi_finish_request if available)
-                $this->launchTaskWorker();
+                // Try to send response quickly and continue execution
+                if (function_exists('fastcgi_finish_request')) {
+                    // Strategy: send headers and content, close connection, then execute worker
+
+                    // Set headers to prevent buffering
+                    header('Connection: close');
+                    header('Content-Length: ' . ob_get_length());
+
+                    // Send response
+                    $response->send();
+
+                    // Flush all output buffers
+                    if (ob_get_level() > 0) {
+                        ob_end_flush();
+                    }
+                    flush();
+
+                    // Close FastCGI connection
+                    fastcgi_finish_request();
+
+                    // Allow script to continue even if client disconnects
+                    ignore_user_abort(true);
+                    set_time_limit(0);
+
+                    // NOW execute worker (client connection is closed)
+                    $this->launchTaskWorker();
+
+                    exit();
+                } else {
+                    // No fastcgi_finish_request - fallback to normal execution
+                    $this->launchTaskWorker();
+                }
             }
+
+            return $response;
         } catch (\Throwable $e) {
             Log::warning('sTaskActionController launch failed: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
-
-        return response()->json(['success' => true, 'id' => (int)$task->id, 'message' => 'Task created successfully']);
     }
 
     /**
@@ -128,9 +161,10 @@ class sTaskActionController extends BaseController
                 ], 400);
             }
 
-            $file = TaskProgress::file($id);
+            // Read current progress state from log file
+            $data = TaskProgress::readProgress($id);
 
-            if (!is_file($file)) {
+            if ($data === null) {
                 return response()->json([
                     'success' => false,
                     'code' => 404,
@@ -141,22 +175,12 @@ class sTaskActionController extends BaseController
                 ], 404);
             }
 
-            $json = file_get_contents($file);
-            $data = json_decode($json, true);
-
-            if (!is_array($data)) {
-                return response()->json([
-                    'success' => false,
-                    'code' => 500,
-                    'error' => 'Invalid progress data',
-                    'id' => $id,
-                    'status' => 'error',
-                    'message' => 'Invalid progress data'
-                ], 500);
-            }
+            // Read log messages (last 50 lines)
+            $logLines = TaskProgress::readLog($id, 50);
+            $data['log_lines'] = $logLines;
 
             return response()->json(array_merge([
-                'success' => (isset($data['code']) && $data['code'] == 500 ? false : true),
+                'success' => true,
                 'code' => 200,
             ], $data));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -642,34 +666,14 @@ class sTaskActionController extends BaseController
                 return;
             }
 
-            // If fastcgi_finish_request is available, use it for pseudo-async execution
-            // This sends response to client and continues script execution
-            if (function_exists('fastcgi_finish_request')) {
-                register_shutdown_function(function() {
-                    try {
-                        // Finish request (sends response, but continues execution)
-                        fastcgi_finish_request();
-
-                        // Execute worker after response is sent
-                        $console = app('Console');
-                        $console->call('stask:worker');
-                    } catch (\Throwable $e) {
-                        // Silent fail - cron will handle task execution
-                    }
-                });
-                return;
+            // No exec functions - execute directly
+            // Response has already been sent via fastcgi_finish_request() in run()
+            try {
+                $console = app('Console');
+                $console->call('stask:worker');
+            } catch (\Throwable $e) {
+                // Silent fail - cron will handle task execution
             }
-
-            // No async options available - use shutdown function (slowest)
-            // This will execute synchronously and block response
-            register_shutdown_function(function() {
-                try {
-                    $console = app('Console');
-                    $console->call('stask:worker');
-                } catch (\Throwable $e) {
-                    // Silent fail - cron will handle task execution
-                }
-            });
         } catch (\Throwable $e) {
             // Silent fail - cron will handle task execution
         }

@@ -1,13 +1,11 @@
-<?php
-
-return [
+<?php return [
     'title' => 'Менеджер Задач',
-    
+
     // Menu
     'dashboard' => 'Панель',
     'workers' => 'Воркери',
     'statistics' => 'Статистика',
-    
+
     // Dashboard
     'pending_tasks' => 'Очікують',
     'running_tasks' => 'Виконуються',
@@ -22,7 +20,7 @@ return [
     'recent_tasks' => 'Останні Завдання',
     'view_all' => 'Дивитись Все',
     'no_tasks_yet' => 'Завдань ще немає.',
-    
+
     // Tasks
     'task' => 'Завдання',
     'worker' => 'Воркер',
@@ -32,7 +30,7 @@ return [
     'created' => 'Створено',
     'actions' => 'Дії',
     'details' => 'Деталі',
-    
+
     // Statuses
     'pending' => 'Очікує',
     'preparing' => 'Підготовка',
@@ -41,7 +39,7 @@ return [
     'failed' => 'Помилка',
     'cancelled' => 'Скасовано',
     'unknown' => 'Невідомо',
-    
+
     // Workers
     'identifier' => 'Ідентифікатор',
     'class' => 'Клас',
@@ -62,7 +60,7 @@ return [
     'worker_actions' => 'Дії Воркера',
     'worker_class' => 'Клас Воркера',
     'back_to_workers' => 'Назад до Воркерів',
-    
+
     // Worker errors
     'worker_not_found_or_inactive' => 'Воркер не знайдено або неактивний: :identifier',
     'worker_class_not_found' => 'Клас воркера не знайдено: :className',
@@ -71,12 +69,12 @@ return [
     // Permissions
     'permissions_group' => 'sTask',
     'permission_access' => 'Доступ до інтерфейсу sTask',
-    
+
     // Widget
     'run_task' => 'Запустити завдання',
     'settings' => 'Налаштування',
     'scope' => 'Область',
-    
+
     // Common
     'refresh' => 'Оновити',
     'error' => 'Виникла помилка',
@@ -86,7 +84,7 @@ return [
     'process_tasks' => 'Обробити Завдання',
     'clean_old_tasks' => 'Очистити Старі Завдання',
     'clean_orphaned' => 'Очистити Осиротілі',
-    
+
     // Composer Update Worker
     'composer_update' => 'Оновлення Composer',
     'composer_update_desc' => 'Оновити всі залежності Composer до останніх версій',
@@ -102,7 +100,6 @@ return [
     'trying_direct_php_execution' => 'Спроба прямого виконання PHP (exec функції вимкнені)',
     'composer_update_failed' => 'Оновлення Composer не вдалось (код помилки',
     'finalizing_composer_update' => 'Завершення оновлення Composer',
-    'package_discovery_failed' => 'Відкриття пакетів не вдалось (не критично)',
     'preparing_direct_execution' => 'Підготовка прямого виконання Composer',
     'using_composer_api' => 'Використання Composer API',
     'running_composer' => 'Виконання',
@@ -116,14 +113,14 @@ return [
     'starting_task' => 'Запуск завдання',
     'please_wait' => 'Зачекайте будь ласка',
     'error_starting_task' => 'Помилка запуску завдання',
-    
+
     // File upload
     'file_too_large' => 'Файл занадто великий',
     'chunk_upload' => 'Завантаження частинами',
     'chunks' => 'частин',
     'uploading_file' => 'Завантаження',
     'upload_failed' => 'Помилка завантаження',
-    
+
     // Default widget
     'idle' => 'Очікує',
     'default_widget_description' => 'Це віджет за замовчуванням. Перевизначте метод renderWidget() у вашому воркері для створення власного інтерфейсу.',

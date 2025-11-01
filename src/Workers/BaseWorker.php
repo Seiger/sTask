@@ -237,14 +237,9 @@ abstract class BaseWorker implements TaskInterface
             'processed'  => 0,
             'total'      => 0,
             'eta'        => '—',
-            'message'    => $task->message,
+            'message'    => $task->message ?? '',
             'result'     => $task->result,
         ], $delta);
-
-        // Ensure message from delta takes precedence
-        if (isset($delta['message'])) {
-            $payload['message'] = $delta['message'];
-        }
 
         TaskProgress::write($payload);
     }
