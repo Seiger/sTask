@@ -63,8 +63,8 @@ class STaskPermissionsSeeder extends Seeder
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-            } catch (\Exception $e) {
-                // If insert fails due to sequence, try to get existing record
+            } catch (\Exception|\Throwable $e) {
+                // If insert fails due to sequence/duplicate key, try to get existing record
                 $existingGroup = DB::table('permissions_groups')
                     ->where('name', 'sTask')
                     ->first();
@@ -72,8 +72,29 @@ class STaskPermissionsSeeder extends Seeder
                 if ($existingGroup) {
                     $groupId = $existingGroup->id;
                 } else {
-                    // Re-throw if it's not a duplicate key error
-                    throw $e;
+                    // Check if there are ANY groups (Evolution CMS might have created some)
+                    $anyGroup = DB::table('permissions_groups')->first();
+                    if ($anyGroup) {
+                        // There are groups but none named 'sTask', and insert failed
+                        // This means PostgreSQL sequence is out of sync
+                        // Try to fix sequence and retry
+                        try {
+                            DB::statement("SELECT setval(pg_get_serial_sequence('permissions_groups', 'id'), COALESCE((SELECT MAX(id) FROM permissions_groups), 1) + 1, false)");
+                            // Retry insert after fixing sequence
+                            $groupId = DB::table('permissions_groups')->insertGetId([
+                                'name' => 'sTask',
+                                'lang_key' => 'sTask',
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        } catch (\Exception $e2) {
+                            // Still failed, re-throw original error
+                            throw $e;
+                        }
+                    } else {
+                        // No groups at all, re-throw original error
+                        throw $e;
+                    }
                 }
             }
         }
@@ -112,8 +133,8 @@ class STaskPermissionsSeeder extends Seeder
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]));
-                } catch (\Exception $e) {
-                    // Silently skip if permission already exists (race condition)
+                } catch (\Exception|\Throwable $e) {
+                    // Silently skip if permission already exists (duplicate key/race condition)
                     continue;
                 }
             } else {
