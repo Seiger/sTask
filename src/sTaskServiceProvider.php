@@ -35,7 +35,7 @@ class sTaskServiceProvider extends ServiceProvider
         $this->ensureStorageExists();
         
         // Load migrations, translations, views
-        $this->loadMigrationsFrom(dirname(__DIR__) . '/database/migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
         
