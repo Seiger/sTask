@@ -45,7 +45,7 @@ class STaskPermissionsSeeder extends Seeder
         try {
             return DB::table('permissions_groups')->insertGetId([
                 'name' => 'sTask',
-                'lang_key' => 'sTask',
+                'lang_key' => 'sTask::global.permissions_group',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -57,7 +57,7 @@ class STaskPermissionsSeeder extends Seeder
             try {
                 return DB::table('permissions_groups')->insertGetId([
                     'name' => 'sTask',
-                    'lang_key' => 'sTask',
+                    'lang_key' => 'sTask::global.permissions_group',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -77,45 +77,37 @@ class STaskPermissionsSeeder extends Seeder
      */
     protected function upsertPermissions(int $groupId): void
     {
-        $permissions = [
-            ['key' => 'stask_view', 'name' => 'View sTask', 'lang_key' => 'stask_view_permission'],
-            ['key' => 'stask_manage', 'name' => 'Manage Tasks', 'lang_key' => 'stask_manage_permission'],
-            ['key' => 'stask_workers', 'name' => 'Manage Workers', 'lang_key' => 'stask_workers_permission'],
-        ];
-
-        foreach ($permissions as $perm) {
-            $exists = DB::table('permissions')->where('key', $perm['key'])->first();
-            
-            if ($exists) {
+        $exists = DB::table('permissions')->where('key', 'stask')->first();
+        
+        if ($exists) {
+            DB::table('permissions')
+                ->where('key', 'stask')
+                ->update([
+                    'name' => 'Access sTask Interface',
+                    'lang_key' => 'sTask::global.permission_access',
+                    'group_id' => $groupId,
+                    'updated_at' => now(),
+                ]);
+        } else {
+            try {
+                DB::table('permissions')->insert([
+                    'key' => 'stask',
+                    'name' => 'Access sTask Interface',
+                    'lang_key' => 'sTask::global.permission_access',
+                    'group_id' => $groupId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                // Already exists (race condition), try update
                 DB::table('permissions')
-                    ->where('key', $perm['key'])
+                    ->where('key', 'stask')
                     ->update([
-                        'name' => $perm['name'],
-                        'lang_key' => $perm['lang_key'],
+                        'name' => 'Access sTask Interface',
+                        'lang_key' => 'sTask::global.permission_access',
                         'group_id' => $groupId,
                         'updated_at' => now(),
                     ]);
-            } else {
-                try {
-                    DB::table('permissions')->insert([
-                        'key' => $perm['key'],
-                        'name' => $perm['name'],
-                        'lang_key' => $perm['lang_key'],
-                        'group_id' => $groupId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } catch (QueryException $e) {
-                    // Already exists (race condition), try update
-                    DB::table('permissions')
-                        ->where('key', $perm['key'])
-                        ->update([
-                            'name' => $perm['name'],
-                            'lang_key' => $perm['lang_key'],
-                            'group_id' => $groupId,
-                            'updated_at' => now(),
-                        ]);
-                }
             }
         }
     }
@@ -129,32 +121,27 @@ class STaskPermissionsSeeder extends Seeder
             return;
         }
 
-        $permissionKeys = ['stask_view', 'stask_manage', 'stask_workers'];
+        $permission = DB::table('permissions')->where('key', 'stask')->first();
         
-        foreach ($permissionKeys as $key) {
-            $permission = DB::table('permissions')->where('key', $key)->first();
-            
-            if (!$permission) {
-                continue;
-            }
+        if (!$permission) {
+            return;
+        }
 
-            $exists = DB::table('role_permissions')
-                ->where('role_id', 1)
-                ->where('permission', $permission->key)
-                ->exists();
+        $exists = DB::table('role_permissions')
+            ->where('role_id', 1)
+            ->where('permission', 'stask')
+            ->exists();
 
-            if (!$exists) {
-                try {
-                    DB::table('role_permissions')->insert([
-                        'role_id' => 1,
-                        'permission' => $permission->key,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } catch (QueryException $e) {
-                    // Already exists - ignore
-                    continue;
-                }
+        if (!$exists) {
+            try {
+                DB::table('role_permissions')->insert([
+                    'role_id' => 1,
+                    'permission' => 'stask',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                // Already exists - ignore
             }
         }
     }
