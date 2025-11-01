@@ -140,14 +140,14 @@ class STaskPermissionsSeeder extends Seeder
 
             $exists = DB::table('role_permissions')
                 ->where('role_id', 1)
-                ->where('permission_id', $permission->id)
+                ->where('permission', $permission->id)
                 ->exists();
 
             if (!$exists) {
                 try {
                     DB::table('role_permissions')->insert([
                         'role_id' => 1,
-                        'permission_id' => $permission->id,
+                        'permission' => $permission->id,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
