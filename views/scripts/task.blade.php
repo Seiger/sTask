@@ -269,7 +269,7 @@
         let stopped = false;
         let inFlight = false;
         let lastResponse = null;
-        let lastLogLineCount = 0; // Number of rows already displayed
+        let displayedLines = new Set(); // Відображені рядки (для пропуску дублів)
         let changeCount = 0;
         let timer = null;
 
@@ -301,20 +301,17 @@
 
                     // Check if task is complete FIRST (regardless of success status)
                     if (result.status === 'finished' || result.status === 'failed' || result.status === 'completed') {
-                        // Process log lines (skip duplicates)
+                        // Process log lines (skip duplicates using Set)
                         const logLines = result.log_lines || [];
 
                         // Add only NEW lines that we haven't displayed yet
-                        if (logLines.length > lastLogLineCount) {
-                            const newLines = logLines.slice(lastLogLineCount);
-                            newLines.forEach(line => {
-                                const trimmed = line.trim();
-                                if (trimmed) {
-                                    widgetLogLine(root, trimmed, (result.status === 'finished' || result.status === 'completed') ? 'success' : 'info');
-                                }
-                            });
-                            lastLogLineCount = logLines.length;
-                        }
+                        logLines.forEach(line => {
+                            const trimmed = line.trim();
+                            if (trimmed && !displayedLines.has(trimmed)) {
+                                widgetLogLine(root, trimmed, (result.status === 'finished' || result.status === 'completed') ? 'success' : 'info');
+                                displayedLines.add(trimmed);
+                            }
+                        });
 
                         // Update progress bar if progress is available
                         if (typeof result.progress === 'number') {
@@ -341,23 +338,20 @@
                             widgetProgressBar(actualWidgetIdentifier, result.progress, result.eta);
                         }
 
-                        // Process log lines (skip duplicates)
+                        // Process log lines (skip duplicates using Set)
                         const logLines = result.log_lines || [];
 
                         // Add only NEW lines that we haven't displayed yet
-                        if (logLines.length > lastLogLineCount) {
-                            try {
-                                const newLines = logLines.slice(lastLogLineCount);
-                                newLines.forEach(line => {
-                                    const trimmed = line.trim();
-                                    if (trimmed) {
-                                        widgetLogLine(root, trimmed, result.success ? 'info' : 'error');
-                                    }
-                                });
-                                lastLogLineCount = logLines.length;
-                            } catch (e) {
-                                console.error(`[widgetWatcher] Failed to log message: ${e.message}`);
-                            }
+                        try {
+                            logLines.forEach(line => {
+                                const trimmed = line.trim();
+                                if (trimmed && !displayedLines.has(trimmed)) {
+                                    widgetLogLine(root, trimmed, result.success ? 'info' : 'error');
+                                    displayedLines.add(trimmed);
+                                }
+                            });
+                        } catch (e) {
+                            console.error(`[widgetWatcher] Failed to log message: ${e.message}`);
                         }
 
                         lastResponse = currentResponse;
