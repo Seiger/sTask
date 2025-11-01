@@ -15,7 +15,8 @@ class STaskPermissionsSeeder extends Seeder
     /**
      * Run the database seeds.
      * 
-     * Idempotent: Safe to run multiple times - checks before insert.
+     * Idempotent: Safe to run multiple times - uses updateOrInsert.
+     * Works correctly with PostgreSQL sequences and existing data.
      *
      * @return void
      */
@@ -26,35 +27,33 @@ class STaskPermissionsSeeder extends Seeder
             return;
         }
 
-        // Check if already seeded
-        $groupExists = DB::table('permissions_groups')
-            ->where('name', 'sTask')
-            ->exists();
-
-        if ($groupExists) {
-            // Already seeded - update/add missing permissions if needed
-            $this->updatePermissions();
-            return;
-        }
-
-        // First time seeding - create everything
+        // Use createPermissions which now uses updateOrInsert (idempotent)
+        // This works for both first-time and subsequent runs
         $this->createPermissions();
     }
 
     /**
      * Create permissions for the first time.
+     * Uses upsert to avoid duplicate key violations.
      *
      * @return void
      */
     protected function createPermissions(): void
     {
-        // Insert permissions group
-        $groupId = DB::table('permissions_groups')->insertGetId([
-            'name' => 'sTask',
-            'lang_key' => 'sTask',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Use updateOrInsert to avoid duplicate key errors with PostgreSQL sequences
+        DB::table('permissions_groups')->updateOrInsert(
+            ['name' => 'sTask'], // Match condition
+            [
+                'lang_key' => 'sTask',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // Get the group ID
+        $groupId = DB::table('permissions_groups')
+            ->where('name', 'sTask')
+            ->value('id');
 
         // Define permissions for sTask
         $permissions = [
@@ -78,56 +77,15 @@ class STaskPermissionsSeeder extends Seeder
             ],
         ];
 
-        // Insert all permissions
+        // Insert permissions using updateOrInsert to avoid duplicates
         foreach ($permissions as $permission) {
-            DB::table('permissions')->insert(array_merge($permission, [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
-        }
-    }
-
-    /**
-     * Update existing permissions - add missing ones if needed.
-     *
-     * @return void
-     */
-    protected function updatePermissions(): void
-    {
-        // Get group ID
-        $groupId = DB::table('permissions_groups')
-            ->where('name', 'sTask')
-            ->value('id');
-
-        if (!$groupId) {
-            return;
-        }
-
-        // Get existing permission keys
-        $existingKeys = DB::table('permissions')
-            ->where('group_id', $groupId)
-            ->pluck('key')
-            ->toArray();
-
-        // Define required permissions
-        $requiredPermissions = [
-            'stask_view' => 'View sTask',
-            'stask_manage' => 'Manage Tasks',
-            'stask_workers' => 'Manage Workers',
-        ];
-
-        // Add missing permissions
-        foreach ($requiredPermissions as $key => $name) {
-            if (!in_array($key, $existingKeys)) {
-                DB::table('permissions')->insert([
-                    'name' => $name,
-                    'key' => $key,
-                    'lang_key' => $key . '_permission',
-                    'group_id' => $groupId,
-                    'created_at' => now(),
+            DB::table('permissions')->updateOrInsert(
+                ['key' => $permission['key']], // Match by key
+                array_merge($permission, [
+                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
                     'updated_at' => now(),
-                ]);
-            }
+                ])
+            );
         }
     }
 }
