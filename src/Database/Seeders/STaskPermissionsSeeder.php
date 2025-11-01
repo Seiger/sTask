@@ -83,20 +83,38 @@ class STaskPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $perm) {
-            try {
-                DB::table('permissions')->updateOrInsert(
-                    ['key' => $perm['key']],
-                    [
+            $exists = DB::table('permissions')->where('key', $perm['key'])->first();
+            
+            if ($exists) {
+                DB::table('permissions')
+                    ->where('key', $perm['key'])
+                    ->update([
                         'name' => $perm['name'],
                         'lang_key' => $perm['lang_key'],
                         'group_id' => $groupId,
-                        'created_at' => DB::raw('COALESCE(created_at, NOW())'),
                         'updated_at' => now(),
-                    ]
-                );
-            } catch (QueryException $e) {
-                // Ignore duplicate key errors - permission already exists
-                continue;
+                    ]);
+            } else {
+                try {
+                    DB::table('permissions')->insert([
+                        'key' => $perm['key'],
+                        'name' => $perm['name'],
+                        'lang_key' => $perm['lang_key'],
+                        'group_id' => $groupId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } catch (QueryException $e) {
+                    // Already exists (race condition), try update
+                    DB::table('permissions')
+                        ->where('key', $perm['key'])
+                        ->update([
+                            'name' => $perm['name'],
+                            'lang_key' => $perm['lang_key'],
+                            'group_id' => $groupId,
+                            'updated_at' => now(),
+                        ]);
+                }
             }
         }
     }
