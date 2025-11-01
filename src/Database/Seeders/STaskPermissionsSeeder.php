@@ -64,7 +64,7 @@ class STaskPermissionsSeeder extends Seeder
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-            } catch (\Exception|\Throwable $e) {
+            } catch (QueryException|\Exception|\Throwable $e) {
                 // If insert fails due to sequence/duplicate key, try to get existing record
                 $existingGroup = DB::table('permissions_groups')
                     ->where('name', 'sTask')
