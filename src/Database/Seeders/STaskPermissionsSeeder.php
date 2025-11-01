@@ -80,7 +80,13 @@ class STaskPermissionsSeeder extends Seeder
                         // This means PostgreSQL sequence is out of sync
                         // Try to fix sequence and retry
                         try {
-                            DB::statement("SELECT setval(pg_get_serial_sequence('permissions_groups', 'id'), COALESCE((SELECT MAX(id) FROM permissions_groups), 1) + 1, false)");
+                            // Get table name with prefix
+                            $table = DB::getTablePrefix() . 'permissions_groups';
+                            $maxId = DB::table('permissions_groups')->max('id') ?? 0;
+                            
+                            // Fix PostgreSQL sequence
+                            DB::statement("SELECT setval(pg_get_serial_sequence('{$table}', 'id'), " . ($maxId + 1) . ", false)");
+                            
                             // Retry insert after fixing sequence
                             $groupId = DB::table('permissions_groups')->insertGetId([
                                 'name' => 'sTask',
@@ -88,7 +94,7 @@ class STaskPermissionsSeeder extends Seeder
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ]);
-                        } catch (\Exception $e2) {
+                        } catch (QueryException|\Exception $e2) {
                             // Still failed, re-throw original error
                             throw $e;
                         }
