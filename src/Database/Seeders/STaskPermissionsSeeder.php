@@ -3,6 +3,7 @@
 namespace Seiger\sTask\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -133,7 +134,7 @@ class STaskPermissionsSeeder extends Seeder
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]));
-                } catch (\Exception|\Throwable $e) {
+                } catch (QueryException|\Exception|\Throwable $e) {
                     // Silently skip if permission already exists (duplicate key/race condition)
                     continue;
                 }
