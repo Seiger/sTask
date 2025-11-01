@@ -3,6 +3,7 @@
 use EvolutionCMS\ServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
 use Seiger\sTask\Console\PublishAssets;
+use Seiger\sTask\Console\SeedPermissions;
 use Seiger\sTask\Console\TaskWorker;
 
 /**
@@ -68,21 +69,49 @@ class sTaskServiceProvider extends ServiceProvider
 
     /**
      * Run permissions seeder after migrations.
-     * Uses afterMigrating event to ensure tables exist.
+     * Uses afterMigrating callback to ensure tables exist.
      */
     protected function runPermissionsSeeder(): void
     {
-        $this->app->make('events')->listen('Illuminate\Database\Events\MigrationsEnded', function() {
-            // Run seeder only if permissions table exists
-            if (\Illuminate\Support\Facades\Schema::hasTable('permissions_groups')) {
-                try {
-                    $seeder = $this->app->make(\Seiger\sTask\Database\Seeders\STaskPermissionsSeeder::class);
-                    $seeder->run();
-                } catch (\Exception $e) {
-                    // Silently fail if seeder class not found during autoload
-                    \Illuminate\Support\Facades\Log::warning('sTask seeder could not be loaded: ' . $e->getMessage());
+        // Use afterMigrating callback for more reliable seeding
+        $this->callAfterResolving('migrator', function ($migrator) {
+            $migrator->afterMigrating(function () {
+                // Check if running migrate command
+                if (!$this->app->runningInConsole()) {
+                    return;
                 }
-            }
+                
+                // Check if it's a migration command
+                $argv = $_SERVER['argv'] ?? [];
+                $isMigration = false;
+                foreach ($argv as $arg) {
+                    if (str_contains($arg, 'migrate')) {
+                        $isMigration = true;
+                        break;
+                    }
+                }
+                
+                if (!$isMigration) {
+                    return;
+                }
+                
+                // Run seeder only if permissions table exists
+                if (\Illuminate\Support\Facades\Schema::hasTable('permissions_groups')) {
+                    try {
+                        $seeder = new \Seiger\sTask\Database\Seeders\STaskPermissionsSeeder();
+                        $seeder->run();
+                        
+                        if (method_exists($this->app['log'], 'info')) {
+                            $this->app['log']->info('sTask permissions seeder executed successfully');
+                        }
+                    } catch (\Exception $e) {
+                        // Log warning if seeder fails
+                        if (method_exists($this->app['log'], 'warning')) {
+                            $this->app['log']->warning('sTask seeder failed: ' . $e->getMessage());
+                        }
+                    }
+                }
+            });
         });
     }
 
@@ -103,6 +132,7 @@ class sTaskServiceProvider extends ServiceProvider
         $this->commands([
             TaskWorker::class,
             PublishAssets::class,
+            SeedPermissions::class,
         ]);
     }
 
@@ -143,6 +173,7 @@ class sTaskServiceProvider extends ServiceProvider
      */
     protected function publishResources()
     {
+        // Publish public assets
         $this->publishes([
             dirname(__DIR__) . '/config/sTaskAlias.php' => config_path('app/aliases/sTask.php', true),
             dirname(__DIR__) . '/images/seigerit.svg' => public_path('assets/site/seigerit.svg'),
@@ -151,6 +182,16 @@ class sTaskServiceProvider extends ServiceProvider
             dirname(__DIR__) . '/js/main.js' => public_path('assets/site/stask.js'),
             dirname(__DIR__) . '/js/tooltip.js' => public_path('assets/site/seigerit.tooltip.js'),
         ], 'stask');
+        
+        // Publish migrations separately (for manual installation if needed)
+        $this->publishes([
+            __DIR__ . '/Database/Migrations' => database_path('migrations'),
+        ], 'stask-migrations');
+        
+        // Publish seeders separately (for manual execution if needed)
+        $this->publishes([
+            __DIR__ . '/Database/Seeders' => database_path('seeders'),
+        ], 'stask-seeders');
     }
 
     /**

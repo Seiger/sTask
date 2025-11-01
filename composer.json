@@ -31,10 +31,5 @@
         "sTask": "Seiger\\sTask\\Facades\\sTask"
       }
     }
-  },
-  "scripts": {
-    "post-autoload-dump": [
-      "@php artisan stask:publish --no-prune"
-    ]
   }
 }
