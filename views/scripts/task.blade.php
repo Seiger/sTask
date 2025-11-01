@@ -304,7 +304,20 @@
                         // Only log if message changed to avoid duplicates
                         const currentMessage = result.message || result.error || 'Unknown status';
                         if (currentMessage !== lastMessage) {
-                            widgetLogLine(root, `${currentMessage}`, (result.status === 'finished' || result.status === 'completed') ? 'success' : 'error');
+                            // Clear the log and display all messages
+                            const logElement = root.querySelector('.widget-log');
+                            if (logElement) {
+                                logElement.innerHTML = '';
+                            }
+
+                            // Split by newlines and add each line separately
+                            const lines = currentMessage.split('\n');
+                            lines.forEach(line => {
+                                const trimmed = line.trim();
+                                if (trimmed) {
+                                    widgetLogLine(root, trimmed, (result.status === 'finished' || result.status === 'completed') ? 'success' : 'info');
+                                }
+                            });
                             lastMessage = currentMessage;
                         }
 
@@ -319,14 +332,13 @@
                     }
 
                     if (hasChanged) {
-                        // Response changed - increment change counter
+                        // Response changed - keep delay at minimum for faster updates
+                        delay = MIN_DELAY;
                         changeCount++;
 
-                        // If we've had 3 consecutive changes, decrease delay
                         if (changeCount >= CHANGE_THRESHOLD) {
-                            delay = Math.max(MIN_DELAY, delay - DELTA_STEP);
+                            console.log(`[widgetWatcher] Active updates detected, keeping delay at ${delay}ms`);
                             changeCount = 0; // Reset counter
-                            console.log(`[widgetWatcher] Response changing fast, decreasing delay to ${delay}ms`);
                         }
 
                         // Update progress bar if progress is available
@@ -338,10 +350,23 @@
                         const currentMessage = result.message || result.error || 'Unknown status';
                         if (currentMessage !== lastMessage) {
                             try {
-                                if (result.success) {
-                                    widgetLogLine(root, `${currentMessage}`, 'info');
-                                } else {
-                                    widgetLogLine(root, `${currentMessage}`, 'error');
+                                // Find new lines to add (потоковий вивід як в чаті)
+                                const logElement = root.querySelector('.widget-log');
+                                if (logElement) {
+                                    // Split both messages into lines
+                                    const currentLines = currentMessage.split('\n').filter(l => l.trim());
+                                    const previousLines = lastMessage ? lastMessage.split('\n').filter(l => l.trim()) : [];
+
+                                    // Find only NEW lines that weren't in previous message
+                                    const newLines = currentLines.slice(previousLines.length);
+
+                                    // Add only NEW lines (like in chat - incremental output)
+                                    newLines.forEach(line => {
+                                        const trimmed = line.trim();
+                                        if (trimmed) {
+                                            widgetLogLine(root, trimmed, result.success ? 'info' : 'error');
+                                        }
+                                    });
                                 }
 
                                 // Always update lastMessage after calling widgetLogLine
@@ -355,12 +380,17 @@
                             lastResponse = currentResponse;
                         }
                     } else {
-                        // Response unchanged - increase delay
+                        // Response unchanged - slightly increase delay (but not too much)
                         delay = Math.min(MAX_DELAY, delay + DELTA_STEP);
                         changeCount = 0; // Reset counter since no change
 
+                        // During active task execution, keep polling frequently
+                        if (result.status === 'running' || result.status === 'preparing') {
+                            delay = MIN_DELAY; // Keep minimum delay during active execution
+                        }
+
                         if (delay > MIN_DELAY) {
-                            console.log(`[widgetWatcher] No changes, increasing delay to ${delay}ms`);
+                            console.log(`[widgetWatcher] No changes, delay: ${delay}ms (status: ${result.status})`);
                         }
 
                         // Update lastResponse even if no changes to keep tracking current state

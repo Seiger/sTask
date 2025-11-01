@@ -84,7 +84,7 @@ class sTaskActionController extends BaseController
             $task = $worker->createTask($action, $options);
 
             if ($task && Carbon::parse($task->created_at) <= Carbon::now()) {
-                // Try to launch detached CLI worker
+                // Launch worker (will use fastcgi_finish_request if available)
                 $this->launchTaskWorker();
             }
         } catch (\Throwable $e) {
@@ -628,21 +628,42 @@ class sTaskActionController extends BaseController
         try {
             $artisanPath = EVO_CORE_PATH . 'artisan';
 
+            // Try exec for true async execution (best option)
             if (function_exists('exec') && !in_array('exec', explode(',', ini_get('disable_functions')))) {
                 $command = "php \"{$artisanPath}\" stask:worker > /dev/null 2>&1 &";
                 exec($command);
                 return;
             }
 
+            // Try shell_exec for true async execution (second best)
             if (function_exists('shell_exec') && !in_array('shell_exec', explode(',', ini_get('disable_functions')))) {
                 $command = "php \"{$artisanPath}\" stask:worker > /dev/null 2>&1 &";
                 shell_exec($command);
                 return;
             }
 
+            // If fastcgi_finish_request is available, use it for pseudo-async execution
+            // This sends response to client and continues script execution
+            if (function_exists('fastcgi_finish_request')) {
+                register_shutdown_function(function() {
+                    try {
+                        // Finish request (sends response, but continues execution)
+                        fastcgi_finish_request();
+
+                        // Execute worker after response is sent
+                        $console = app('Console');
+                        $console->call('stask:worker');
+                    } catch (\Throwable $e) {
+                        // Silent fail - cron will handle task execution
+                    }
+                });
+                return;
+            }
+
+            // No async options available - use shutdown function (slowest)
+            // This will execute synchronously and block response
             register_shutdown_function(function() {
                 try {
-                    // Use EvolutionCMS Console for better integration
                     $console = app('Console');
                     $console->call('stask:worker');
                 } catch (\Throwable $e) {

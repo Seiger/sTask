@@ -27,7 +27,7 @@ use Seiger\sTask\Models\sTaskModel;
  *
  * @package Seiger\sTask\Workers
  * @author Seiger IT Team
- * @since 1.0.0
+ * @since 1.0.2
  */
 class ComposerUpdateWorker extends BaseWorker
 {
@@ -88,6 +88,19 @@ class ComposerUpdateWorker extends BaseWorker
     }
 
     /**
+     * Render custom widget for Composer Update worker.
+     *
+     * @return string The rendered widget HTML
+     */
+    public function renderWidget(): string
+    {
+        return view('sTask::widgets.composerUpdateWorkerWidget', [
+            'identifier' => $this->identifier(),
+            'description' => $this->description(),
+        ])->render();
+    }
+
+    /**
      * Execute the composer update action.
      *
      * Runs composer update command with proper error handling and progress tracking.
@@ -113,20 +126,16 @@ class ComposerUpdateWorker extends BaseWorker
             // Preparing
             $task->update([
                 'status' => sTaskModel::TASK_STATUS_PREPARING,
-                'message' => '🔍 ' . __('sTask::global.task_preparing') . '...',
+                'message' => '_' . __('sTask::global.task_preparing') . '..._',
             ]);
 
             $this->addRecentMessage(__('sTask::global.task_preparing') . '...');
-            $this->pushProgress($task, [
-                'progress' => 0,
-                'status' => 'preparing',
-                'message' => __('sTask::global.task_preparing') . '...',
-            ]);
+            $this->pushProgress($task);
 
             // Set working directory to core (where composer.json is located)
             $projectRoot = base_path(); // In Evolution CMS this is the core/ directory
 
-            $message = 'Checking working directory: ' . \basename($projectRoot);
+            $message = __('sTask::global.checking_working_directory') . ': ' . basename($projectRoot);
             $this->addRecentMessage($message);
             $this->pushProgress($task, [
                 'progress' => 2,
@@ -136,7 +145,7 @@ class ComposerUpdateWorker extends BaseWorker
             // Get composer path
             $composerPath = $this->findComposerExecutable();
 
-            $message = 'Found Composer: ' . \basename($composerPath);
+            $message = __('sTask::global.found_composer') . ': ' . basename($composerPath);
             $this->addRecentMessage($message);
             $this->pushProgress($task, [
                 'progress' => 4,
@@ -144,13 +153,13 @@ class ComposerUpdateWorker extends BaseWorker
             ]);
 
             // Verify composer.json exists in working directory
-            if (!\file_exists($projectRoot . '/composer.json')) {
+            if (!file_exists($projectRoot . '/composer.json')) {
                 throw new \RuntimeException('composer.json not found in: ' . $projectRoot . '. Make sure base_path() points to core/ directory.');
             }
 
             $this->pushProgress($task, [
                 'progress' => 6,
-                'message' => '✅ Found composer.json in: ' . \basename($projectRoot),
+                'message' => __('sTask::global.found_composer_json_in') . ': ' . basename($projectRoot),
             ]);
 
             // Prepare composer update command
@@ -181,19 +190,15 @@ class ComposerUpdateWorker extends BaseWorker
 
             $this->pushProgress($task, [
                 'progress' => 8,
-                'message' => '⚙️ Preparing command with options...',
+                'message' => __('sTask::global.preparing_command_options') . '...',
             ]);
 
             $task->update([
                 'status' => sTaskModel::TASK_STATUS_RUNNING,
-                'message' => '🚀 ' . __('sTask::global.composer_updating') . '...',
+                'message' => '_' . __('sTask::global.composer_updating') . '..._',
             ]);
 
-            $this->pushProgress($task, [
-                'progress' => 10,
-                'status' => 'running',
-                'message' => '🚀 ' . __('sTask::global.composer_updating') . '...',
-            ]);
+            $this->pushProgress($task, ['progress' => 10]);
 
             // Execute composer update
             $startTime = microtime(true);
@@ -204,15 +209,15 @@ class ComposerUpdateWorker extends BaseWorker
             $commandString = implode(' ', $command) . ' 2>&1';
 
             // Change to project directory (core/)
-            $oldDir = \getcwd();
+            $oldDir = getcwd();
 
-            if (!\chdir($projectRoot)) {
+            if (!chdir($projectRoot)) {
                 throw new \RuntimeException('Failed to change directory to: ' . $projectRoot);
             }
 
             $this->pushProgress($task, [
                 'progress' => 12,
-                'message' => '📂 Working directory: ' . \getcwd(),
+                'message' => __('sTask::global.working_directory') . ': ' . getcwd(),
             ]);
 
             // Execute command and capture output line by line
@@ -228,7 +233,7 @@ class ComposerUpdateWorker extends BaseWorker
             // Log available functions
             $availableFunctions = [];
             foreach (['popen', 'shell_exec', 'exec', 'passthru', 'system'] as $func) {
-                if (\function_exists($func)) {
+                if (function_exists($func)) {
                     $availableFunctions[] = $func;
                 }
             }
@@ -238,7 +243,7 @@ class ComposerUpdateWorker extends BaseWorker
                 // Try to run composer directly as PHP code
                 $this->pushProgress($task, [
                     'progress' => 15,
-                    'message' => '🔧 Trying direct PHP execution (exec functions disabled)...',
+                    'message' => __('sTask::global.trying_direct_php_execution') . '...',
                 ]);
 
                 try {
@@ -255,12 +260,12 @@ class ComposerUpdateWorker extends BaseWorker
             }
 
             // Try popen first (if available)
-            if (\function_exists('popen')) {
-                $handle = \popen($commandString, 'r');
+            if (function_exists('popen')) {
+                $handle = popen($commandString, 'r');
 
                 if ($handle) {
-                    while (!\feof($handle)) {
-                        $line = \fgets($handle);
+                    while (!feof($handle)) {
+                        $line = fgets($handle);
                         if ($line === false) break;
 
                         $cleanData = trim($line);
@@ -272,13 +277,13 @@ class ComposerUpdateWorker extends BaseWorker
                         $progress = $this->processOutputLine($cleanData, $progress, $task);
                     }
 
-                    $returnVar = \pclose($handle);
+                    $returnVar = pclose($handle);
                 } else {
                     throw new \RuntimeException('Failed to execute composer command using popen');
                 }
-            } elseif (\function_exists('shell_exec')) {
+            } elseif (function_exists('shell_exec')) {
                 // Try shell_exec
-                $fullOutput = \shell_exec($commandString);
+                $fullOutput = shell_exec($commandString);
 
                 if ($fullOutput === null) {
                     throw new \RuntimeException('Failed to execute composer command using shell_exec');
@@ -309,17 +314,17 @@ class ComposerUpdateWorker extends BaseWorker
                         break;
                     }
                 }
-            } elseif (\function_exists('passthru')) {
+            } elseif (function_exists('passthru')) {
                 // Try passthru with output buffering
-                \ob_start();
-                \passthru($commandString, $returnVar);
-                $fullOutput = \ob_get_clean();
+                ob_start();
+                passthru($commandString, $returnVar);
+                $fullOutput = ob_get_clean();
 
-                $outputLines = \explode("\n", $fullOutput);
-                $totalLines = \count($outputLines);
+                $outputLines = explode("\n", $fullOutput);
+                $totalLines = count($outputLines);
 
                 foreach ($outputLines as $index => $line) {
-                    $cleanData = \trim($line);
+                    $cleanData = trim($line);
                     if (empty($cleanData)) continue;
 
                     $output[] = $cleanData;
@@ -329,23 +334,23 @@ class ComposerUpdateWorker extends BaseWorker
 
                     // Also update based on line position
                     $lineProgress = (int)(($index + 1) / $totalLines * 85) + 10; // 10-95%
-                    $progress = \max($progress, $lineProgress);
+                    $progress = max($progress, $lineProgress);
                 }
-            } elseif (\function_exists('system')) {
+            } elseif (function_exists('system')) {
                 // Try system with output buffering
-                \ob_start();
-                $lastLine = \system($commandString, $returnVar);
-                $fullOutput = \ob_get_clean();
+                ob_start();
+                $lastLine = system($commandString, $returnVar);
+                $fullOutput = ob_get_clean();
 
-                $outputLines = \explode("\n", $fullOutput);
+                $outputLines = explode("\n", $fullOutput);
                 if ($lastLine) {
                     $outputLines[] = $lastLine;
                 }
 
-                $totalLines = \count($outputLines);
+                $totalLines = count($outputLines);
 
                 foreach ($outputLines as $index => $line) {
-                    $cleanData = \trim($line);
+                    $cleanData = trim($line);
                     if (empty($cleanData)) continue;
 
                     $output[] = $cleanData;
@@ -355,18 +360,18 @@ class ComposerUpdateWorker extends BaseWorker
 
                     // Also update based on line position
                     $lineProgress = (int)(($index + 1) / $totalLines * 85) + 10; // 10-95%
-                    $progress = \max($progress, $lineProgress);
+                    $progress = max($progress, $lineProgress);
                 }
-            } elseif (\function_exists('exec')) {
+            } elseif (function_exists('exec')) {
                 // Fallback to exec
                 $outputLines = [];
                 $returnVar = 0;
 
-                \exec($commandString, $outputLines, $returnVar);
+                exec($commandString, $outputLines, $returnVar);
 
-                $totalLines = \count($outputLines);
+                $totalLines = count($outputLines);
                 foreach ($outputLines as $index => $line) {
-                    $cleanData = \trim($line);
+                    $cleanData = trim($line);
                     if (empty($cleanData)) continue;
 
                     $output[] = $cleanData;
@@ -376,7 +381,7 @@ class ComposerUpdateWorker extends BaseWorker
 
                     // Also update based on line position
                     $lineProgress = (int)(($index + 1) / $totalLines * 85) + 10; // 10-95%
-                    $progress = \max($progress, $lineProgress);
+                    $progress = max($progress, $lineProgress);
                 }
             } else {
                 // This should never happen because we checked above
@@ -384,7 +389,7 @@ class ComposerUpdateWorker extends BaseWorker
             }
 
             // Return to original directory
-            \chdir($oldDir);
+            chdir($oldDir);
 
             // Check if command was successful
             if ($returnVar !== 0) {
@@ -393,10 +398,10 @@ class ComposerUpdateWorker extends BaseWorker
                 // Show error in UI
                 $this->pushProgress($task, [
                     'progress' => 0,
-                    'message' => '❌ Composer update failed (exit code: ' . $returnVar . ')',
+                    'message' => __('sTask::global.composer_update_failed') . ': ' . $returnVar . ')',
                 ]);
 
-                Log::error('❌ Composer update failed', [
+                Log::error('Composer update failed', [
                     'task_id' => $task->id,
                     'exit_code' => $returnVar,
                     'error' => $errorOutput,
@@ -411,7 +416,7 @@ class ComposerUpdateWorker extends BaseWorker
             // Show finalizing message
             $this->pushProgress($task, [
                 'progress' => 98,
-                'message' => '✨ Finalizing composer update...',
+                'message' => '_' . __('sTask::global.finalizing_composer_update') . '..._',
             ]);
 
             // Parse output for summary information
@@ -462,7 +467,7 @@ class ComposerUpdateWorker extends BaseWorker
                 }
             } catch (\Throwable $e) {
                 // Not critical if package discovery fails
-                $message = 'Package discovery failed (non-critical)';
+                $message = __('sTask::global.package_discovery_failed');
                 $this->addRecentMessage($message);
                 $this->pushProgress($task, [
                     'progress' => 95,
@@ -475,7 +480,7 @@ class ComposerUpdateWorker extends BaseWorker
             }
 
             // Done
-            $finalMessage = __('sTask::global.composer_updated_successfully') . $summary . ' (' . \round($totalTime, 2) . 's)';
+            $finalMessage = '**' . __('sTask::global.composer_updated_successfully') . $summary . ' (' . round($totalTime, 2) . ' s)**';
             $this->addRecentMessage($finalMessage);
 
             $this->pushProgress($task, [
@@ -491,11 +496,7 @@ class ComposerUpdateWorker extends BaseWorker
                 'finished_at' => now(),
             ]);
 
-            $this->pushProgress($task, [
-                'status' => 'finished',
-                'progress' => 100,
-                'message' => $this->getRecentMessagesText(),
-            ]);
+            $this->pushProgress($task, ['progress' => 100]);
         } catch (\Throwable $e) {
             $where = basename($e->getFile()) . ':' . $e->getLine();
             $message = 'Failed @ ' . $where . ' — ' . $e->getMessage();
@@ -515,10 +516,7 @@ class ComposerUpdateWorker extends BaseWorker
                 'finished_at' => now(),
             ]);
 
-            $this->pushProgress($task, [
-                'status' => 'failed',
-                'message' => $message,
-            ]);
+            $this->pushProgress($task);
 
             throw $e;
         }
@@ -591,8 +589,8 @@ class ComposerUpdateWorker extends BaseWorker
         $this->recentMessages[] = $message;
 
         // Keep only last 50 messages
-        if (\count($this->recentMessages) > 50) {
-            \array_shift($this->recentMessages);
+        if (count($this->recentMessages) > 50) {
+            array_shift($this->recentMessages);
         }
     }
 
@@ -603,7 +601,7 @@ class ComposerUpdateWorker extends BaseWorker
      */
     protected function getRecentMessagesText(): string
     {
-        return \implode("\n", $this->recentMessages);
+        return implode("\n", $this->recentMessages);
     }
 
     /**
@@ -622,26 +620,26 @@ class ComposerUpdateWorker extends BaseWorker
      */
     protected function runComposerDirectly(sTaskModel $task, string $composerPath, array $command, string $projectRoot, array $opt): void
     {
-        $startTime = \microtime(true);
+        $startTime = microtime(true);
 
         // Change to project directory
-        $oldDir = \getcwd();
-        \chdir($projectRoot);
+        $oldDir = getcwd();
+        chdir($projectRoot);
 
         try {
             $this->pushProgress($task, [
                 'progress' => 20,
-                'message' => '🔧 Preparing direct Composer execution...',
+                'message' => '_' . __('sTask::global.preparing_direct_execution') . '..._',
             ]);
 
             // Composer API has issues in this context, use direct script execution
             // This method loads composer.phar directly and executes it
             $this->runComposerViaScript($task, $composerPath, $command, $projectRoot, $opt);
 
-            \chdir($oldDir);
+            chdir($oldDir);
 
         } catch (\Throwable $e) {
-            \chdir($oldDir);
+            chdir($oldDir);
             throw $e;
         }
     }
@@ -651,11 +649,11 @@ class ComposerUpdateWorker extends BaseWorker
      */
     protected function runComposerViaAPI(sTaskModel $task, array $command, string $projectRoot, array $opt): void
     {
-        $startTime = \microtime(true);
+        $startTime = microtime(true);
 
         $this->pushProgress($task, [
             'progress' => 30,
-            'message' => '📦 Using Composer API...',
+            'message' => '_' . __('sTask::global.using_composer_api') . '..._',
         ]);
 
         // Build command string for StringInput (more reliable than ArrayInput)
@@ -677,11 +675,11 @@ class ComposerUpdateWorker extends BaseWorker
             $commandParts[] = '--no-dev';
         }
 
-        $commandString = \implode(' ', $commandParts);
+        $commandString = implode(' ', $commandParts);
 
         $this->pushProgress($task, [
             'progress' => 40,
-            'message' => '🚀 Running: composer ' . $commandString,
+            'message' => __('sTask::global.running_composer') . ': composer ' . $commandString,
         ]);
 
         // Create Composer Application
@@ -694,24 +692,15 @@ class ComposerUpdateWorker extends BaseWorker
 
             $this->pushProgress($task, [
                 'progress' => 50,
-                'message' => '⚙️ Executing Composer...',
-            ]);
-
-            Log::info('Starting Composer Application run', [
-                'task_id' => $task->id,
+                'message' => '_' . __('sTask::global.executing_composer') . '..._',
             ]);
 
             $exitCode = $application->run($input, $output);
             $outputText = $output->fetch();
-
-            Log::info('Composer Application finished', [
-                'task_id' => $task->id,
-                'exit_code' => $exitCode,
-            ]);
         } catch (\Throwable $e) {
             Log::error('Composer API threw exception', [
                 'task_id' => $task->id,
-                'exception_class' => \get_class($e),
+                'exception_class' => get_class($e),
                 'exception' => $e->getMessage(),
                 'file' => $e->getFile() . ':' . $e->getLine(),
             ]);
@@ -728,18 +717,12 @@ class ComposerUpdateWorker extends BaseWorker
             throw new \Exception('Composer threw exception: ' . $e->getMessage());
         }
 
-        Log::info('Composer API execution completed', [
-            'task_id' => $task->id,
-            'exit_code' => $exitCode,
-            'output_preview' => \substr($outputText, 0, 500),
-        ]);
-
         // Process output lines for UI
         if ($outputText) {
-            $lines = \explode("\n", $outputText);
+            $lines = explode("\n", $outputText);
             $progress = 50;
             foreach ($lines as $line) {
-                $cleanLine = \trim($line);
+                $cleanLine = trim($line);
                 if (!empty($cleanLine)) {
                     $progress = $this->processOutputLine($cleanLine, $progress, $task);
                 }
@@ -747,21 +730,17 @@ class ComposerUpdateWorker extends BaseWorker
         }
 
         if ($exitCode === 0) {
-            $totalTime = \microtime(true) - $startTime;
+            $totalTime = microtime(true) - $startTime;
 
             $task->update([
                 'status' => sTaskModel::TASK_STATUS_FINISHED,
                 'progress' => 100,
-                'message' => '✅ ' . __('sTask::global.composer_updated_successfully') . ' (' . \round($totalTime, 2) . 's)',
+                'message' => '**' . __('sTask::global.composer_updated_successfully') . ' (' . round($totalTime, 2) . ' s)**',
                 'result' => $outputText,
                 'finished_at' => now(),
             ]);
 
-            $this->pushProgress($task, [
-                'status' => 'finished',
-                'progress' => 100,
-                'message' => '✅ ' . __('sTask::global.composer_updated_successfully'),
-            ]);
+            $this->pushProgress($task);
         } else {
             // Log full output for debugging
             Log::error('Composer update failed via API', [
@@ -771,8 +750,8 @@ class ComposerUpdateWorker extends BaseWorker
             ]);
 
             // Show last 20 lines of output in error message
-            $errorLines = \array_slice(\explode("\n", $outputText), -20);
-            $errorPreview = \implode("\n", $errorLines);
+            $errorLines = array_slice(explode("\n", $outputText), -20);
+            $errorPreview = implode("\n", $errorLines);
 
             throw new \Exception("Composer update failed with exit code: {$exitCode}\n\nLast output:\n{$errorPreview}");
         }
@@ -787,31 +766,23 @@ class ComposerUpdateWorker extends BaseWorker
 
         $this->pushProgress($task, [
             'progress' => 30,
-            'message' => '📝 Preparing Composer PHAR execution...',
+            'message' => '_' . __('sTask::global.preparing_phar_execution') . '..._',
         ]);
 
         // Clean the path - remove php prefix if present
-        $pharPath = \str_replace(['php ', 'php"', '"', "'"], '', $composerPath);
+        $pharPath = str_replace(['php ', 'php"', '"', "'"], '', $composerPath);
 
         // If it's a symlink, resolve it
-        if (\is_link($pharPath)) {
-            $realPath = \readlink($pharPath);
+        if (is_link($pharPath)) {
+            $realPath = readlink($pharPath);
             // If relative path, make it absolute
             if ($realPath && $realPath[0] !== '/') {
-                $realPath = \dirname($pharPath) . '/' . $realPath;
+                $realPath = dirname($pharPath) . '/' . $realPath;
             }
-            if ($realPath && \file_exists($realPath)) {
+            if ($realPath && file_exists($realPath)) {
                 $pharPath = $realPath;
             }
         }
-
-        Log::info('Preparing Composer PHAR execution', [
-            'task_id' => $task->id,
-            'phar_path' => $pharPath,
-            'exists' => \file_exists($pharPath),
-            'readable' => \is_readable($pharPath),
-            'is_phar' => \str_ends_with($pharPath, '.phar'),
-        ]);
 
         // Build arguments for Composer
         $args = ['update', '--no-interaction', '--verbose'];
@@ -832,38 +803,32 @@ class ComposerUpdateWorker extends BaseWorker
 
         $this->pushProgress($task, [
             'progress' => 40,
-            'message' => '🚀 Loading Composer PHAR: ' . \basename($pharPath),
+            'message' => __('sTask::global.loading_composer_phar') . ': ' . basename($pharPath),
         ]);
 
         // Set environment for Composer execution
         $oldArgv = $_SERVER['argv'] ?? [];
         $oldArgc = $_SERVER['argc'] ?? 0;
 
-        $_SERVER['argv'] = \array_merge(['composer'], $args);
-        $_SERVER['argc'] = \count($_SERVER['argv']);
+        $_SERVER['argv'] = array_merge(['composer'], $args);
+        $_SERVER['argc'] = count($_SERVER['argv']);
 
-        \putenv('COMPOSER_HOME=' . $projectRoot . '/.composer');
-        \putenv('COMPOSER_NO_INTERACTION=1');
-
-        Log::info('Composer environment set', [
-            'task_id' => $task->id,
-            'argv' => $_SERVER['argv'],
-            'working_dir' => \getcwd(),
-        ]);
+        putenv('COMPOSER_HOME=' . $projectRoot . '/.composer');
+        putenv('COMPOSER_NO_INTERACTION=1');
 
         // Execute Composer PHAR
-        \ob_start();
+        ob_start();
         $exitCode = 1;
 
         try {
             $this->pushProgress($task, [
                 'progress' => 50,
-                'message' => '⚙️ Executing: composer ' . \implode(' ', $args),
+                'message' => __('sTask::global.executing') . ': composer ' . implode(' ', $args),
             ]);
 
             // Check if it's a PHAR file
-            if (\str_ends_with($pharPath, '.phar')) {
-                if (!\file_exists($pharPath)) {
+            if (str_ends_with($pharPath, '.phar')) {
+                if (!file_exists($pharPath)) {
                     throw new \Exception("PHAR file not found: {$pharPath}");
                 }
 
@@ -874,23 +839,18 @@ class ComposerUpdateWorker extends BaseWorker
                 $exitCode = 0; // If we got here without exception, assume success
             } else {
                 // Not a PHAR - try to use vendor Composer classes directly
-                Log::info('Using Composer from vendor (not a PHAR)', [
-                    'task_id' => $task->id,
-                    'path' => $pharPath,
-                ]);
-
                 $this->pushProgress($task, [
                     'progress' => 55,
-                    'message' => '📦 Using Composer from vendor...',
+                    'message' => '_' . __('sTask::global.using_composer_from_vendor') . '..._',
                 ]);
 
                 // Use Composer Application class from vendor
-                if (!\class_exists('\Composer\Console\Application')) {
+                if (!class_exists('\Composer\Console\Application')) {
                     throw new \Exception('Composer Application class not found in vendor. Please run: composer install');
                 }
 
                 // Create a temporary stream to capture output
-                $stream = \fopen('php://temp', 'w+');
+                $stream = fopen('php://temp', 'w+');
                 $output = new \Symfony\Component\Console\Output\StreamOutput($stream);
 
                 $input = new \Symfony\Component\Console\Input\ArrayInput([
@@ -907,29 +867,20 @@ class ComposerUpdateWorker extends BaseWorker
                 $application = new \Composer\Console\Application();
                 $application->setAutoExit(false);
 
-                Log::info('Running Composer Application from vendor', [
-                    'task_id' => $task->id,
-                ]);
-
                 $exitCode = $application->run($input, $output);
 
                 // Get output from stream
-                \rewind($stream);
-                $vendorOutput = \stream_get_contents($stream);
-                \fclose($stream);
-
-                Log::info('Composer from vendor completed', [
-                    'task_id' => $task->id,
-                    'exit_code' => $exitCode,
-                ]);
+                rewind($stream);
+                $vendorOutput = stream_get_contents($stream);
+                fclose($stream);
 
                 // Process output line by line for UI display
                 if ($vendorOutput) {
-                    $lines = \explode("\n", $vendorOutput);
+                    $lines = explode("\n", $vendorOutput);
                     $progress = 60;
 
                     foreach ($lines as $line) {
-                        $cleanLine = \trim($line);
+                        $cleanLine = trim($line);
                         if (!empty($cleanLine)) {
                             // Process each line to update progress and UI
                             $progress = $this->processOutputLine($cleanLine, $progress, $task);
@@ -937,10 +888,10 @@ class ComposerUpdateWorker extends BaseWorker
                     }
 
                     // Replace ob buffer content with vendor output
-                    if (\ob_get_level() > 0) {
-                        \ob_end_clean();
+                    if (ob_get_level() > 0) {
+                        ob_end_clean();
                     }
-                    \ob_start();
+                    ob_start();
                     echo $vendorOutput;
                 }
 
@@ -949,9 +900,9 @@ class ComposerUpdateWorker extends BaseWorker
                 }
             }
 
-            $outputText = \ob_get_clean();
+            $outputText = ob_get_clean();
         } catch (\Throwable $e) {
-            $outputText = \ob_get_clean();
+            $outputText = ob_get_clean();
 
             Log::error('Composer PHAR execution failed', [
                 'task_id' => $task->id,
@@ -973,23 +924,17 @@ class ComposerUpdateWorker extends BaseWorker
 
         // Process output
         if ($outputText) {
-            $lines = \explode("\n", $outputText);
+            $lines = explode("\n", $outputText);
             $progress = 60;
             foreach ($lines as $line) {
-                $cleanLine = \trim($line);
+                $cleanLine = trim($line);
                 if (!empty($cleanLine)) {
                     $progress = $this->processOutputLine($cleanLine, $progress, $task);
                 }
             }
         }
 
-        $totalTime = \microtime(true) - $startTime;
-
-        Log::info('Composer PHAR execution completed', [
-            'task_id' => $task->id,
-            'exit_code' => $exitCode,
-            'duration' => $totalTime,
-        ]);
+        $totalTime = microtime(true) - $startTime;
 
         // Run package:discover manually (since we skipped scripts)
         try {
@@ -1018,13 +963,9 @@ class ComposerUpdateWorker extends BaseWorker
                     }
                 }
             }
-
-            Log::info('Package discovery completed', [
-                'task_id' => $task->id,
-            ]);
         } catch (\Throwable $e) {
             // Not critical if package discovery fails
-            $message = 'Package discovery failed (non-critical)';
+            $message = __('sTask::global.package_discovery_failed');
             $this->addRecentMessage($message);
             $this->pushProgress($task, [
                 'progress' => 95,
@@ -1036,7 +977,7 @@ class ComposerUpdateWorker extends BaseWorker
             ]);
         }
 
-        $finalMessage = __('sTask::global.composer_updated_successfully') . ' (' . \round($totalTime, 2) . 's)';
+        $finalMessage = '**' . __('sTask::global.composer_updated_successfully') . ' (' . round($totalTime, 2) . ' s)**';
         $this->addRecentMessage($finalMessage);
 
         $this->pushProgress($task, [
@@ -1053,11 +994,7 @@ class ComposerUpdateWorker extends BaseWorker
             'finished_at' => now(),
         ]);
 
-        $this->pushProgress($task, [
-            'status' => 'finished',
-            'progress' => 100,
-            'message' => $this->getRecentMessagesText(),
-        ]);
+        $this->pushProgress($task);
     }
 
     /**
@@ -1080,26 +1017,21 @@ class ComposerUpdateWorker extends BaseWorker
             '/usr/local/bin/composer.phar',
             '/usr/bin/composer.phar',
             $coreDir . '/composer.phar',
-            \dirname($coreDir) . '/composer.phar',
+            dirname($coreDir) . '/composer.phar',
             $coreDir . '/composer',
-            \dirname($coreDir) . '/composer',
+            dirname($coreDir) . '/composer',
             $coreDir . '/vendor/bin/composer',
         ];
 
         // Search for composer
         foreach ($possiblePaths as $path) {
             $searchPaths[] = $path;
-            if (\file_exists($path) && \is_readable($path)) {
-                Log::info('✅ Found Composer executable', [
-                    'path' => $path,
-                    'is_phar' => \str_ends_with($path, '.phar'),
-                ]);
-
+            if (file_exists($path) && is_readable($path)) {
                 // If it's a .phar file, prepend with php
-                if (\str_ends_with($path, '.phar')) {
+                if (str_ends_with($path, '.phar')) {
                     return PHP_OS_FAMILY === 'Windows' ?
                         'php "' . $path . '"' :
-                        'php ' . \escapeshellarg($path);
+                        'php ' . escapeshellarg($path);
                 }
 
                 return $path;
@@ -1115,11 +1047,6 @@ class ComposerUpdateWorker extends BaseWorker
 
         // Try standard composer command as last resort
         // This might work if composer is in PATH but we couldn't verify it
-        Log::info('⚠️ Using fallback: standard composer command', [
-            'command' => 'composer',
-            'note' => 'Will verify when executing',
-        ]);
-
         return 'composer';
     }
 }
