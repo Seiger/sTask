@@ -35,25 +35,18 @@ class sTaskServiceProvider extends ServiceProvider
         $this->ensureStorageExists();
         
         // Load migrations, translations, views
-        $this->loadMigrationsFrom(__DIR__.'/Database/Migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
         
-        // Run seeder after migrations to setup permissions
-        $this->runPermissionsSeeder();
+        // Load routes
+        $this->loadRoutes();
         
         // Publish resources
         $this->publishResources();
 
-        // Load routes ONLY when router is available (web context)
-        // Register routes in booted callback to ensure router is initialized
+        // Setup console schedule for commands
         $this->app->booted(function () {
-            // Only load routes if router exists and not in console
-            if ($this->app->bound('router') && !$this->app->runningInConsole()) {
-                $this->loadRoutes();
-            }
-            
-            // Setup console schedule
             $this->defineConsoleSchedule();
         });
     }
@@ -71,26 +64,6 @@ class sTaskServiceProvider extends ServiceProvider
     }
 
     /**
-     * Run permissions seeder after migrations.
-     * Uses afterMigrating event to ensure tables exist.
-     */
-    protected function runPermissionsSeeder(): void
-    {
-        $this->app->make('events')->listen('Illuminate\Database\Events\MigrationsEnded', function() {
-            // Run seeder only if permissions table exists
-            if (\Illuminate\Support\Facades\Schema::hasTable('permissions_groups')) {
-                try {
-                    $seeder = $this->app->make(\Seiger\sTask\Database\Seeders\STaskPermissionsSeeder::class);
-                    $seeder->run();
-                } catch (\Exception $e) {
-                    // Silently fail if seeder class not found during autoload
-                    \Illuminate\Support\Facades\Log::warning('sTask seeder could not be loaded: ' . $e->getMessage());
-                }
-            }
-        });
-    }
-
-    /**
      * Register the service provider.
      *
      * @return void
@@ -102,12 +75,14 @@ class sTaskServiceProvider extends ServiceProvider
         
         // Load plugins
         $this->loadPluginsFrom(dirname(__DIR__) . '/plugins/');
-
+        
         // Register console commands
-        $this->commands([
-            TaskWorker::class,
-            PublishAssets::class,
-        ]);
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                TaskWorker::class,
+                PublishAssets::class,
+            ]);
+        }
     }
 
     /**
@@ -129,38 +104,14 @@ class sTaskServiceProvider extends ServiceProvider
 
     /**
      * Load custom routes
-     * 
-     * Uses multiple safety checks to prevent router errors in CLI context:
-     * 1. Check if running in console
-     * 2. Check if router is bound
-     * 3. Use try-catch for extra safety
      *
      * @return void
      */
     protected function loadRoutes()
     {
-        // Double check router is available (defense in depth)
-        if (!$this->app->bound('router')) {
-            return;
-        }
-        
-        if (!file_exists(__DIR__ . '/Http/routes.php')) {
-            return;
-        }
-        
-        try {
-            // Register middleware group safely
-            if (method_exists($this->app['router'], 'middlewareGroup')) {
-                $this->app['router']->middlewareGroup('mgr', config('app.middleware.mgr', []));
-            }
-            
-            // Load routes file
+        if (file_exists(__DIR__ . '/Http/routes.php')) {
+            $this->app->router->middlewareGroup('mgr', config('app.middleware.mgr', []));
             include(__DIR__ . '/Http/routes.php');
-            
-        } catch (\Exception $e) {
-            // Router not available - skip route registration silently
-            // This can happen in CLI context during migrations/package discovery
-            return;
         }
     }
 
