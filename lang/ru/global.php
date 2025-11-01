@@ -91,6 +91,7 @@ return [
     'composer_update' => 'Обновление Composer',
     'composer_update_desc' => 'Обновить все зависимости Composer до последних версий',
     'task_preparing' => 'Подготовка задачи',
+    'task_running' => 'Выполнение задачи',
     'composer_updating' => 'Обновление зависимостей Composer',
     'composer_updated_successfully' => 'Зависимости Composer успешно обновлены',
     

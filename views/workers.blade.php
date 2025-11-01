@@ -4,7 +4,6 @@
     <style>
         .worker-widget {
             background: white;
-            border: 2px solid #2563eb;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: all 0.2s ease;

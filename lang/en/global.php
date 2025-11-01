@@ -91,6 +91,7 @@ return [
     'composer_update' => 'Composer Update',
     'composer_update_desc' => 'Update all Composer dependencies to their latest versions',
     'task_preparing' => 'Task preparing',
+    'task_running' => 'Task running',
     'composer_updating' => 'Updating Composer dependencies',
     'composer_updated_successfully' => 'Composer dependencies updated successfully',
     
