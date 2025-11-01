@@ -75,7 +75,13 @@ class sTaskServiceProvider extends ServiceProvider
         $this->app->make('events')->listen('Illuminate\Database\Events\MigrationsEnded', function() {
             // Run seeder only if permissions table exists
             if (\Illuminate\Support\Facades\Schema::hasTable('permissions_groups')) {
-                (new \Seiger\sTask\Database\Seeders\STaskPermissionsSeeder())->run();
+                try {
+                    $seeder = $this->app->make(\Seiger\sTask\Database\Seeders\STaskPermissionsSeeder::class);
+                    $seeder->run();
+                } catch (\Exception $e) {
+                    // Silently fail if seeder class not found during autoload
+                    \Illuminate\Support\Facades\Log::warning('sTask seeder could not be loaded: ' . $e->getMessage());
+                }
             }
         });
     }

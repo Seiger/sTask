@@ -19,8 +19,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Seiger\\sTask\\": "src/",
-      "Database\\Seeders\\": "database/seeders/"
+      "Seiger\\sTask\\": "src/"
     }
   },
   "extra": {
