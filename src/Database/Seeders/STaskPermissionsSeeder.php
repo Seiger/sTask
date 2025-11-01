@@ -22,10 +22,8 @@ class STaskPermissionsSeeder extends Seeder
             return;
         }
 
-        DB::transaction(function () {
-            $groupId = $this->getOrCreateGroup();
-            $this->upsertPermissions($groupId);
-        });
+        $groupId = $this->getOrCreateGroup();
+        $this->upsertPermissions($groupId);
     }
 
     /**
@@ -85,16 +83,21 @@ class STaskPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $perm) {
-            DB::table('permissions')->updateOrInsert(
-                ['key' => $perm['key']],
-                [
-                    'name' => $perm['name'],
-                    'lang_key' => $perm['lang_key'],
-                    'group_id' => $groupId,
-                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
-                    'updated_at' => now(),
-                ]
-            );
+            try {
+                DB::table('permissions')->updateOrInsert(
+                    ['key' => $perm['key']],
+                    [
+                        'name' => $perm['name'],
+                        'lang_key' => $perm['lang_key'],
+                        'group_id' => $groupId,
+                        'created_at' => DB::raw('COALESCE(created_at, NOW())'),
+                        'updated_at' => now(),
+                    ]
+                );
+            } catch (QueryException $e) {
+                // Ignore duplicate key errors - permission already exists
+                continue;
+            }
         }
     }
 
