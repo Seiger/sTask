@@ -40,20 +40,43 @@ class STaskPermissionsSeeder extends Seeder
      */
     protected function createPermissions(): void
     {
-        // Use updateOrInsert to avoid duplicate key errors with PostgreSQL sequences
-        DB::table('permissions_groups')->updateOrInsert(
-            ['name' => 'sTask'], // Match condition
-            [
-                'lang_key' => 'sTask',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        // Get the group ID
-        $groupId = DB::table('permissions_groups')
+        // Check if group already exists (avoid PostgreSQL sequence issues)
+        $existingGroup = DB::table('permissions_groups')
             ->where('name', 'sTask')
-            ->value('id');
+            ->first();
+
+        if ($existingGroup) {
+            // Update existing group
+            DB::table('permissions_groups')
+                ->where('id', $existingGroup->id)
+                ->update([
+                    'lang_key' => 'sTask',
+                    'updated_at' => now(),
+                ]);
+            $groupId = $existingGroup->id;
+        } else {
+            // Insert new group - wrap in try-catch for PostgreSQL sequence issues
+            try {
+                $groupId = DB::table('permissions_groups')->insertGetId([
+                    'name' => 'sTask',
+                    'lang_key' => 'sTask',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                // If insert fails due to sequence, try to get existing record
+                $existingGroup = DB::table('permissions_groups')
+                    ->where('name', 'sTask')
+                    ->first();
+                
+                if ($existingGroup) {
+                    $groupId = $existingGroup->id;
+                } else {
+                    // Re-throw if it's not a duplicate key error
+                    throw $e;
+                }
+            }
+        }
 
         // Define permissions for sTask
         $permissions = [
@@ -77,15 +100,33 @@ class STaskPermissionsSeeder extends Seeder
             ],
         ];
 
-        // Insert permissions using updateOrInsert to avoid duplicates
+        // Insert permissions with explicit check to avoid duplicates
         foreach ($permissions as $permission) {
-            DB::table('permissions')->updateOrInsert(
-                ['key' => $permission['key']], // Match by key
-                array_merge($permission, [
-                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
-                    'updated_at' => now(),
-                ])
-            );
+            $exists = DB::table('permissions')
+                ->where('key', $permission['key'])
+                ->exists();
+
+            if (!$exists) {
+                try {
+                    DB::table('permissions')->insert(array_merge($permission, [
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]));
+                } catch (\Exception $e) {
+                    // Silently skip if permission already exists (race condition)
+                    continue;
+                }
+            } else {
+                // Update existing permission
+                DB::table('permissions')
+                    ->where('key', $permission['key'])
+                    ->update([
+                        'name' => $permission['name'],
+                        'lang_key' => $permission['lang_key'],
+                        'group_id' => $permission['group_id'],
+                        'updated_at' => now(),
+                    ]);
+            }
         }
     }
 }
