@@ -52,12 +52,7 @@ This creates two database tables:
 - `s_workers` - Worker configurations
 - `s_tasks` - Task records and execution history
 
-**Permissions are seeded automatically** after migrations. If automatic seeding fails, run:
-```console
-php artisan stask:seed-permissions
-```
-
-This creates the `stask` permission group and necessary permissions for controlling access to the sTask interface.
+It also creates the `stask` permission for controlling access to the sTask interface.
 
 ## Key Features
 

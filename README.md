@@ -93,15 +93,6 @@ php artisan vendor:publish --tag=stask
 php artisan migrate
 ```
 
-This will:
-- Create database tables (`s_tasks`, `s_workers`)
-- Automatically seed permissions (happens after migrations)
-
-If automatic seeding fails, you can manually run:
-```bash
-php artisan stask:seed-permissions
-```
-
 ### Setup Cron Job
 
 Add the following cron job to run scheduled tasks every minute:
