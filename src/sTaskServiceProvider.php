@@ -24,9 +24,6 @@ class sTaskServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        // DEBUG: Log that ServiceProvider is loading
-        error_log('🔥🔥🔥 sTaskServiceProvider::boot() CALLED! 🔥🔥🔥');
-        
         // Merge configuration first
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/sTaskCheck.php', 'cms.settings');
 
@@ -73,17 +70,13 @@ class sTaskServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // DEBUG: Log that ServiceProvider is registering
-        error_log('🔥🔥🔥 sTaskServiceProvider::register() CALLED! 🔥🔥🔥');
-        
+
         // Register services
         $this->registerServices();
         
         // Load plugins
         $pluginPath = dirname(__DIR__) . '/plugins/';
-        error_log('🔥🔥🔥 Loading plugins from: ' . $pluginPath . ' 🔥🔥🔥');
         $this->loadPluginsFrom($pluginPath);
-        error_log('🔥🔥🔥 Plugins loaded! 🔥🔥🔥');
         
         // Register console commands
         if ($this->app->runningInConsole()) {
