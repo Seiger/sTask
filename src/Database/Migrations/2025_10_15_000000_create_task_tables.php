@@ -47,7 +47,7 @@ return new class extends Migration {
             $table->string('identifier');
             $table->string('action');
             $table->unsignedSmallInteger('status')->default(10);
-            $table->string('message', 255)->nullable();
+            $table->text('message')->nullable();
             $table->unsignedInteger('started_by')->nullable();
             $table->longText('meta')->nullable();
             $table->longText('result')->nullable();
