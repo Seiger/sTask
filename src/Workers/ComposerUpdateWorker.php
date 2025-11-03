@@ -196,20 +196,32 @@ class ComposerUpdateWorker extends BaseWorker
             $output = [];
             $progress = 10;
 
-            // Build command string
-            $commandString = implode(' ', $command) . ' 2>&1';
-
-            // Change to project directory (core/)
+            // Change to project directory (core/) FIRST
             $oldDir = getcwd();
 
             if (!chdir($projectRoot)) {
                 throw new \RuntimeException('Failed to change directory to: ' . $projectRoot);
             }
 
+            // Set up environment variables in PHP process
+            $composerEnv = $this->setupComposerEnvironment();
+            $composerHome = $composerEnv['home'];
+            $composerCacheDir = $composerEnv['cache'];
+            
             $this->pushProgress($task, [
                 'progress' => 12,
                 'message' => __('sTask::global.working_directory') . ': ' . getcwd(),
             ]);
+            
+            // Build command strings
+            // For proc_open we use $env array, for others we need explicit env prefix
+            $commandString = implode(' ', $command) . ' 2>&1';
+            $envPrefix = sprintf(
+                'COMPOSER_HOME=%s COMPOSER_CACHE_DIR=%s COMPOSER_NO_INTERACTION=1 COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_DISABLE_XDEBUG_WARN=1 HOME=%s ',
+                escapeshellarg($composerHome),
+                escapeshellarg($composerCacheDir),
+                escapeshellarg($composerHome)
+            );
 
             // Execute command and capture output line by line
             $descriptors = [
@@ -220,39 +232,52 @@ class ComposerUpdateWorker extends BaseWorker
 
             $pipes = [];
             $process = null;
+            $stderrOutput = '';
 
-            // Log available functions
-            $availableFunctions = [];
-            foreach (['popen', 'shell_exec', 'exec', 'passthru', 'system'] as $func) {
-                if (function_exists($func)) {
-                    $availableFunctions[] = $func;
-                }
-            }
+            // Prepare environment variables array for proc_open
+            // Start with current environment to preserve PATH and other system vars
+            // Composer env vars already set via setupComposerEnvironment()
+            $env = getenv() ?: $_ENV ?: $_SERVER;
 
-            if (empty($availableFunctions)) {
-                // All command execution functions are disabled
-                // Try to run composer directly as PHP code
+            // Try proc_open first (most reliable for environment variables)
+            if (function_exists('proc_open')) {
                 $this->pushProgress($task, [
                     'progress' => 15,
-                    'message' => __('sTask::global.trying_direct_php_execution') . '...',
+                    'message' => __('sTask::global.executing_via_proc_open') . '...',
                 ]);
 
-                try {
-                    $result = $this->runComposerDirectly($task, $composerPath, $command, $projectRoot, $opt);
-                    return; // Success, exit method
-                } catch (\Throwable $e) {
-                    Log::error('Direct PHP execution failed', [
-                        'task_id' => $task->id,
-                        'error' => $e->getMessage(),
-                    ]);
+                // Pass full environment array (getenv() + our overrides)
+                $process = proc_open($commandString, $descriptors, $pipes, $projectRoot, $env);
 
-                    throw new \RuntimeException('Cannot execute Composer: All exec functions disabled and direct execution failed. Error: ' . $e->getMessage());
+                if (is_resource($process)) {
+                    // Close stdin
+                    fclose($pipes[0]);
+
+                    // Read output line by line
+                    while (!feof($pipes[1])) {
+                        $line = fgets($pipes[1]);
+                        if ($line === false) break;
+
+                        $cleanData = trim($line);
+                        if (empty($cleanData)) continue;
+
+                        $output[] = $cleanData;
+                        $progress = $this->processOutputLine($cleanData, $progress, $task);
+                    }
+
+                    // Read any error output
+                    $stderrOutput = stream_get_contents($pipes[2]) ?: '';
+
+                    fclose($pipes[1]);
+                    fclose($pipes[2]);
+
+                    $returnVar = proc_close($process);
+                } else {
+                    throw new \RuntimeException('Failed to execute composer using proc_open');
                 }
-            }
-
-            // Try popen first (if available)
-            if (function_exists('popen')) {
-                $handle = popen($commandString, 'r');
+            } elseif (function_exists('popen')) {
+                // Fallback to popen with explicit env prefix (in case putenv doesn't work)
+                $handle = popen($envPrefix . $commandString, 'r');
 
                 if ($handle) {
                     while (!feof($handle)) {
@@ -273,8 +298,8 @@ class ComposerUpdateWorker extends BaseWorker
                     throw new \RuntimeException('Failed to execute composer command using popen');
                 }
             } elseif (function_exists('shell_exec')) {
-                // Try shell_exec
-                $fullOutput = shell_exec($commandString);
+                // Try shell_exec with explicit env prefix
+                $fullOutput = shell_exec($envPrefix . $commandString);
 
                 if ($fullOutput === null) {
                     throw new \RuntimeException('Failed to execute composer command using shell_exec');
@@ -354,11 +379,11 @@ class ComposerUpdateWorker extends BaseWorker
                     $progress = max($progress, $lineProgress);
                 }
             } elseif (function_exists('exec')) {
-                // Fallback to exec
+                // Fallback to exec with explicit env prefix
                 $outputLines = [];
                 $returnVar = 0;
 
-                exec($commandString, $outputLines, $returnVar);
+                exec($envPrefix . $commandString, $outputLines, $returnVar);
 
                 $totalLines = count($outputLines);
                 foreach ($outputLines as $index => $line) {
@@ -384,7 +409,10 @@ class ComposerUpdateWorker extends BaseWorker
 
             // Check if command was successful
             if ($returnVar !== 0) {
-                $errorOutput = implode("\n", array_slice($output, -10)); // Last 10 lines
+                $combinedError = trim($stderrOutput);
+                if ($combinedError === '') {
+                    $combinedError = implode("\n", array_slice($output, -10));
+                }
 
                 // Show error in UI
                 $this->pushProgress($task, [
@@ -395,10 +423,10 @@ class ComposerUpdateWorker extends BaseWorker
                 Log::error('Composer update failed', [
                     'task_id' => $task->id,
                     'exit_code' => $returnVar,
-                    'error' => $errorOutput,
+                    'error' => $combinedError,
                 ]);
 
-                throw new \RuntimeException('Composer update failed (exit code: ' . $returnVar . '): ' . $errorOutput);
+                throw new \RuntimeException('Composer update failed (exit code: ' . $returnVar . '): ' . $combinedError);
             }
 
             $totalTime = microtime(true) - $startTime;
@@ -600,6 +628,9 @@ class ComposerUpdateWorker extends BaseWorker
 
         // Create Composer Application
         try {
+            // Set up Composer environment variables
+            $this->setupComposerEnvironment();
+            
             $input = new \Symfony\Component\Console\Input\StringInput($commandString);
             $output = new \Symfony\Component\Console\Output\BufferedOutput();
 
@@ -731,8 +762,8 @@ class ComposerUpdateWorker extends BaseWorker
         $_SERVER['argv'] = array_merge(['composer'], $args);
         $_SERVER['argc'] = count($_SERVER['argv']);
 
-        putenv('COMPOSER_HOME=' . $projectRoot . '/.composer');
-        putenv('COMPOSER_NO_INTERACTION=1');
+        // Set up Composer environment variables
+        $this->setupComposerEnvironment();
 
         // Execute Composer PHAR
         ob_start();
@@ -867,6 +898,62 @@ class ComposerUpdateWorker extends BaseWorker
             'progress' => 100,
             'message' => $finalMessage,
         ]);
+    }
+
+    /**
+     * Ensure the given directory exists and is writable.
+     *
+     * @param string $path Absolute directory path
+     * @return void
+     */
+    protected function ensureDirectory(string $path): void
+    {
+        if (is_dir($path)) {
+            return;
+        }
+
+        if (!mkdir($path, 0775, true) && !is_dir($path)) {
+            throw new \RuntimeException('Unable to create directory for Composer: ' . $path);
+        }
+    }
+    
+    /**
+     * Setup Composer environment variables
+     * 
+     * Sets up COMPOSER_HOME, COMPOSER_CACHE_DIR and related environment variables
+     * in all places where Composer might look (putenv, $_ENV, $_SERVER)
+     *
+     * @return array Array with 'home' and 'cache' paths
+     */
+    protected function setupComposerEnvironment(): array
+    {
+        $composerHome = rtrim(storage_path('composer'), DIRECTORY_SEPARATOR);
+        $composerCacheDir = $composerHome . DIRECTORY_SEPARATOR . 'cache';
+        
+        // Ensure directories exist
+        $this->ensureDirectory($composerHome);
+        $this->ensureDirectory($composerCacheDir);
+        
+        // Set environment variables in all places Composer might look
+        $envVars = [
+            'COMPOSER_HOME' => $composerHome,
+            'COMPOSER_CACHE_DIR' => $composerCacheDir,
+            'COMPOSER_NO_INTERACTION' => '1',
+            'COMPOSER_ALLOW_SUPERUSER' => '1',
+            'COMPOSER_DISABLE_XDEBUG_WARN' => '1',
+            'HOME' => $composerHome,
+        ];
+        
+        foreach ($envVars as $key => $value) {
+            putenv("{$key}={$value}");
+            $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
+        }
+        
+        return [
+            'home' => $composerHome,
+            'cache' => $composerCacheDir,
+        ];
     }
 
     /**

@@ -79,7 +79,12 @@ class sTaskActionController extends BaseController
     public function run(string $identifier, string $action): JsonResponse
     {
         try {
-            $options = request()->all();
+            // Get options from request - can be direct fields or nested under 'options' key
+            $options = request()->input('options', request()->all());
+            
+            // Remove system fields that shouldn't be in options
+            unset($options['_token'], $options['options']);
+            
             $worker = $this->resolveWorkerOrFail($identifier);
             $task = $worker->createTask($action, $options);
 
