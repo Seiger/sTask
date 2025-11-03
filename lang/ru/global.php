@@ -148,4 +148,32 @@
     // Default widget
     'idle' => 'Ожидает',
     'default_widget_description' => 'Это виджет по умолчанию. Переопределите метод renderWidget() в вашем воркере для создания собственного интерфейса.',
+
+    // Artisan Worker
+    'artisan' => 'Artisan',
+    'artisan_desc' => 'Выполнить команду Laravel Artisan',
+    'artisan_command' => 'Команда Artisan',
+    'artisan_command_hint' => 'Например: cache:clear, migrate, list',
+    'artisan_command_hint_empty' => 'Оставьте пустым чтобы увидеть список всех команд. Примеры: cache:clear, migrate, list',
+    'artisan_arguments' => 'Аргументы',
+    'optional' => 'необязательно',
+    'artisan_arguments_hint' => 'Например: --force --no-interaction',
+    'command_required' => 'Команда обязательна',
+    'list_commands' => 'список команд',
+    'executing_artisan' => 'Выполнение Artisan',
+    'artisan_command_failed' => 'Команда Artisan не удалась',
+    'finalizing_artisan' => 'Завершение выполнения Artisan',
+    'artisan_executed_successfully' => 'Artisan выполнен успешно',
+    'found_artisan' => 'Найден Artisan',
+    'preparing_command' => 'Подготовка команды',
+    'executing_via_proc_open' => 'Выполнение через proc_open',
+    'executing_via_popen' => 'Выполнение через popen',
+    'executing_via_shell_exec' => 'Выполнение через shell_exec',
+    'executing_via_exec' => 'Выполнение через exec',
+    
+    // Security
+    'command_forbidden_in_production' => 'Команда :command запрещена в production окружении',
+    'command_requires_confirmation' => 'Команда :command требует подтверждения. Добавьте параметр confirm=true',
+    'command_contains_forbidden_characters' => 'Команда содержит запрещенные символы',
+    'command_not_in_whitelist' => 'Команда :command не разрешена. Проверьте whitelist в конфигурации artisan_security',
 ];

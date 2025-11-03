@@ -148,4 +148,32 @@
     // Default widget
     'idle' => 'Idle',
     'default_widget_description' => 'This is a default widget. Override the renderWidget() method in your worker to create a custom interface.',
+
+    // Artisan Worker
+    'artisan' => 'Artisan',
+    'artisan_desc' => 'Execute Laravel Artisan command',
+    'artisan_command' => 'Artisan Command',
+    'artisan_command_hint' => 'For example: cache:clear, migrate, list',
+    'artisan_command_hint_empty' => 'Leave empty to see list of all commands. Examples: cache:clear, migrate, list',
+    'artisan_arguments' => 'Arguments',
+    'optional' => 'optional',
+    'artisan_arguments_hint' => 'For example: --force --no-interaction',
+    'command_required' => 'Command is required',
+    'list_commands' => 'list commands',
+    'executing_artisan' => 'Executing Artisan',
+    'artisan_command_failed' => 'Artisan command failed',
+    'finalizing_artisan' => 'Finalizing Artisan execution',
+    'artisan_executed_successfully' => 'Artisan executed successfully',
+    'found_artisan' => 'Found Artisan',
+    'preparing_command' => 'Preparing command',
+    'executing_via_proc_open' => 'Executing via proc_open',
+    'executing_via_popen' => 'Executing via popen',
+    'executing_via_shell_exec' => 'Executing via shell_exec',
+    'executing_via_exec' => 'Executing via exec',
+    
+    // Security
+    'command_forbidden_in_production' => 'Command :command is forbidden in production environment',
+    'command_requires_confirmation' => 'Command :command requires confirmation. Add confirm=true parameter',
+    'command_contains_forbidden_characters' => 'Command contains forbidden characters',
+    'command_not_in_whitelist' => 'Command :command is not allowed. Check whitelist in artisan_security config',
 ];
