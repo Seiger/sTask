@@ -31,6 +31,7 @@ Route::middleware(['mgr'])->group(function () {
         // Workers management
         Route::get('/workers', [sTaskController::class, 'workers'])->name('workers');
         Route::get('/worker/{identifier}/settings', [sTaskController::class, 'workerSettings'])->name('worker.settings');
+        Route::post('/worker/{identifier}/settings', [sTaskController::class, 'saveWorkerSettings'])->name('worker.settings.save');
         Route::post('/worker/clean-orphaned', [sTaskController::class, 'cleanOrphanedWorkers'])->name('worker.clean');
         Route::post('/worker/activate', [sTaskController::class, 'activateWorker'])->name('worker.activate');
         Route::post('/worker/deactivate', [sTaskController::class, 'deactivateWorker'])->name('worker.deactivate');

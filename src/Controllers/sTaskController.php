@@ -1,9 +1,11 @@
 <?php namespace Seiger\sTask\Controllers;
 
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
-use Illuminate\Http\Request;
+use Seiger\sTask\Models\sWorker;
 
 /**
  * Class sTaskController
@@ -269,5 +271,84 @@ class sTaskController
             'success' => $result,
             'message' => $result ? 'Worker deactivated' : 'Failed to deactivate worker'
         ]);
+    }
+
+    /**
+     * Save worker settings.
+     *
+     * This method updates the worker configuration including endpoint, schedule,
+     * and other worker-specific settings.
+     *
+     * @param string $identifier Worker identifier
+     * @return JsonResponse JSON response with success status
+     */
+    public function saveWorkerSettings(Request $request, string $identifier): JsonResponse
+    {
+        try {
+            $worker = sWorker::where('identifier', $identifier)->firstOrFail();
+            $workerInstance = $worker->getInstance();
+
+            if (!$workerInstance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Worker instance not found',
+                ], 404);
+            }
+
+            $data = $request->all();
+
+            // Prepare config - separate schedule from other settings
+            $config = [];
+
+            // Schedule configuration (if provided)
+            if (isset($data['schedule'])) {
+                $config['schedule'] = [
+                    'type' => $data['schedule']['type'] ?? 'manual',
+                    'enabled' => (bool)($data['schedule']['enabled'] ?? false),
+                    'datetime' => $data['schedule']['datetime'] ?? null,
+                    'time' => $data['schedule']['time'] ?? null,
+                    'frequency' => $data['schedule']['frequency'] ?? 'hourly',
+                    'start_time' => $data['schedule']['start_time'] ?? null,
+                    'end_time' => $data['schedule']['end_time'] ?? null,
+                    'interval' => $data['schedule']['interval'] ?? 'hourly',
+                ];
+                unset($data['schedule']);
+            }
+
+            // All other fields are custom worker settings
+            // (endpoint, api_key, etc. - defined by worker's renderSettings)
+            foreach ($data as $key => $value) {
+                // Sanitize URLs
+                if (filter_var($value, FILTER_VALIDATE_URL)) {
+                    $config[$key] = filter_var($value, FILTER_SANITIZE_URL);
+                } else {
+                    $config[$key] = $value;
+                }
+            }
+
+            // Update worker settings
+            $workerInstance->updateConfig($config);
+
+            Log::info('Worker settings updated', [
+                'identifier' => $identifier,
+                'config_keys' => array_keys($config),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => __('sTask::global.settings_saved'),
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to save worker settings', [
+                'identifier' => $identifier,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('sTask::global.settings_save_failed') . ': ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

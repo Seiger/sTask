@@ -45,6 +45,9 @@
             color: #374151;
             font-size: 1.1rem;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         .form-group {
             margin-bottom: 1rem;
@@ -174,6 +177,35 @@
         body.darkness .stat-label {
             color: #d1d5db;
         }
+        .form-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        body.darkness .form-text {
+            color: #d1d5db;
+        }
+        .settings-section h4 {
+            margin: 1rem 0 0.75rem 0;
+            color: #374151;
+            font-size: 1rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        body.darkness .settings-section h4 {
+            color: #f9fafb;
+        }
+        .schedule-config {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 6px;
+            margin-top: 0.75rem;
+        }
+        body.darkness .schedule-config {
+            background: #4b5563;
+        }
     </style>
 
     <div class="max-w-7xl mx-auto py-3 px-6">
@@ -200,19 +232,9 @@
 
         <div class="settings-section">
             <h3>@lang('sTask::global.worker_statistics')</h3>
-            <div class="worker-stats">
-                <div class="stat-item">
-                    <div class="stat-value">{{$worker->tasks()->count()}}</div>
-                    <div class="stat-label">@lang('sTask::global.tasks_count')</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">{{$worker->scope}}</div>
-                    <div class="stat-label">@lang('sTask::global.scope')</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">{{$worker->created_at->format('d.m.Y')}}</div>
-                    <div class="stat-label">@lang('sTask::global.created')</div>
-                </div>
+            <div class="stat-item" style="max-width: 200px;">
+                <div class="stat-value">{{$worker->tasks()->count()}}</div>
+                <div class="stat-label">@lang('sTask::global.tasks_count')</div>
             </div>
         </div>
 
@@ -245,28 +267,231 @@
             </div>
         </div>
 
-        @if($workerInstance && method_exists($workerInstance, 'settings'))
+        @if($workerInstance)
+            @php
+                $schedule = method_exists($workerInstance, 'getSchedule') ? $workerInstance->getSchedule() : ['type' => 'manual', 'enabled' => false];
+            @endphp
+
+                    <!-- Worker Configuration -->
             <div class="settings-section">
-                <h3>@lang('sTask::global.worker_settings')</h3>
-                <div class="form-group">
-                    <label>@lang('sTask::global.worker_class')</label>
-                    <input type="text" class="form-control" value="{{$worker->class}}" readonly>
-                </div>
-                <div class="form-group">
-                    <label>@lang('sTask::global.worker_description')</label>
-                    <textarea class="form-control" rows="3" readonly>@php
-                            if (method_exists($workerInstance, 'description')) {
-                                echo $workerInstance->description();
-                            } else {
-                                echo __('sTask::global.worker_description');
-                            }
-                        @endphp</textarea>
-                </div>
+                <h3><i data-lucide="settings" class="w-5 h-5"></i> @lang('sTask::global.worker_settings')</h3>
+
+                <form id="workerConfigForm" onsubmit="saveWorkerConfig(event, '{{$worker->identifier}}')">
+                    <!-- Schedule Configuration (only for automated workers with taskMake) -->
+                    @if($workerInstance && method_exists($workerInstance, 'taskMake'))
+                        <h4><i data-lucide="clock" class="w-4 h-4"></i> @lang('sTask::global.schedule_launch')</h4>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"
+                                       name="schedule[enabled]"
+                                       id="scheduleEnabled"
+                                       value="1"
+                                       {{$schedule['enabled'] ?? false ? 'checked' : ''}}
+                                       onchange="toggleScheduleOptions()">
+                                @lang('sTask::global.enable_auto_run')
+                            </label>
+                        </div>
+
+                        <div id="scheduleOptions" class="{{$schedule['enabled'] ?? false ? '' : 'hidden'}}">
+                            <!-- Schedule Type -->
+                            <div class="form-group">
+                                <label>@lang('sTask::global.schedule_type')</label>
+                                <select class="form-control" name="schedule[type]" id="scheduleType" onchange="toggleScheduleConfig()">
+                                    <option value="manual" {{($schedule['type'] ?? 'manual') == 'manual' ? 'selected' : ''}}>@lang('sTask::global.schedule_manual')</option>
+                                    <option value="once" {{($schedule['type'] ?? 'manual') == 'once' ? 'selected' : ''}}>@lang('sTask::global.schedule_once')</option>
+                                    <option value="periodic" {{($schedule['type'] ?? 'manual') == 'periodic' ? 'selected' : ''}}>@lang('sTask::global.schedule_periodic')</option>
+                                    <option value="regular" {{($schedule['type'] ?? 'manual') == 'regular' ? 'selected' : ''}}>@lang('sTask::global.schedule_regular')</option>
+                                </select>
+                            </div>
+
+                            <!-- Once: specific datetime -->
+                            <div class="schedule-config schedule-once {{($schedule['type'] ?? 'manual') == 'once' ? '' : 'hidden'}}">
+                                <div class="form-group">
+                                    <label>@lang('sTask::global.datetime_launch')</label>
+                                    <input type="datetime-local"
+                                           class="form-control"
+                                           name="schedule[datetime]"
+                                           value="{{!empty($schedule['datetime']) ? date('Y-m-d\TH:i', strtotime($schedule['datetime'])) : ''}}">
+                                </div>
+                            </div>
+
+                            <!-- Periodic: specific time + frequency -->
+                            <div class="schedule-config schedule-periodic {{($schedule['type'] ?? 'manual') == 'periodic' ? '' : 'hidden'}}">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="form-group">
+                                        <label>@lang('sTask::global.time_launch')</label>
+                                        <input type="time"
+                                               class="form-control"
+                                               name="schedule[time]"
+                                               value="{{$schedule['time'] ?? '14:00'}}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>@lang('sTask::global.frequency')</label>
+                                        <select class="form-control" name="schedule[frequency]">
+                                            <option value="hourly" {{($schedule['frequency'] ?? 'hourly') == 'hourly' ? 'selected' : ''}}>@lang('sTask::global.frequency_hourly')</option>
+                                            <option value="daily" {{($schedule['frequency'] ?? 'hourly') == 'daily' ? 'selected' : ''}}>@lang('sTask::global.frequency_daily')</option>
+                                            <option value="weekly" {{($schedule['frequency'] ?? 'hourly') == 'weekly' ? 'selected' : ''}}>@lang('sTask::global.frequency_weekly')</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Regular: time range + interval -->
+                            <div class="schedule-config schedule-regular {{($schedule['type'] ?? 'manual') == 'regular' ? '' : 'hidden'}}">
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="form-group">
+                                        <label>@lang('sTask::global.start_time')</label>
+                                        <input type="time"
+                                               class="form-control"
+                                               name="schedule[start_time]"
+                                               value="{{$schedule['start_time'] ?? '05:00'}}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>@lang('sTask::global.end_time')</label>
+                                        <input type="time"
+                                               class="form-control"
+                                               name="schedule[end_time]"
+                                               value="{{$schedule['end_time'] ?? '23:00'}}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>@lang('sTask::global.interval')</label>
+                                        <select class="form-control" name="schedule[interval]">
+                                            <option value="every_15min" {{($schedule['interval'] ?? 'hourly') == 'every_15min' ? 'selected' : ''}}>@lang('sTask::global.interval_15min')</option>
+                                            <option value="every_30min" {{($schedule['interval'] ?? 'hourly') == 'every_30min' ? 'selected' : ''}}>@lang('sTask::global.interval_30min')</option>
+                                            <option value="hourly" {{($schedule['interval'] ?? 'hourly') == 'hourly' ? 'selected' : ''}}>@lang('sTask::global.interval_hourly')</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                    @endif
+
+                    <!-- Custom Worker Settings (if worker provides them) -->
+                    @if($workerInstance && method_exists($workerInstance, 'renderSettings'))
+                        {!! $workerInstance->renderSettings() !!}
+                    @endif
+
+                    <!-- Basic Info (readonly) -->
+                    <hr><br>
+                    <div class="form-group">
+                        <label>@lang('sTask::global.worker_class')</label>
+                        <input type="text" class="form-control" value="{{$worker->class}}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>@lang('sTask::global.worker_description')</label>
+                        <textarea class="form-control" rows="3" readonly>@php
+                                if (method_exists($workerInstance, 'description')) {
+                                    echo $workerInstance->description();
+                                } else {
+                                    echo __('sTask::global.worker_description');
+                                }
+                            @endphp</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">
+                        <i data-lucide="save" class="w-4 h-4"></i> @lang('sTask::global.save_settings')
+                    </button>
+                </form>
             </div>
         @endif
     </div>
 
     <script>
+        function toggleScheduleOptions() {
+            const enabled = document.getElementById('scheduleEnabled').checked;
+            const options = document.getElementById('scheduleOptions');
+            if (options) {
+                if (enabled) {
+                    options.classList.remove('hidden');
+                } else {
+                    options.classList.add('hidden');
+                }
+            }
+        }
+
+        function toggleScheduleConfig() {
+            const type = document.getElementById('scheduleType').value;
+            const configs = document.querySelectorAll('.schedule-config');
+            configs.forEach(el => el.classList.add('hidden'));
+
+            const selected = document.querySelector('.schedule-' + type);
+            if (selected) {
+                selected.classList.remove('hidden');
+            }
+        }
+
+        function saveWorkerConfig(event, identifier) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+
+            // Collect all form data as config
+            const config = {};
+
+            // Custom settings (all fields that are not schedule-related)
+            for (let [key, value] of formData.entries()) {
+                if (!key.startsWith('schedule[')) {
+                    config[key] = value;
+                }
+            }
+
+            // Schedule (if form has schedule fields)
+            const scheduleEnabled = document.getElementById('scheduleEnabled')?.checked || false;
+            const scheduleType = formData.get('schedule[type]');
+
+            if (scheduleType) {
+                config.schedule = {
+                    enabled: scheduleEnabled,
+                    type: scheduleType,
+                };
+
+                // Add type-specific fields
+                if (scheduleType === 'once') {
+                    const datetime = formData.get('schedule[datetime]');
+                    if (datetime) config.schedule.datetime = datetime;
+                } else if (scheduleType === 'periodic') {
+                    const time = formData.get('schedule[time]');
+                    const frequency = formData.get('schedule[frequency]');
+                    if (time) config.schedule.time = time;
+                    if (frequency) config.schedule.frequency = frequency;
+                } else if (scheduleType === 'regular') {
+                    const startTime = formData.get('schedule[start_time]');
+                    const endTime = formData.get('schedule[end_time]');
+                    const interval = formData.get('schedule[interval]');
+                    if (startTime) config.schedule.start_time = startTime;
+                    if (endTime) config.schedule.end_time = endTime;
+                    if (interval) config.schedule.interval = interval;
+                }
+            }
+
+            const url = '{{route('sTask.worker.settings.save', ['identifier' => '__IDENTIFIER__'])}}'.replace('__IDENTIFIER__', identifier);
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{csrf_token()}}'
+                },
+                body: JSON.stringify(config)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alertify.success(data.message || '@lang('sTask::global.settings_saved')');
+                        setTimeout(() => window.location.reload(), 500);
+                    } else {
+                        alertify.error(data.message || '@lang('sTask::global.settings_save_failed')');
+                    }
+                })
+                .catch(error => {
+                    alertify.error('@lang('sTask::global.settings_save_failed')');
+                    console.error(error);
+                });
+        }
+
         function toggleWorker(identifier, activate) {
             const action = activate ? 'activate' : 'deactivate';
             const route = activate ? '{{route('sTask.worker.activate')}}' : '{{route('sTask.worker.deactivate')}}';

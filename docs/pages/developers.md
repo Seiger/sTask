@@ -275,6 +275,118 @@ Workers are automatically discovered if they:
 
 The discovery process scans all installed Composer packages and registers workers automatically.
 
+## Worker Configuration
+
+### Custom Settings
+
+Workers can provide custom configuration through the `renderSettings()` method:
+
+```php
+public function renderSettings(): string
+{
+    $apiKey = $this->getConfig('api_key', '');
+    $endpoint = $this->getConfig('endpoint', '');
+    
+    return <<<HTML
+        <h4><i data-lucide="key" class="w-4 h-4"></i> API Configuration</h4>
+        <div class="form-group">
+            <label>API Endpoint</label>
+            <input type="url" 
+                   class="form-control" 
+                   name="endpoint" 
+                   value="{$endpoint}"
+                   placeholder="https://api.example.com">
+        </div>
+        <div class="form-group">
+            <label>API Key</label>
+            <input type="text" 
+                   class="form-control" 
+                   name="api_key" 
+                   value="{$apiKey}"
+                   placeholder="your-api-key">
+        </div>
+        <hr>
+    HTML;
+}
+```
+
+### Reading Configuration
+
+Use `BaseWorker` methods to access settings:
+
+```php
+// Get single value
+$endpoint = $this->getConfig('endpoint', 'https://default.com');
+
+// Get nested value (dot notation)
+$timeout = $this->getConfig('api.timeout', 30);
+
+// Get all settings
+$settings = $this->settings();
+```
+
+### Saving Configuration
+
+Configuration is automatically saved through the admin interface. You can also programmatically update it:
+
+```php
+// Set single value
+$this->setConfig('endpoint', 'https://api.example.com');
+
+// Update multiple values
+$this->updateConfig([
+    'endpoint' => 'https://api.example.com',
+    'api_key' => 'secret-key',
+    'timeout' => 60,
+]);
+```
+
+**Storage:** Settings are stored in `s_workers.settings` (JSON column).
+
+### Schedule Configuration
+
+Workers with `taskMake()` method automatically get schedule configuration in admin interface.
+
+**Schedule Types:**
+
+1. **Manual** - Only on-demand execution
+2. **Once** - Run once at specific datetime
+3. **Periodic** - Run at specific time with frequency (hourly/daily/weekly)
+4. **Regular** - Run within time period with interval (every 15/30/60 minutes)
+
+**Check if should run:**
+
+```php
+public function taskMake(sTaskModel $task, array $opt = []): void
+{
+    // Check schedule (skip for manual runs)
+    $isManual = $opt['manual'] ?? true;
+    if (!$isManual && !$this->shouldRunNow()) {
+        $task->update([
+            'status' => sTaskModel::TASK_STATUS_FINISHED,
+            'message' => 'Skipped: outside schedule',
+        ]);
+        return;
+    }
+    
+    // Continue with task execution...
+}
+```
+
+**Access schedule:**
+
+```php
+$schedule = $this->getSchedule();
+// Returns:
+// [
+//     'type' => 'regular',
+//     'enabled' => true,
+//     'start_time' => '05:00',
+//     'end_time' => '23:00',
+//     'interval' => 'hourly',
+// ]
+```
+
 ## Task Management API
 
 ### Creating Tasks
@@ -560,6 +672,46 @@ public function taskMultiStage(sTaskModel $task, array $options = []): void
 ```
 
 ## Logging
+
+### File-based Progress Tracking
+
+sTask uses a file-based progress tracking system with structured logs:
+
+**Storage:**
+- Location: `storage/stask/{task_id}.log`
+- Format: Pipe-separated values
+- Structure: `status|progress|processed|total|eta|message`
+
+**Example Log File:**
+```
+preparing|0|0|0|—|Task preparing...
+running|20|50|250|3m 15s|Processing items...
+running|45|112|250|2m 10s|Processing items...
+running|75|187|250|45s|Processing items...
+completed|100|250|250|0s|**Task completed successfully (5.2s)**
+```
+
+**Benefits:**
+- **Append-only** - No file locking conflicts
+- **Full history** - Complete execution trace
+- **Fast reads** - Read last line for current status
+- **Real-time** - Instant updates in UI
+
+### Progress Update Methods
+
+**pushProgress()** - Main method for progress updates:
+
+```php
+$this->pushProgress($task, [
+    'progress' => 45,           // 0-100
+    'processed' => 112,         // Items processed
+    'total' => 250,             // Total items
+    'eta' => '2m 10s',         // Estimated time
+    'message' => 'Processing...' // Current operation
+]);
+```
+
+Each call appends a new line to the log file with all information.
 
 ### Automatic Logging
 

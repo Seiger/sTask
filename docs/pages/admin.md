@@ -111,6 +111,32 @@ Click the toggle button next to a worker to:
 - **Activate** - Enable worker for task creation
 - **Deactivate** - Disable worker temporarily
 
+### Worker Settings
+
+Each worker can have its own configuration accessible through the settings page. Click on a worker to access:
+
+**Schedule Configuration** (for automated workers):
+- **Manual** - On demand only (no automatic execution)
+- **Once** - Run once at specific date and time
+- **Periodic** - Run periodically (hourly/daily/weekly) at specific time
+- **Regular** - Run regularly within time period (e.g., hourly between 5:00-23:00)
+
+**Custom Settings** (worker-specific):
+- API endpoints
+- Authentication credentials
+- Processing options
+- Other worker-specific parameters
+
+**Example Configuration:**
+
+For a 1C synchronization worker:
+- **Schedule Type**: Regular
+- **Time Period**: 05:00 - 23:00
+- **Interval**: Hourly
+- **Endpoint**: `https://api.1c.com/categories`
+
+Settings are stored in the `s_workers` table as JSON and persist across sessions.
+
 ## Creating Tasks
 
 ### From Admin Interface
@@ -149,26 +175,48 @@ Click on a task to view:
 - Task metadata
 - Result files
 
+### Progress Tracking System
+
+sTask uses a file-based progress tracking system:
+
+**Storage Format:**
+- Location: `storage/stask/{task_id}.log`
+- Format: Structured pipe-separated values
+- Structure: `status|progress|processed|total|eta|message`
+
+**Example Log Entry:**
+```
+running|45|150|325|2m 15s|Processing products...
+completed|100|325|325|0s|**Task completed successfully (5.2s)**
+```
+
+**Benefits:**
+- **Append-only** - No file locking issues
+- **Full history** - Complete task execution log
+- **Fast reads** - Last line for current status
+- **Real-time** - Updates visible immediately
+
 ### Log Viewing
 
-Each task has detailed logs showing:
-- **Timestamp** - When the log entry was created
-- **Level** - info, warning, or error
-- **Message** - Log message
-- **Context** - Additional data (JSON)
+Each task maintains a complete execution log:
+- **Progress updates** - All status changes
+- **Processing messages** - Step-by-step execution
+- **Error messages** - Detailed error information
+- **Timing data** - Progress percentage, ETA, duration
 
-Filter logs by level:
-- **All** - Show all log entries
-- **Info** - Informational messages
-- **Warning** - Non-critical issues
-- **Error** - Critical errors
+**Real-time Display:**
+- Progress bar updates dynamically
+- Log messages appear incrementally (like chat)
+- No page refresh needed
+- Adaptive polling (25ms-25s based on activity)
 
 ### Downloading Logs
 
-Click the **Download Logs** button to:
-- Export task logs as `.log` file
+Task logs are available for download:
+- Complete execution history
+- Structured format for parsing
 - Useful for debugging
-- Share with support team
+- Can be analyzed with standard tools
 
 ## Task Actions
 

@@ -77,6 +77,159 @@ abstract class BaseWorker implements TaskInterface
     }
 
     /**
+     * Get a specific configuration value.
+     *
+     * @param string $key Configuration key (dot notation supported)
+     * @param mixed $default Default value if key not found
+     * @return mixed Configuration value
+     */
+    public function getConfig(string $key, $default = null)
+    {
+        $settings = $this->settings();
+
+        // Support dot notation (e.g., 'schedule.enabled')
+        $keys = explode('.', $key);
+        $value = $settings;
+
+        foreach ($keys as $k) {
+            if (!is_array($value) || !isset($value[$k])) {
+                return $default;
+            }
+            $value = $value[$k];
+        }
+
+        return $value;
+    }
+
+    /**
+     * Set a specific configuration value.
+     *
+     * @param string $key Configuration key (dot notation supported)
+     * @param mixed $value Configuration value
+     * @return void
+     */
+    public function setConfig(string $key, $value): void
+    {
+        $settings = $this->settings();
+
+        // Support dot notation
+        $keys = explode('.', $key);
+        $current = &$settings;
+
+        foreach ($keys as $i => $k) {
+            if ($i === count($keys) - 1) {
+                $current[$k] = $value;
+            } else {
+                if (!isset($current[$k]) || !is_array($current[$k])) {
+                    $current[$k] = [];
+                }
+                $current = &$current[$k];
+            }
+        }
+
+        $this->worker->updateSettings($settings);
+    }
+
+    /**
+     * Update multiple configuration values at once.
+     *
+     * @param array $config Configuration values to update
+     * @return void
+     */
+    public function updateConfig(array $config): void
+    {
+        $settings = array_merge($this->settings(), $config);
+        $this->worker->updateSettings($settings);
+    }
+
+    /**
+     * Get schedule configuration.
+     *
+     * @return array Schedule configuration
+     */
+    public function getSchedule(): array
+    {
+        return $this->getConfig('schedule', [
+            'type' => 'manual', // manual, once, periodic, regular
+            'enabled' => false,
+            'datetime' => null, // for 'once' type
+            'time' => null, // for 'periodic' type (e.g., '14:00')
+            'frequency' => 'hourly', // hourly, daily, weekly for 'periodic'
+            'start_time' => null, // for 'regular' type (e.g., '05:00')
+            'end_time' => null, // for 'regular' type (e.g., '23:00')
+            'interval' => 'hourly', // hourly, every_30min, every_15min for 'regular'
+        ]);
+    }
+
+    /**
+     * Check if worker should run now based on schedule.
+     *
+     * @return bool True if should run, false otherwise
+     */
+    public function shouldRunNow(): bool
+    {
+        $schedule = $this->getSchedule();
+
+        if (!($schedule['enabled'] ?? false)) {
+            return false;
+        }
+
+        $now = time();
+        $currentHour = (int)date('G');
+        $currentMinute = (int)date('i');
+
+        switch ($schedule['type'] ?? 'manual') {
+            case 'manual':
+                return false; // Only manual execution
+
+            case 'once':
+                $scheduledTime = strtotime($schedule['datetime'] ?? '');
+                return $scheduledTime && abs($now - $scheduledTime) < 60; // Within 1 minute
+
+            case 'periodic':
+                // Check if current time matches scheduled time
+                if (!empty($schedule['time'])) {
+                    [$hour, $minute] = explode(':', $schedule['time']);
+                    if ((int)$hour === $currentHour && (int)$minute === $currentMinute) {
+                        return true;
+                    }
+                }
+                return false;
+
+            case 'regular':
+                // Check if within time range
+                if (!empty($schedule['start_time']) && !empty($schedule['end_time'])) {
+                    [$startHour, $startMin] = explode(':', $schedule['start_time']);
+                    [$endHour, $endMin] = explode(':', $schedule['end_time']);
+
+                    $currentTime = $currentHour * 60 + $currentMinute;
+                    $startTime = (int)$startHour * 60 + (int)$startMin;
+                    $endTime = (int)$endHour * 60 + (int)$endMin;
+
+                    if ($currentTime < $startTime || $currentTime > $endTime) {
+                        return false;
+                    }
+
+                    // Check interval
+                    switch ($schedule['interval'] ?? 'hourly') {
+                        case 'every_15min':
+                            return $currentMinute % 15 === 0;
+                        case 'every_30min':
+                            return $currentMinute % 30 === 0;
+                        case 'hourly':
+                            return $currentMinute === 0;
+                        default:
+                            return false;
+                    }
+                }
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+    /**
      * Render the worker widget for the administrative interface.
      *
      * This method provides a default widget rendering implementation that can be

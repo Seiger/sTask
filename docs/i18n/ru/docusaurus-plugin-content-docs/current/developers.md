@@ -275,6 +275,118 @@ class ProductWorker extends BaseWorker
 
 Процесс обнаружения сканирует все установленные Composer пакеты и автоматически регистрирует воркеры.
 
+## Конфигурация воркеров
+
+### Кастомные настройки
+
+Воркеры могут предоставлять собственную конфигурацию через метод `renderSettings()`:
+
+```php
+public function renderSettings(): string
+{
+    $apiKey = $this->getConfig('api_key', '');
+    $endpoint = $this->getConfig('endpoint', '');
+    
+    return <<<HTML
+        <h4><i data-lucide="key" class="w-4 h-4"></i> Конфигурация API</h4>
+        <div class="form-group">
+            <label>API Endpoint</label>
+            <input type="url" 
+                   class="form-control" 
+                   name="endpoint" 
+                   value="{$endpoint}"
+                   placeholder="https://api.example.com">
+        </div>
+        <div class="form-group">
+            <label>API ключ</label>
+            <input type="text" 
+                   class="form-control" 
+                   name="api_key" 
+                   value="{$apiKey}"
+                   placeholder="ваш-api-ключ">
+        </div>
+        <hr>
+    HTML;
+}
+```
+
+### Чтение конфигурации
+
+Используйте методы `BaseWorker` для доступа к настройкам:
+
+```php
+// Получить одно значение
+$endpoint = $this->getConfig('endpoint', 'https://default.com');
+
+// Получить вложенное значение (dot notation)
+$timeout = $this->getConfig('api.timeout', 30);
+
+// Получить все настройки
+$settings = $this->settings();
+```
+
+### Сохранение конфигурации
+
+Конфигурация автоматически сохраняется через админ интерфейс. Также можно программно обновить:
+
+```php
+// Установить одно значение
+$this->setConfig('endpoint', 'https://api.example.com');
+
+// Обновить несколько значений
+$this->updateConfig([
+    'endpoint' => 'https://api.example.com',
+    'api_key' => 'secret-key',
+    'timeout' => 60,
+]);
+```
+
+**Хранение:** Настройки сохраняются в `s_workers.settings` (JSON колонка).
+
+### Конфигурация расписания
+
+Воркеры с методом `taskMake()` автоматически получают конфигурацию расписания в админ интерфейсе.
+
+**Типы расписания:**
+
+1. **По требованию** - Только ручное выполнение
+2. **Один раз** - Выполнить один раз в указанный datetime
+3. **Периодически** - Выполнять в указанное время с периодичностью (ежечасно/ежедневно/еженедельно)
+4. **Регулярно** - Выполнять в временном периоде с интервалом (каждые 15/30/60 минут)
+
+**Проверка нужно ли запускать:**
+
+```php
+public function taskMake(sTaskModel $task, array $opt = []): void
+{
+    // Проверка расписания (пропускаем для ручных запусков)
+    $isManual = $opt['manual'] ?? true;
+    if (!$isManual && !$this->shouldRunNow()) {
+        $task->update([
+            'status' => sTaskModel::TASK_STATUS_FINISHED,
+            'message' => 'Пропущено: вне графика расписания',
+        ]);
+        return;
+    }
+    
+    // Продолжение выполнения задачи...
+}
+```
+
+**Доступ к расписанию:**
+
+```php
+$schedule = $this->getSchedule();
+// Возвращает:
+// [
+//     'type' => 'regular',
+//     'enabled' => true,
+//     'start_time' => '05:00',
+//     'end_time' => '23:00',
+//     'interval' => 'hourly',
+// ]
+```
+
 ## API управления задачами
 
 ### Создание задач
@@ -560,6 +672,46 @@ public function taskMultiStage(sTaskModel $task, array $options = []): void
 ```
 
 ## Логирование
+
+### Файловая система отслеживания прогресса
+
+sTask использует файловую систему отслеживания прогресса со структурированными логами:
+
+**Хранение:**
+- Расположение: `storage/stask/{task_id}.log`
+- Формат: Значения разделенные вертикальной чертой
+- Структура: `status|progress|processed|total|eta|message`
+
+**Пример файла лога:**
+```
+preparing|0|0|0|—|Подготовка задачи...
+running|20|50|250|3m 15s|Обработка элементов...
+running|45|112|250|2m 10s|Обработка элементов...
+running|75|187|250|45s|Обработка элементов...
+completed|100|250|250|0s|**Задача выполнена успешно (5.2s)**
+```
+
+**Преимущества:**
+- **Только добавление** - Нет конфликтов блокировки файлов
+- **Полная история** - Полная трассировка выполнения
+- **Быстрое чтение** - Прочитать последнюю строку для текущего статуса
+- **Реальное время** - Мгновенные обновления в UI
+
+### Методы обновления прогресса
+
+**pushProgress()** - Главный метод для обновления прогресса:
+
+```php
+$this->pushProgress($task, [
+    'progress' => 45,           // 0-100
+    'processed' => 112,         // Обработано элементов
+    'total' => 250,             // Всего элементов
+    'eta' => '2m 10s',         // Ожидаемое время
+    'message' => 'Обработка...' // Текущая операция
+]);
+```
+
+Каждый вызов добавляет новую строку в файл лога со всей информацией.
 
 ### Автоматическое логирование
 
