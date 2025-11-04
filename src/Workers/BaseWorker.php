@@ -179,12 +179,10 @@ abstract class BaseWorker implements TaskInterface
         $currentMinute = (int)date('i');
 
         switch ($schedule['type'] ?? 'manual') {
-            case 'manual':
-                return false; // Only manual execution
-
             case 'once':
                 $scheduledTime = strtotime($schedule['datetime'] ?? '');
-                return $scheduledTime && abs($now - $scheduledTime) < 60; // Within 1 minute
+                // Only return true if scheduled time has passed but not more than 30 seconds ago
+                return $scheduledTime && $now >= $scheduledTime && ($now - $scheduledTime) < 30;
 
             case 'periodic':
                 // Check if current time matches scheduled time
@@ -224,6 +222,7 @@ abstract class BaseWorker implements TaskInterface
                 }
                 return false;
 
+            case 'manual':
             default:
                 return false;
         }

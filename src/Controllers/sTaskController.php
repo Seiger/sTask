@@ -334,6 +334,31 @@ class sTaskController
                 'config_keys' => array_keys($config),
             ]);
 
+            // For 'once' schedule type, create task immediately with future start_at
+            if (isset($config['schedule']) &&
+                ($config['schedule']['enabled'] ?? false) &&
+                ($config['schedule']['type'] ?? '') === 'once' &&
+                !empty($config['schedule']['datetime'])) {
+
+                // Delete any existing queued/preparing tasks for this worker
+                $worker->tasks()
+                    ->whereIn('status', [sTaskModel::TASK_STATUS_QUEUED, sTaskModel::TASK_STATUS_PREPARING])
+                    ->delete();
+
+                // Create new scheduled task
+                $scheduledTime = \Carbon\Carbon::parse($config['schedule']['datetime']);
+                $task = $workerInstance->createTask('make', ['manual' => false]);
+
+                // Update start_at to scheduled time (this field controls when task should start)
+                $task->update(['start_at' => $scheduledTime]);
+
+                Log::info('Scheduled task created', [
+                    'identifier' => $identifier,
+                    'task_id' => $task->id,
+                    'scheduled_for' => $scheduledTime->toDateTimeString(),
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => __('sTask::global.settings_saved'),

@@ -1,5 +1,5 @@
 @php $task = Seiger\sTask\Models\sTaskModel::byIdentifier($identifier ?? '')->incomplete()->orderByDesc('updated_at')->first(); @endphp
-<!-- Widget Body -->
+
 <div id="{{$identifier ?? ''}}Widget">
     <div style="padding: 0.875rem 1rem;">
         <span id="{{$identifier ?? ''}}Run" class="btn btn-primary">
@@ -59,6 +59,3 @@
         });
     });
 </script>
-
-{{-- Include sTask scripts for progress bar functionality --}}
-@include('sTask::scripts.task')

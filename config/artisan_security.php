@@ -1,6 +1,4 @@
-<?php
-
-return [
+<?php return [
     /*
     |--------------------------------------------------------------------------
     | Dangerous Commands
@@ -98,4 +96,3 @@ return [
     */
     'required_permission' => 'run_artisan',
 ];
-

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Services\TaskProgress;
-use Seiger\sTask\Facades\sTask;
+use Seiger\sTask\Services\WorkerService;
 
 /**
  * TaskWorker - Console command for processing sTask background tasks
@@ -18,6 +18,7 @@ use Seiger\sTask\Facades\sTask;
  * and any other background work defined by worker modules.
  *
  * Features:
+ * - Checks scheduled workers and creates tasks for those that should run
  * - Processes any type of background tasks from sTaskModel queue
  * - Supports multiple worker types via database configuration
  * - Tracks progress through TaskProgress file-based system
@@ -29,13 +30,15 @@ use Seiger\sTask\Facades\sTask;
  * - Automatic cleanup of old progress files when idle
  *
  * Task Processing Flow:
- * 1. Retrieves all tasks ready for execution (pending status)
- * 2. For each task, resolves the worker class from database
- * 3. Validates worker implements TaskInterface
- * 4. Calls the appropriate action method via BaseWorker
- * 5. Updates task status and progress through TaskProgress
- * 6. Handles errors gracefully with proper cleanup
- * 7. Cleans up old progress files if no active tasks remain
+ * 1. Checks all active workers with enabled schedules
+ * 2. Creates tasks for workers that should run now (via shouldRunNow())
+ * 3. Retrieves all tasks ready for execution (pending status)
+ * 4. For each task, resolves the worker class from database
+ * 5. Validates worker implements TaskInterface
+ * 6. Calls the appropriate action method via BaseWorker
+ * 7. Updates task status and progress through TaskProgress
+ * 8. Handles errors gracefully with proper cleanup
+ * 9. Cleans up old progress files if no active tasks remain
  *
  * Usage:
  * php artisan stask:worker
@@ -55,7 +58,8 @@ class TaskWorker extends Command
     /**
      * Execute the console command.
      *
-     * Retrieves all tasks ready for execution and processes them sequentially.
+     * First checks all scheduled workers and creates tasks for those that should run.
+     * Then retrieves all tasks ready for execution and processes them sequentially.
      * Each task is executed through its respective worker implementation.
      * After processing, performs cleanup of old progress files if idle.
      *
@@ -63,7 +67,17 @@ class TaskWorker extends Command
      */
     public function handle(): int
     {
-        $tasks = sTaskModel::queued()->get();
+        // Step 1: Check scheduled workers and create tasks
+        $created = $this->checkScheduledWorkers();
+
+        // Step 2: Process all queued tasks that are ready
+        // If start_at is set, check if time has come; otherwise process immediately
+        $tasks = sTaskModel::queued()
+            ->where(function($query) {
+                $query->whereNull('start_at')
+                    ->orWhere('start_at', '<=', now());
+            })
+            ->get();
         $processed = 0;
 
         foreach ($tasks as $task) {
@@ -71,9 +85,83 @@ class TaskWorker extends Command
             $processed++;
         }
 
-        $this->info("[stask:worker] processed {$processed} task(s).");
+        $this->info("[stask:worker] created {$created} scheduled task(s), processed {$processed} task(s).");
         $this->cleanupIfIdle();
         return self::SUCCESS;
+    }
+
+    /**
+     * Check scheduled workers and create tasks for those that should run now.
+     *
+     * For 'once' type: Tasks are created when settings are saved (with future created_at).
+     *                  This method only needs to mark them as ready when time comes.
+     * For 'periodic' and 'regular': Creates tasks when schedule matches current time.
+     *
+     * Iterates through all active workers with enabled schedules,
+     * checks if they should run according to their schedule configuration,
+     * and creates new tasks if needed (avoiding duplicates).
+     *
+     * @return int Number of tasks created
+     */
+    private function checkScheduledWorkers(): int
+    {
+        $workers = sWorker::where('active', true)->get();
+        $created = 0;
+
+        foreach ($workers as $workerRecord) {
+            try {
+                // Resolve worker instance
+                $worker = app(WorkerService::class)->resolveWorker($workerRecord->identifier);
+
+                if (!$worker) {
+                    continue;
+                }
+
+                // Check if worker has taskMake method (scheduled workers only)
+                if (!method_exists($worker, 'taskMake')) {
+                    continue;
+                }
+
+                // Get schedule configuration
+                $schedule = $worker->getSchedule();
+
+                // Skip if schedule not enabled
+                if (!($schedule['enabled'] ?? false)) {
+                    continue;
+                }
+
+                // For 'once' type, task is created when settings are saved
+                // Just skip here as task already exists with future created_at
+                if (($schedule['type'] ?? 'manual') === 'once') {
+                    continue;
+                }
+
+                // Check if should run now (for periodic and regular types)
+                if (!$worker->shouldRunNow()) {
+                    continue;
+                }
+
+                // Check if worker already has an incomplete task
+                $existingTask = $workerRecord->tasks()
+                    ->incomplete()
+                    ->first();
+
+                if ($existingTask) {
+                    continue; // Skip if task already exists
+                }
+
+                // Create new task for this worker
+                $task = $worker->createTask('make', ['manual' => false]);
+                $created++;
+
+                $this->info("[stask:worker] Created scheduled task #{$task->id} for worker '{$workerRecord->identifier}'");
+
+            } catch (\Throwable $e) {
+                Log::warning("[stask:worker] Failed to check schedule for worker '{$workerRecord->identifier}': " . $e->getMessage());
+            }
+        }
+
+        return $created;
     }
 
     /**

@@ -30,18 +30,18 @@ class sTaskServiceProvider extends ServiceProvider
         // Register singletons
         $this->app->singleton(sTask::class);
         $this->app->alias(sTask::class, 'sTask');
-        
+
         // Create storage directory for logs
         $this->ensureStorageExists();
-        
+
         // Load migrations, translations, views
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
-        
+
         // Load routes
         $this->loadRoutes();
-        
+
         // Publish resources
         $this->publishResources();
 
@@ -57,7 +57,7 @@ class sTaskServiceProvider extends ServiceProvider
     protected function ensureStorageExists(): void
     {
         $logPath = storage_path('stask');
-        
+
         if (!file_exists($logPath)) {
             mkdir($logPath, 0755, true);
         }
@@ -70,14 +70,13 @@ class sTaskServiceProvider extends ServiceProvider
      */
     public function register()
     {
-
         // Register services
         $this->registerServices();
-        
+
         // Load plugins
         $pluginPath = dirname(__DIR__) . '/plugins/';
         $this->loadPluginsFrom($pluginPath);
-        
+
         // Register console commands
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -96,10 +95,10 @@ class sTaskServiceProvider extends ServiceProvider
     {
         // Register WorkerService as singleton for performance
         $this->app->singleton(\Seiger\sTask\Services\WorkerService::class);
-        
+
         // Register MetricsService as singleton
         $this->app->singleton(\Seiger\sTask\Services\MetricsService::class);
-        
+
         // Register sTask as singleton
         $this->app->singleton(\Seiger\sTask\sTask::class);
     }
@@ -165,7 +164,7 @@ class sTaskServiceProvider extends ServiceProvider
     {
         // Schedule commands if they have a schedule method
         $commands = [TaskWorker::class];
-        
+
         foreach ($commands as $command) {
             $instance = new $command;
             if (method_exists($instance, 'schedule')) {

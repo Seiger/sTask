@@ -1,6 +1,4 @@
-<?php
-
-namespace Seiger\sTask\Console;
+<?php namespace Seiger\sTask\Console;
 
 use Illuminate\Console\Command;
 use Seiger\sTask\Database\Seeders\STaskPermissionsSeeder;
@@ -69,4 +67,3 @@ class SeedPermissions extends Command
         }
     }
 }
-

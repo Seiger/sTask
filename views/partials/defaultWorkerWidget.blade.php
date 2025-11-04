@@ -59,6 +59,3 @@
         });
     });
 </script>
-
-{{-- Include sTask scripts for progress bar functionality --}}
-@include('sTask::scripts.task')

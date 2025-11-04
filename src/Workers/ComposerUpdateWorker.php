@@ -207,12 +207,12 @@ class ComposerUpdateWorker extends BaseWorker
             $composerEnv = $this->setupComposerEnvironment();
             $composerHome = $composerEnv['home'];
             $composerCacheDir = $composerEnv['cache'];
-            
+
             $this->pushProgress($task, [
                 'progress' => 12,
                 'message' => __('sTask::global.working_directory') . ': ' . getcwd(),
             ]);
-            
+
             // Build command strings
             // For proc_open we use $env array, for others we need explicit env prefix
             $commandString = implode(' ', $command) . ' 2>&1';
@@ -630,7 +630,7 @@ class ComposerUpdateWorker extends BaseWorker
         try {
             // Set up Composer environment variables
             $this->setupComposerEnvironment();
-            
+
             $input = new \Symfony\Component\Console\Input\StringInput($commandString);
             $output = new \Symfony\Component\Console\Output\BufferedOutput();
 
@@ -916,10 +916,10 @@ class ComposerUpdateWorker extends BaseWorker
             throw new \RuntimeException('Unable to create directory for Composer: ' . $path);
         }
     }
-    
+
     /**
      * Setup Composer environment variables
-     * 
+     *
      * Sets up COMPOSER_HOME, COMPOSER_CACHE_DIR and related environment variables
      * in all places where Composer might look (putenv, $_ENV, $_SERVER)
      *
@@ -929,11 +929,11 @@ class ComposerUpdateWorker extends BaseWorker
     {
         $composerHome = rtrim(storage_path('composer'), DIRECTORY_SEPARATOR);
         $composerCacheDir = $composerHome . DIRECTORY_SEPARATOR . 'cache';
-        
+
         // Ensure directories exist
         $this->ensureDirectory($composerHome);
         $this->ensureDirectory($composerCacheDir);
-        
+
         // Set environment variables in all places Composer might look
         $envVars = [
             'COMPOSER_HOME' => $composerHome,
@@ -943,13 +943,13 @@ class ComposerUpdateWorker extends BaseWorker
             'COMPOSER_DISABLE_XDEBUG_WARN' => '1',
             'HOME' => $composerHome,
         ];
-        
+
         foreach ($envVars as $key => $value) {
             putenv("{$key}={$value}");
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
         }
-        
+
         return [
             'home' => $composerHome,
             'cache' => $composerCacheDir,
