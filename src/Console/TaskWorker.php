@@ -206,7 +206,7 @@ class TaskWorker extends Command
                 'action'     => $task->action,
                 'status'     => $task->status_text,
                 'progress'   => 0,
-                'message'    => __('sTask::global.starting_task'),
+                'message'    => '***' . __('sTask::global.starting_task') . '***',
             ]);
 
             // Delegate the real work to worker via invokeAction
@@ -224,7 +224,7 @@ class TaskWorker extends Command
                     'action'     => $task->action,
                     'status'     => $task->status_text,
                     'progress'   => 100,
-                    'message'    => __('sTask::global.task_completed'),
+                    'message'    => '***' . __('sTask::global.task_completed') . '***',
                 ]);
             }
         } catch (\Throwable $e) {
