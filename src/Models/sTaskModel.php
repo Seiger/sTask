@@ -252,7 +252,18 @@ class sTaskModel extends Model
      */
     public function getStatusTextAttribute(): string
     {
-        return match($this->status) {
+        return self::statusText($this->status);
+    }
+
+    /**
+     * Convert status code to text representation.
+     *
+     * @param int $status Status code
+     * @return string Text representation of status
+     */
+    public static function statusText(int $status): string
+    {
+        return match($status) {
             self::TASK_STATUS_QUEUED => 'pending',
             self::TASK_STATUS_PREPARING => 'preparing',
             self::TASK_STATUS_RUNNING => 'running',

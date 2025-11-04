@@ -110,7 +110,8 @@
     'using_composer_from_vendor' => 'Using Composer from vendor',
     'task_is_running' => 'Task is running',
     'click_button_to_start' => 'Click button above to start the task',
-    'starting_task' => 'Starting task',
+    'starting_task' => 'Starting task...',
+    'task_completed' => 'Task completed successfully',
     'please_wait' => 'Please wait',
     'error_starting_task' => 'Error starting task',
     

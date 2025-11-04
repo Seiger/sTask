@@ -304,11 +304,19 @@
                         // Process log lines (skip duplicates using Set)
                         const logLines = result.log_lines || [];
 
+                        // Determine log level based on task status
+                        let logLevel = 'info';
+                        if (result.status === 'failed') {
+                            logLevel = 'error';
+                        } else if (result.status === 'finished' || result.status === 'completed') {
+                            logLevel = 'success';
+                        }
+
                         // Add only NEW lines that we haven't displayed yet
                         logLines.forEach(line => {
                             const trimmed = line.trim();
                             if (trimmed && !displayedLines.has(trimmed)) {
-                                widgetLogLine(root, trimmed, (result.status === 'finished' || result.status === 'completed') ? 'success' : 'info');
+                                widgetLogLine(root, trimmed, logLevel);
                                 displayedLines.add(trimmed);
                             }
                         });

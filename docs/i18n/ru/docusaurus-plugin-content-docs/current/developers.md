@@ -713,6 +713,46 @@ $this->pushProgress($task, [
 
 Каждый вызов добавляет новую строку в файл лога со всей информацией.
 
+### Конвертация статусов в текст
+
+sTask предоставляет централизованный метод для конвертации кодов статусов в текстовые представления:
+
+**Статический метод:**
+```php
+use Seiger\sTask\Models\sTaskModel;
+
+// Конвертировать код статуса в текст
+$statusText = sTaskModel::statusText(sTaskModel::TASK_STATUS_RUNNING);
+// Возвращает: 'running'
+
+// Использование в pushProgress
+$this->pushProgress($task, [
+    'status' => sTaskModel::statusText(sTaskModel::TASK_STATUS_FINISHED),
+    'progress' => 100,
+    'message' => 'Задача выполнена'
+]);
+```
+
+**Использование экземпляра задачи:**
+```php
+// Получить текстовый статус из экземпляра задачи
+$task = sTaskModel::find($id);
+$statusText = $task->status_text;  // Возвращает 'running', 'completed', и т.д.
+
+// Доступные текстовые статусы:
+// - 'pending'    (TASK_STATUS_QUEUED = 10)
+// - 'preparing'  (TASK_STATUS_PREPARING = 30)
+// - 'running'    (TASK_STATUS_RUNNING = 50)
+// - 'completed'  (TASK_STATUS_FINISHED = 80)
+// - 'failed'     (TASK_STATUS_FAILED = 100)
+```
+
+**Преимущества:**
+- **Типобезопасность** - Использование констант вместо жестко закодированных строк
+- **Согласованность** - Все текстовые статусы происходят из одного места
+- **Легко расширять** - Добавлять новые статусы в одном месте
+- **Без ошибок** - Невозможно сделать ошибку в написании названий статусов
+
 ### Автоматическое логирование
 
 sTask автоматически логирует:

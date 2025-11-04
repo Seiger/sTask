@@ -206,7 +206,7 @@ class TaskWorker extends Command
                 'action'     => $task->action,
                 'status'     => $task->status_text,
                 'progress'   => 0,
-                'message'    => 'Starting...',
+                'message'    => __('sTask::global.starting_task'),
             ]);
 
             // Delegate the real work to worker via invokeAction
@@ -222,9 +222,9 @@ class TaskWorker extends Command
                     'id'         => (int)$task->id,
                     'identifier' => $task->identifier,
                     'action'     => $task->action,
-                    'status'     => 'completed',
+                    'status'     => $task->status_text,
                     'progress'   => 100,
-                    'message'    => 'Task completed successfully',
+                    'message'    => __('sTask::global.task_completed'),
                 ]);
             }
         } catch (\Throwable $e) {
@@ -234,7 +234,7 @@ class TaskWorker extends Command
                 'id'         => (int)$task->id,
                 'identifier' => $task->identifier ?? 'unknown',
                 'action'     => $task->action ?? 'unknown',
-                'status'     => 'failed',
+                'status'     => $task->status_text,
                 'code'       => 500,
                 'message'    => '**Failed @ ' . basename($e->getFile()) . ':' . $e->getLine() . ' — ' . $e->getMessage() . '**',
             ]);

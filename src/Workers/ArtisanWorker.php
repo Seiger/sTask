@@ -442,7 +442,7 @@ class ArtisanWorker extends BaseWorker
 
             // Write final progress with completed status
             $this->pushProgress($task, [
-                'status' => 'completed',
+                'status' => $task->status_text,
                 'progress' => 100,
                 'message' => $finalMessage,
             ]);

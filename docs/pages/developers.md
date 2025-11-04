@@ -713,6 +713,46 @@ $this->pushProgress($task, [
 
 Each call appends a new line to the log file with all information.
 
+### Status Text Conversion
+
+sTask provides a centralized method to convert status codes to text representations:
+
+**Static Method:**
+```php
+use Seiger\sTask\Models\sTaskModel;
+
+// Convert status code to text
+$statusText = sTaskModel::statusText(sTaskModel::TASK_STATUS_RUNNING);
+// Returns: 'running'
+
+// Use in pushProgress
+$this->pushProgress($task, [
+    'status' => sTaskModel::statusText(sTaskModel::TASK_STATUS_FINISHED),
+    'progress' => 100,
+    'message' => 'Task completed'
+]);
+```
+
+**Using Task Instance:**
+```php
+// Get text status from task instance
+$task = sTaskModel::find($id);
+$statusText = $task->status_text;  // Returns 'running', 'completed', etc.
+
+// Available status texts:
+// - 'pending'    (TASK_STATUS_QUEUED = 10)
+// - 'preparing'  (TASK_STATUS_PREPARING = 30)
+// - 'running'    (TASK_STATUS_RUNNING = 50)
+// - 'completed'  (TASK_STATUS_FINISHED = 80)
+// - 'failed'     (TASK_STATUS_FAILED = 100)
+```
+
+**Benefits:**
+- **Type-safe** - Use constants instead of hardcoded strings
+- **Consistent** - All status texts come from one place
+- **Easy to extend** - Add new statuses in one location
+- **No typos** - Impossible to misspell status names
+
 ### Automatic Logging
 
 sTask automatically logs:

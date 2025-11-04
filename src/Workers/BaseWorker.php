@@ -418,7 +418,7 @@ abstract class BaseWorker implements TaskInterface
         ]);
 
         $this->pushProgress($task, [
-            'status' => 'finished',
+            'status' => $task->status_text,
             'progress' => 100,
             'message' => $message ?? __('sTask::global.done'),
             'result' => $result,
@@ -445,7 +445,7 @@ abstract class BaseWorker implements TaskInterface
         ]);
 
         $this->pushProgress($task, [
-            'status' => 'failed',
+            'status' => $task->status_text,
             'message' => $message,
         ]);
     }

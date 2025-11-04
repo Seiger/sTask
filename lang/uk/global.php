@@ -110,7 +110,8 @@
     'using_composer_from_vendor' => 'Використання Composer з vendor',
     'task_is_running' => 'Завдання виконується',
     'click_button_to_start' => 'Натисніть кнопку вище щоб запустити завдання',
-    'starting_task' => 'Запуск завдання',
+    'starting_task' => 'Розпочинаю завдання...',
+    'task_completed' => 'Завершив виконання завдання',
     'please_wait' => 'Зачекайте будь ласка',
     'error_starting_task' => 'Помилка запуску завдання',
     

@@ -110,7 +110,8 @@
     'using_composer_from_vendor' => 'Использование Composer из vendor',
     'task_is_running' => 'Задача выполняется',
     'click_button_to_start' => 'Нажмите кнопку выше чтобы запустить задачу',
-    'starting_task' => 'Запуск задачи',
+    'starting_task' => 'Запускаю задачу...',
+    'task_completed' => 'Завершил выполнение задачи',
     'please_wait' => 'Пожалуйста подождите',
     'error_starting_task' => 'Ошибка запуска задачи',
     

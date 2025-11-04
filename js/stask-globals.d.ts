@@ -26,6 +26,66 @@ type WidgetLogLevel = 'info' | 'success' | 'error';
 declare function widgetLogLine(root: HTMLElement, text: string, level?: WidgetLogLevel): void;
 
 /**
+ * Get button IDs for a specific widget.
+ *
+ * @param widgetIdentifier - Widget key (e.g., 'simpexpcsv')
+ * @returns Array of button IDs for the widget, empty array if widget not found
+ *
+ * @example
+ * const buttonIds = getWidgetButtons('simpexpcsv');
+ */
+declare function getWidgetButtons(widgetIdentifier: string): string[];
+
+/**
+ * Disable buttons within a specific widget to prevent multiple simultaneous operations.
+ *
+ * @param widgetIdentifier - Widget key (e.g., 'simpexpcsv', 'mywidget')
+ * @param buttonIds - Array of button IDs to disable (optional, auto-detects if not provided)
+ * @param activeButtonId - ID of the button that triggered the action (will get spinner)
+ *
+ * @example
+ * // Auto-detect buttons in widget
+ * disableButtons('simpexpcsv');
+ *
+ * @example
+ * // Specify specific buttons with active button
+ * disableButtons('mywidget', ['btnExport', 'btnImport'], 'btnExport');
+ */
+declare function disableButtons(widgetIdentifier: string, buttonIds?: string[] | null, activeButtonId?: string | null): void;
+
+/**
+ * Enable buttons within a specific widget after operation completion.
+ *
+ * @param widgetIdentifier - Widget key (e.g., 'simpexpcsv', 'mywidget')
+ * @param buttonIds - Array of button IDs to enable (optional, auto-detects if not provided)
+ *
+ * @example
+ * // Auto-detect buttons in widget
+ * enableButtons('simpexpcsv');
+ *
+ * @example
+ * // Specify specific buttons
+ * enableButtons('mywidget', ['btnExport', 'btnImport', 'btnProcess']);
+ */
+declare function enableButtons(widgetIdentifier: string, buttonIds?: string[] | null): void;
+
+/**
+ * Update widget progress bar with given percentage and ETA.
+ *
+ * @param key - Widget identifier for progress bar ID
+ * @param progress - Progress percentage (0-100)
+ * @param eta - Estimated time remaining (optional)
+ *
+ * @example
+ * widgetProgressBar('simpexpcsv', 50, '2 minutes remaining');
+ *
+ * @example
+ * // Without ETA
+ * widgetProgressBar('myWidget', 75);
+ */
+declare function widgetProgressBar(key: string, progress: number, eta?: string | null): void;
+
+/**
  * Adaptive short-poll watcher with dynamic intervals.
  *
  * Polls a progress endpoint and updates a log UI, adjusting the interval based on changes:
@@ -41,18 +101,19 @@ declare function widgetLogLine(root: HTMLElement, text: string, level?: WidgetLo
  *
  * Accessibility:
  * - Intended to be used with a progressbar UI placed above the log container
- * - Works well with “no-store” cache policy on the endpoint
+ * - Works well with "no-store" cache policy on the endpoint
  *
  * @param root  Log container element where updates are appended.
  * @param url   Progress endpoint URL (expected to return JSON with status/message/progress).
+ * @param widgetIdentifier - Widget key for button management (optional)
  * @returns     `stop()` function to terminate polling and clear timers.
  *
  * @example
- * const stop = widgetWatcher(document.getElementById('taskLog')!, `/stask/task/${id}/progress`);
+ * const stop = widgetWatcher(document.getElementById('taskLog')!, `/stask/task/${id}/progress`, 'simpexpcsv');
  * // later on completion/cancel:
  * stop();
  */
-declare function widgetWatcher(root: HTMLElement, url: string): () => void;
+declare function widgetWatcher(root: HTMLElement, url: string, widgetIdentifier?: string | null): () => void;
 
 /**
  * Upload file with automatic chunking for large files.
