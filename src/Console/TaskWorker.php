@@ -18,7 +18,8 @@ use Seiger\sTask\Services\WorkerService;
  * and any other background work defined by worker modules.
  *
  * Features:
- * - Checks scheduled workers and creates tasks for those that should run
+ * - **Maintains queued tasks for all scheduled workers**
+ * - Tasks always visible in "Waiting" list before execution
  * - Processes any type of background tasks from sTaskModel queue
  * - Supports multiple worker types via database configuration
  * - Tracks progress through TaskProgress file-based system
@@ -29,10 +30,21 @@ use Seiger\sTask\Services\WorkerService;
  * - Asynchronous execution with proper environment setup
  * - Automatic cleanup of old progress files when idle
  *
+ * Example Scenario (EveryHour at *:10):
+ * - 09:00 → Cron checks: no task exists → creates task with start_at=10:10
+ * - 09:01-10:09 → Task visible in "Waiting" (status: queued)
+ * - 10:10 → Task picked up for execution (status: running → "In progress")
+ * - 10:11 → Task completed (status: finished → "Completed")
+ * - 10:12 → Cron checks: no task exists → creates task with start_at=11:10
+ * - ...cycle repeats
+ *
  * Task Processing Flow:
  * 1. Checks all active workers with enabled schedules
- * 2. Creates tasks for workers that should run now (via shouldRunNow())
- * 3. Retrieves all tasks ready for execution (pending status)
+ * 2. For each worker WITHOUT a queued/running task:
+ *    - Calculates next run time (e.g., next *:10 for hourly)
+ *    - Creates task with start_at set to calculated time
+ *    - Task immediately appears in "Waiting" list
+ * 3. Retrieves all tasks ready for execution (queued status + start_at <= now)
  * 4. For each task, resolves the worker class from database
  * 5. Validates worker implements TaskInterface
  * 6. Calls the appropriate action method via BaseWorker
@@ -58,7 +70,13 @@ class TaskWorker extends Command
     /**
      * Execute the console command.
      *
-     * First checks all scheduled workers and creates tasks for those that should run.
+     * Ensures each scheduled worker has a queued task:
+     * - If worker has no incomplete task → creates next scheduled task
+     * - Task is created with start_at set to next execution time
+     * - Task is visible in "Очікують" list immediately
+     * - For periodic workers: always maintains one queued task
+     * - For once: creates only if scheduled time is in future
+     *
      * Then retrieves all tasks ready for execution and processes them sequentially.
      * Each task is executed through its respective worker implementation.
      * After processing, performs cleanup of old progress files if idle.
@@ -91,15 +109,15 @@ class TaskWorker extends Command
     }
 
     /**
-     * Check scheduled workers and create tasks for those that should run now.
+     * Check scheduled workers and ensure they have queued tasks.
      *
-     * For 'once' type: Tasks are created when settings are saved (with future created_at).
-     *                  This method only needs to mark them as ready when time comes.
-     * For 'periodic' and 'regular': Creates tasks when schedule matches current time.
+     * Strategy:
+     * - For each enabled scheduled worker, check if it has a queued task
+     * - If no task exists, create one with appropriate start_at
+     * - For periodic/regular: always maintain one queued task (next execution)
+     * - For once: create task only if scheduled time is in the future
      *
-     * Iterates through all active workers with enabled schedules,
-     * checks if they should run according to their schedule configuration,
-     * and creates new tasks if needed (avoiding duplicates).
+     * This ensures tasks are always visible in "Очікують" list before execution.
      *
      * @return int Number of tasks created
      */
@@ -130,32 +148,53 @@ class TaskWorker extends Command
                     continue;
                 }
 
-                // For 'once' type, task is created when settings are saved
-                // Just skip here as task already exists with future created_at
-                if (($schedule['type'] ?? 'manual') === 'once') {
-                    continue;
-                }
-
-                // Check if should run now (for periodic and regular types)
-                if (!$worker->shouldRunNow()) {
-                    continue;
-                }
-
-                // Check if worker already has an incomplete task
+                // Check if worker already has an incomplete task (queued or running)
                 $existingTask = $workerRecord->tasks()
                     ->incomplete()
                     ->first();
 
                 if ($existingTask) {
-                    continue; // Skip if task already exists
+                    continue; // Task already exists - skip
+                }
+
+                // Determine when task should start
+                $scheduleType = $schedule['type'] ?? 'manual';
+                $startAt = null;
+
+                if ($scheduleType === 'once') {
+                    // For one-time execution: create only if time is in future
+                    if (!empty($schedule['datetime'])) {
+                        $scheduledTime = \Carbon\Carbon::parse($schedule['datetime']);
+                        if ($scheduledTime->isFuture()) {
+                            $startAt = $scheduledTime;
+                        } else {
+                            continue; // Past time - skip
+                        }
+                    } else {
+                        continue; // No datetime set - skip
+                    }
+                } elseif ($scheduleType === 'periodic' || $scheduleType === 'regular') {
+                    // For periodic: calculate next run time
+                    $startAt = $this->calculateNextRunTime($schedule);
+                    if (!$startAt) {
+                        continue; // Can't calculate - skip
+                    }
+                } else {
+                    continue; // Manual or unknown type - skip
                 }
 
                 // Create new task for this worker
                 $task = $worker->createTask('make', ['manual' => false]);
+
+                // Set start_at if calculated
+                if ($startAt) {
+                    $task->update(['start_at' => $startAt]);
+                    $this->info("[stask:worker] Created scheduled task #{$task->id} for worker '{$workerRecord->identifier}' (scheduled for {$startAt->format('Y-m-d H:i')})");
+                } else {
+                    $this->info("[stask:worker] Created scheduled task #{$task->id} for worker '{$workerRecord->identifier}' (ready to run now)");
+                }
+
                 $created++;
-
-                $this->info("[stask:worker] Created scheduled task #{$task->id} for worker '{$workerRecord->identifier}'");
-
             } catch (\Throwable $e) {
                 Log::warning("[stask:worker] Failed to check schedule for worker '{$workerRecord->identifier}': " . $e->getMessage());
             }
@@ -239,6 +278,95 @@ class TaskWorker extends Command
                 'message'    => '**Failed @ ' . basename($e->getFile()) . ':' . $e->getLine() . ' — ' . $e->getMessage() . '**',
             ]);
         }
+    }
+
+    /**
+     * Calculate next run time for scheduled task.
+     *
+     * @param array $schedule Schedule configuration
+     * @return \Illuminate\Support\Carbon|null Next run time
+     */
+    private function calculateNextRunTime(array $schedule): ?\Illuminate\Support\Carbon
+    {
+        $type = $schedule['type'] ?? 'manual';
+        $frequency = $schedule['frequency'] ?? 'hourly';
+        $time = $schedule['time'] ?? '';
+
+        if (empty($time) || $type !== 'periodic') {
+            return null;
+        }
+
+        $timeParts = explode(':', $time);
+        $hour = $timeParts[0] ?? '*';
+        $minute = (int)($timeParts[1] ?? 0);
+
+        $now = now();
+
+        // For hourly: next occurrence of target minute
+        if ($frequency === 'hourly' && $hour === '*') {
+            $nextRun = $now->copy()->minute($minute)->second(0);
+            if ($nextRun <= $now) {
+                $nextRun->addHour();
+            }
+            return $nextRun;
+        }
+
+        // For daily: next occurrence of target hour:minute
+        if ($frequency === 'daily' && $hour !== '*') {
+            $targetHour = (int)$hour;
+            $nextRun = $now->copy()->hour($targetHour)->minute($minute)->second(0);
+            if ($nextRun <= $now) {
+                $nextRun->addDay();
+            }
+            return $nextRun;
+        }
+
+        // For weekly: next occurrence on selected days at target hour:minute
+        if ($frequency === 'weekly' && $hour !== '*') {
+            $days = $schedule['days'] ?? [];
+            if (empty($days)) {
+                return null;
+            }
+
+            $dayMap = [
+                'sunday' => 0, 'monday' => 1, 'tuesday' => 2, 'wednesday' => 3,
+                'thursday' => 4, 'friday' => 5, 'saturday' => 6,
+            ];
+
+            // Convert day names to numbers
+            $targetDays = [];
+            foreach ($days as $day) {
+                if (isset($dayMap[$day])) {
+                    $targetDays[] = $dayMap[$day];
+                }
+            }
+
+            if (empty($targetDays)) {
+                return null;
+            }
+
+            sort($targetDays);
+
+            $targetHour = (int)$hour;
+            $currentDayOfWeek = (int)$now->format('w');
+
+            // Try today first
+            $nextRun = $now->copy()->hour($targetHour)->minute($minute)->second(0);
+            if (in_array($currentDayOfWeek, $targetDays) && $nextRun > $now) {
+                return $nextRun;
+            }
+
+            // Find next matching day
+            for ($i = 1; $i <= 7; $i++) {
+                $checkDate = $now->copy()->addDays($i);
+                $checkDayOfWeek = (int)$checkDate->format('w');
+                if (in_array($checkDayOfWeek, $targetDays)) {
+                    return $checkDate->hour($targetHour)->minute($minute)->second(0);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

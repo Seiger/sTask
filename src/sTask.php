@@ -79,7 +79,7 @@ class sTask
         try {
             // Record task start metrics
             $this->metricsService->recordTaskStart($task);
-            
+
             // Mark task as running
             $task->markAsRunning();
 
@@ -90,14 +90,13 @@ class sTask
             $worker->invokeAction($task->action, $task, $task->meta);
 
             $task->markAsFinished('Task completed successfully');
-            
+
             // Record successful completion metrics
             $this->metricsService->recordTaskEnd($task, true);
-            
             return true;
         } catch (\Exception $e) {
             $task->markAsFailed($e->getMessage());
-            
+
             // Record failed completion metrics
             $this->metricsService->recordTaskEnd($task, false, $e->getMessage());
 
@@ -368,7 +367,14 @@ class sTask
         }
 
         $worker->active = true;
-        return $worker->save();
+        $result = $worker->save();
+
+        // Clear cache to ensure fresh data
+        if ($result) {
+            $this->workerService->clearCache($identifier);
+        }
+
+        return $result;
     }
 
     /**
@@ -386,6 +392,13 @@ class sTask
         }
 
         $worker->active = false;
-        return $worker->save();
+        $result = $worker->save();
+
+        // Clear cache to ensure fresh data
+        if ($result) {
+            $this->workerService->clearCache($identifier);
+        }
+
+        return $result;
     }
 }

@@ -329,6 +329,9 @@ class sTaskController
             // Update worker settings
             $workerInstance->updateConfig($config);
 
+            // Clear worker cache to ensure fresh data on next load
+            app(\Seiger\sTask\Services\WorkerService::class)->clearCache($identifier);
+
             Log::info('Worker settings updated', [
                 'identifier' => $identifier,
                 'config_keys' => array_keys($config),
@@ -363,7 +366,6 @@ class sTaskController
                 'success' => true,
                 'message' => __('sTask::global.settings_saved'),
             ]);
-
         } catch (\Throwable $e) {
             Log::error('Failed to save worker settings', [
                 'identifier' => $identifier,

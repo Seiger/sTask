@@ -272,7 +272,6 @@
                 $schedule = method_exists($workerInstance, 'getSchedule') ? $workerInstance->getSchedule() : ['type' => 'manual', 'enabled' => false];
             @endphp
 
-                    <!-- Worker Configuration -->
             <div class="settings-section">
                 <h3><i data-lucide="settings" class="w-5 h-5"></i> @lang('sTask::global.worker_settings')</h3>
 
@@ -318,21 +317,81 @@
 
                             <!-- Periodic: specific time + frequency -->
                             <div class="schedule-config schedule-periodic {{($schedule['type'] ?? 'manual') == 'periodic' ? '' : 'hidden'}}">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="form-group">
-                                        <label>@lang('sTask::global.time_launch')</label>
+                                <!-- Frequency first -->
+                                <div class="form-group">
+                                    <label>@lang('sTask::global.frequency')</label>
+                                    <select class="form-control" name="schedule[frequency]" id="scheduleFrequency" onchange="updateTimeFormat()">
+                                        <option value="hourly" {{($schedule['frequency'] ?? 'hourly') == 'hourly' ? 'selected' : ''}}>@lang('sTask::global.frequency_hourly')</option>
+                                        <option value="daily" {{($schedule['frequency'] ?? 'hourly') == 'daily' ? 'selected' : ''}}>@lang('sTask::global.frequency_daily')</option>
+                                        <option value="weekly" {{($schedule['frequency'] ?? 'hourly') == 'weekly' ? 'selected' : ''}}>@lang('sTask::global.frequency_weekly')</option>
+                                    </select>
+                                </div>
+
+                                <!-- Time second (format depends on frequency) -->
+                                <div class="form-group">
+                                    <label id="timeLaunchLabel">@lang('sTask::global.time_launch')</label>
+                                    <div id="timeInputContainer">
+                                        @php
+                                            $frequency = $schedule['frequency'] ?? 'hourly';
+                                            $time = $schedule['time'] ?? '14:00';
+                                            $timeParts = explode(':', $time);
+                                            $minutes = $timeParts[1] ?? '00';
+                                        @endphp
+
+                                                <!-- For hourly: only minutes -->
+                                        <div id="hourlyTimeInput" class="{{$frequency == 'hourly' ? '' : 'hidden'}}">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <span style="font-size: 1.5rem; font-weight: bold;">*:</span>
+                                                <input type="number"
+                                                       class="form-control"
+                                                       id="minutesInput"
+                                                       name="schedule[minutes]"
+                                                       min="0"
+                                                       max="59"
+                                                       style="width: 80px;"
+                                                       value="{{$minutes}}"
+                                                       placeholder="35">
+                                                <small class="form-text">Запуск кожної години о заданій хвилині (наприклад: 01:35, 02:35, 03:35...)</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- For daily and weekly: full time -->
                                         <input type="time"
-                                               class="form-control"
+                                               class="form-control {{$frequency == 'hourly' ? 'hidden' : ''}}"
+                                               id="fullTimeInput"
                                                name="schedule[time]"
-                                               value="{{$schedule['time'] ?? '14:00'}}">
+                                               value="{{$time}}">
                                     </div>
-                                    <div class="form-group">
-                                        <label>@lang('sTask::global.frequency')</label>
-                                        <select class="form-control" name="schedule[frequency]">
-                                            <option value="hourly" {{($schedule['frequency'] ?? 'hourly') == 'hourly' ? 'selected' : ''}}>@lang('sTask::global.frequency_hourly')</option>
-                                            <option value="daily" {{($schedule['frequency'] ?? 'hourly') == 'daily' ? 'selected' : ''}}>@lang('sTask::global.frequency_daily')</option>
-                                            <option value="weekly" {{($schedule['frequency'] ?? 'hourly') == 'weekly' ? 'selected' : ''}}>@lang('sTask::global.frequency_weekly')</option>
-                                        </select>
+                                </div>
+
+                                <!-- Weekly: select days -->
+                                <div class="form-group {{($schedule['frequency'] ?? 'hourly') == 'weekly' ? '' : 'hidden'}}" id="weeklyDaysGroup">
+                                    <label>Дні тижня</label>
+                                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                        @php
+                                            $selectedDays = $schedule['days'] ?? [];
+                                            if (is_string($selectedDays)) {
+                                                $selectedDays = json_decode($selectedDays, true) ?: [];
+                                            }
+                                            $days = [
+                                                'monday' => 'Понеділок',
+                                                'tuesday' => 'Вівторок',
+                                                'wednesday' => 'Середа',
+                                                'thursday' => 'Четвер',
+                                                'friday' => 'П\'ятниця',
+                                                'saturday' => 'Субота',
+                                                'sunday' => 'Неділя'
+                                            ];
+                                        @endphp
+                                        @foreach($days as $value => $label)
+                                            <label style="font-weight: normal;">
+                                                <input type="checkbox"
+                                                       name="schedule[days][]"
+                                                       value="{{$value}}"
+                                                        {{in_array($value, $selectedDays) ? 'checked' : ''}}>
+                                                {{$label}}
+                                            </label>
+                                        @endforeach
                                     </div>
                                 </div>
                             </div>
@@ -382,12 +441,12 @@
                     <div class="form-group">
                         <label>@lang('sTask::global.worker_description')</label>
                         <textarea class="form-control" rows="3" readonly>@php
-                                if (method_exists($workerInstance, 'description')) {
-                                    echo $workerInstance->description();
-                                } else {
-                                    echo __('sTask::global.worker_description');
-                                }
-                            @endphp</textarea>
+                            if (method_exists($workerInstance, 'description')) {
+                                echo $workerInstance->description();
+                            } else {
+                                echo __('sTask::global.worker_description');
+                            }
+                        @endphp</textarea>
                     </div>
 
                     <button type="submit" class="btn btn-success">
@@ -422,6 +481,31 @@
             }
         }
 
+        function updateTimeFormat() {
+            const frequency = document.getElementById('scheduleFrequency')?.value;
+            const hourlyInput = document.getElementById('hourlyTimeInput');
+            const fullTimeInput = document.getElementById('fullTimeInput');
+            const weeklyDaysGroup = document.getElementById('weeklyDaysGroup');
+
+            if (!frequency) return;
+
+            // Show/hide time inputs based on frequency
+            if (frequency === 'hourly') {
+                hourlyInput?.classList.remove('hidden');
+                fullTimeInput?.classList.add('hidden');
+            } else {
+                hourlyInput?.classList.add('hidden');
+                fullTimeInput?.classList.remove('hidden');
+            }
+
+            // Show/hide weekly days selector
+            if (frequency === 'weekly') {
+                weeklyDaysGroup?.classList.remove('hidden');
+            } else {
+                weeklyDaysGroup?.classList.add('hidden');
+            }
+        }
+
         function saveWorkerConfig(event, identifier) {
             event.preventDefault();
 
@@ -453,10 +537,25 @@
                     const datetime = formData.get('schedule[datetime]');
                     if (datetime) config.schedule.datetime = datetime;
                 } else if (scheduleType === 'periodic') {
-                    const time = formData.get('schedule[time]');
                     const frequency = formData.get('schedule[frequency]');
-                    if (time) config.schedule.time = time;
                     if (frequency) config.schedule.frequency = frequency;
+
+                    // For hourly: use minutes format (*:MM)
+                    if (frequency === 'hourly') {
+                        const minutes = formData.get('schedule[minutes]');
+                        config.schedule.time = '*:' + (minutes || '00').padStart(2, '0');
+                    } else {
+                        // For daily/weekly: use full time (HH:MM)
+                        const time = formData.get('schedule[time]');
+                        if (time) config.schedule.time = time;
+                    }
+
+                    // For weekly: collect selected days
+                    if (frequency === 'weekly') {
+                        const days = [];
+                        formData.getAll('schedule[days][]').forEach(day => days.push(day));
+                        if (days.length > 0) config.schedule.days = days;
+                    }
                 } else if (scheduleType === 'regular') {
                     const startTime = formData.get('schedule[start_time]');
                     const endTime = formData.get('schedule[end_time]');
@@ -481,7 +580,7 @@
                 .then(data => {
                     if (data.success) {
                         alertify.success(data.message || '@lang('sTask::global.settings_saved')');
-                        setTimeout(() => window.location.reload(), 500);
+                        setTimeout(() => window.location.href = '{{route('sTask.workers')}}', 500);
                     } else {
                         alertify.error(data.message || '@lang('sTask::global.settings_save_failed')');
                     }
@@ -508,7 +607,7 @@
                 .then(data => {
                     if (data.success) {
                         alertify.success(data.message);
-                        setTimeout(() => window.location.reload(), 500);
+                        setTimeout(() => window.location.href = '{{route('sTask.workers')}}', 500);
                     } else {
                         alertify.error(data.message || '@lang('sTask::global.error')');
                     }

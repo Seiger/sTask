@@ -153,8 +153,9 @@ abstract class BaseWorker implements TaskInterface
             'type' => 'manual', // manual, once, periodic, regular
             'enabled' => false,
             'datetime' => null, // for 'once' type
-            'time' => null, // for 'periodic' type (e.g., '14:00')
+            'time' => null, // for 'periodic' type (e.g., '14:00' or '*:35' for hourly)
             'frequency' => 'hourly', // hourly, daily, weekly for 'periodic'
+            'days' => [], // for 'weekly' frequency - array of day names (monday, tuesday, etc.)
             'start_time' => null, // for 'regular' type (e.g., '05:00')
             'end_time' => null, // for 'regular' type (e.g., '23:00')
             'interval' => 'hourly', // hourly, every_30min, every_15min for 'regular'
@@ -179,17 +180,65 @@ abstract class BaseWorker implements TaskInterface
         $currentMinute = (int)date('i');
 
         switch ($schedule['type'] ?? 'manual') {
+            case 'manual':
+                return false; // Only manual execution
+
             case 'once':
                 $scheduledTime = strtotime($schedule['datetime'] ?? '');
                 // Only return true if scheduled time has passed but not more than 30 seconds ago
                 return $scheduledTime && $now >= $scheduledTime && ($now - $scheduledTime) < 30;
 
             case 'periodic':
-                // Check if current time matches scheduled time
-                if (!empty($schedule['time'])) {
-                    [$hour, $minute] = explode(':', $schedule['time']);
-                    if ((int)$hour === $currentHour && (int)$minute === $currentMinute) {
-                        return true;
+                $frequency = $schedule['frequency'] ?? 'hourly';
+                $time = $schedule['time'] ?? '';
+
+                if (empty($time)) {
+                    return false;
+                }
+
+                // Parse time (supports both *:MM and HH:MM formats)
+                $timeParts = explode(':', $time);
+                $hour = $timeParts[0] ?? '*';
+                $minute = (int)($timeParts[1] ?? 0);
+
+                // Check if minute matches
+                if ($minute !== $currentMinute) {
+                    return false;
+                }
+
+                // For hourly: any hour matches (*)
+                if ($frequency === 'hourly' && $hour === '*') {
+                    return true;
+                }
+
+                // For daily: check hour
+                if ($frequency === 'daily' && (int)$hour === $currentHour) {
+                    return true;
+                }
+
+                // For weekly: check day and hour
+                if ($frequency === 'weekly' && (int)$hour === $currentHour) {
+                    $days = $schedule['days'] ?? [];
+                    if (empty($days)) {
+                        return false;
+                    }
+
+                    $dayMap = [
+                        'monday' => 1,
+                        'tuesday' => 2,
+                        'wednesday' => 3,
+                        'thursday' => 4,
+                        'friday' => 5,
+                        'saturday' => 6,
+                        'sunday' => 0,
+                    ];
+
+                    $currentDayOfWeek = (int)date('w'); // 0 (Sunday) through 6 (Saturday)
+
+                    foreach ($days as $day) {
+                        if (isset($dayMap[$day]) && $dayMap[$day] === $currentDayOfWeek) {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -222,7 +271,6 @@ abstract class BaseWorker implements TaskInterface
                 }
                 return false;
 
-            case 'manual':
             default:
                 return false;
         }

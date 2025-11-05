@@ -28,7 +28,7 @@ use Seiger\sTask\Models\sWorker;
  * - Lazy loading of worker instances
  * - Batch worker resolution for multiple identifiers
  *
- * @package Seiger\sTask\Services
+ * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
  */
@@ -38,24 +38,24 @@ class WorkerService
      * Cache key prefix for worker instances
      */
     private const CACHE_PREFIX = 'stask_worker_';
-    
+
     /**
      * Default cache TTL in seconds (5 minutes)
      */
     private const DEFAULT_CACHE_TTL = 300;
-    
+
     /**
      * Maximum cache size to prevent memory issues
      */
     private const MAX_CACHE_SIZE = 100;
-    
+
     /**
      * In-memory cache for frequently accessed workers
      *
      * @var array<string, TaskInterface>
      */
     private static array $workerCache = [];
-    
+
     /**
      * Cache statistics for monitoring
      *
@@ -105,10 +105,10 @@ class WorkerService
         // Database fallback
         self::$cacheStats['misses']++;
         $worker = $this->resolveWorkerFromDatabase($identifier);
-        
+
         // Cache the resolved worker
         $this->cacheWorker($identifier, $worker);
-        
+
         return $worker;
     }
 
@@ -140,7 +140,7 @@ class WorkerService
         // Resolve missing workers from database
         if (!empty($missingIdentifiers)) {
             $dbWorkers = $this->resolveWorkersFromDatabase($missingIdentifiers);
-            
+
             foreach ($dbWorkers as $identifier => $worker) {
                 $workers[$identifier] = $worker;
                 $this->cacheWorker($identifier, $worker);
@@ -160,13 +160,30 @@ class WorkerService
     {
         if ($identifier === null) {
             // Clear all caches
+            $cacheSize = count(self::$workerCache);
             self::$workerCache = [];
-            self::$cacheStats['evictions'] += count(self::$workerCache);
-            
-            // Clear Laravel cache (this is expensive, so use sparingly)
-            $cacheKeys = Cache::getStore()->getRedis()->keys(self::CACHE_PREFIX . '*');
-            if (!empty($cacheKeys)) {
-                Cache::getStore()->getRedis()->del($cacheKeys);
+            self::$cacheStats['evictions'] += $cacheSize;
+
+            // Clear Laravel cache - only if using Redis driver
+            try {
+                $store = Cache::getStore();
+                if (method_exists($store, 'getRedis')) {
+                    $redis = $store->getRedis();
+                    $cacheKeys = $redis->keys(self::CACHE_PREFIX . '*');
+                    if (!empty($cacheKeys)) {
+                        $redis->del($cacheKeys);
+                    }
+                } else {
+                    // For non-Redis stores, clear cache by iterating through known workers
+                    $workers = sWorker::pluck('identifier');
+                    foreach ($workers as $workerIdentifier) {
+                        Cache::forget(self::CACHE_PREFIX . $workerIdentifier);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to clear worker cache from store', [
+                    'error' => $e->getMessage(),
+                ]);
             }
         } else {
             // Clear specific worker cache
@@ -264,7 +281,7 @@ class WorkerService
     private function instantiateWorker(sWorker $workerRecord): TaskInterface
     {
         $className = $workerRecord->class;
-        
+
         if (!$className || !class_exists($className)) {
             throw new WorkerClassNotFoundException($className);
         }
@@ -321,12 +338,12 @@ class WorkerService
     {
         // Clear in-memory cache
         self::$workerCache = [];
-        
+
         // Force garbage collection
         if (function_exists('gc_collect_cycles')) {
             gc_collect_cycles();
         }
-        
+
         Log::info('WorkerService cache cleaned up', [
             'memory_before' => memory_get_usage(true),
             'memory_after' => memory_get_usage(true),
