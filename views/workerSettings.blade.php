@@ -425,6 +425,42 @@
                         {!! $workerInstance->renderSettings() !!}
                     @endif
 
+                    <!-- Generated Files (if worker provides them) -->
+                    @if($workerInstance && method_exists($workerInstance, 'getGeneratedFiles'))
+                        @php
+                            $generatedFiles = $workerInstance->getGeneratedFiles();
+                        @endphp
+                        @if(!empty($generatedFiles))
+                            <hr><br>
+                            <div class="settings-section">
+                                <h3>
+                                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                                    @lang('sTask::global.generated_files') ({{count($generatedFiles)}})
+                                </h3>
+                                <div style="margin-top: 1rem;">
+                                    <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 0.75rem;">
+                                        Останні згенеровані файли фідів:
+                                    </p>
+                                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                        @foreach($generatedFiles as $file)
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px;">
+                                                <i data-lucide="file" class="w-4 h-4" style="color: #6b7280;"></i>
+                                                <span style="flex: 1; font-family: 'Courier New', monospace; font-size: 0.875rem;">{{$file['filename']}}</span>
+                                                @if(!empty($file['url']))
+                                                    <a href="{{$file['url']}}" target="_blank" rel="noopener noreferrer"
+                                                       style="color: #3b82f6; text-decoration: none; font-size: 0.875rem; display: flex; align-items: center; gap: 0.25rem;">
+                                                        <i data-lucide="external-link" class="w-3 h-3"></i>
+                                                        Відкрити
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
                     <!-- Basic Info (readonly) -->
                     <hr><br>
                     <div class="form-group">

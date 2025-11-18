@@ -138,6 +138,7 @@
     'save_settings' => 'Сохранить настройки',
     'settings_saved' => 'Настройки сохранены успешно',
     'settings_save_failed' => 'Ошибка сохранения настроек',
+    'generated_files' => 'Сгенерированные файлы',
 
     // File upload
     'file_too_large' => 'Файл слишком большой',
