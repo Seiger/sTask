@@ -1,13 +1,6 @@
 @php $task = Seiger\sTask\Models\sTaskModel::byIdentifier($identifier ?? '')->incomplete()->orderByDesc('updated_at')->first(); @endphp
 
-<div id="{{$identifier ?? ''}}Widget">
-    <div style="padding: 0.875rem 1rem;">
-        <span id="{{$identifier ?? ''}}Run" class="btn btn-primary">
-            <i class="fas fa-play" style="font-size: 0.75rem;"></i>
-            {{__('sTask::global.run_task')}}
-        </span>
-    </div>
-</div>
+<div id="{{$identifier ?? ''}}Widget"></div>
 
 <div id="{{$identifier ?? ''}}Progress" class="widget-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <span class="widget-progress__bar"></span>
@@ -30,10 +23,10 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         @if($task && (int)$task->id > 0)
-        let root = document.getElementById('{{$identifier ?? ''}}Log');
-        widgetClearLog(root);
-        widgetLogLine(root, '_{{__('sTask::global.task_is_running')}}..._');
-        widgetWatcher(root, "{{route('sTask.task.progress', ['id' => $task->id])}}", '{{$identifier ?? ''}}');
+            let root = document.getElementById('{{$identifier ?? ''}}Log');
+            widgetClearLog(root);
+            widgetLogLine(root, '_{{__('sTask::global.task_is_running')}}..._');
+            widgetWatcher(root, "{{route('sTask.task.progress', ['id' => $task->id])}}", '{{$identifier ?? ''}}');
         @endif
 
         document.getElementById('{{$identifier ?? ''}}Run')?.addEventListener('click', async function() {

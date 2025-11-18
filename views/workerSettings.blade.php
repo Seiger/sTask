@@ -8,7 +8,7 @@
         .worker-header {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            padding: 2rem;
+            padding: 1rem;
             border-radius: 8px;
             margin-bottom: 2rem;
         }
@@ -208,7 +208,7 @@
         }
     </style>
 
-    <div class="max-w-7xl mx-auto py-3 px-6">
+    <div class="max-w-11xl mx-auto py-2 px-5">
         <div class="worker-header">
             <div class="worker-info">
                 <div class="worker-icon"><i class="fas fa-cog"></i></div>
@@ -227,14 +227,6 @@
                     {{$worker->active ? __('sTask::global.active') : __('sTask::global.inactive')}}
                 </span>
                 </div>
-            </div>
-        </div>
-
-        <div class="settings-section">
-            <h3>@lang('sTask::global.worker_statistics')</h3>
-            <div class="stat-item" style="max-width: 200px;">
-                <div class="stat-value">{{$worker->tasks()->count()}}</div>
-                <div class="stat-label">@lang('sTask::global.tasks_count')</div>
             </div>
         </div>
 
@@ -275,7 +267,8 @@
             <div class="settings-section">
                 <h3><i data-lucide="settings" class="w-5 h-5"></i> @lang('sTask::global.worker_settings')</h3>
 
-                <form id="workerConfigForm" onsubmit="saveWorkerConfig(event, '{{$worker->identifier}}')">
+                <form id="workerConfigForm" method="POST" action="{{route('sTask.worker.settings.save', ['identifier' => $worker->identifier])}}" onsubmit="saveWorkerConfig(event, '{{$worker->identifier}}')">
+                    @csrf
                     <!-- Schedule Configuration (only for automated workers with taskMake) -->
                     @if($workerInstance && method_exists($workerInstance, 'taskMake'))
                         <h4><i data-lucide="clock" class="w-4 h-4"></i> @lang('sTask::global.schedule_launch')</h4>
@@ -441,12 +434,12 @@
                     <div class="form-group">
                         <label>@lang('sTask::global.worker_description')</label>
                         <textarea class="form-control" rows="3" readonly>@php
-                            if (method_exists($workerInstance, 'description')) {
-                                echo $workerInstance->description();
-                            } else {
-                                echo __('sTask::global.worker_description');
-                            }
-                        @endphp</textarea>
+                                if (method_exists($workerInstance, 'description')) {
+                                    echo $workerInstance->description();
+                                } else {
+                                    echo __('sTask::global.worker_description');
+                                }
+                            @endphp</textarea>
                     </div>
 
                     <button type="submit" class="btn btn-success">
@@ -455,6 +448,14 @@
                 </form>
             </div>
         @endif
+
+        <div class="settings-section">
+            <h3>@lang('sTask::global.worker_statistics')</h3>
+            <div class="stat-item" style="max-width: 200px;">
+                <div class="stat-value">{{$worker->tasks()->count()}}</div>
+                <div class="stat-label">@lang('sTask::global.tasks_count')</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -506,89 +507,34 @@
             }
         }
 
+        /**
+         * Universal serialization function placeholder.
+         * Workers should implement their own serializeWorkerSettings() function
+         * in their renderSettings() method to handle custom data structures.
+         */
+        function serializeArrayFields(form) {
+            // This is a placeholder - workers should implement serializeWorkerSettings() for custom serialization
+            // This function is kept for backward compatibility but does nothing by default
+            return new Set();
+        }
+
         function saveWorkerConfig(event, identifier) {
             event.preventDefault();
 
             const form = event.target;
-            const formData = new FormData(form);
 
-            // Collect all form data as config
-            const config = {};
-
-            // Custom settings (all fields that are not schedule-related)
-            for (let [key, value] of formData.entries()) {
-                if (!key.startsWith('schedule[')) {
-                    config[key] = value;
+            // Call custom serialize function if it exists (for worker-specific serialization)
+            // Each worker should implement serializeWorkerSettings() to handle its own data structure
+            try {
+                if (window.serializeWorkerSettings) {
+                    window.serializeWorkerSettings(form);
                 }
+            } catch (e) {
+                console.error('Error serializing worker settings:', e);
             }
 
-            // Schedule (if form has schedule fields)
-            const scheduleEnabled = document.getElementById('scheduleEnabled')?.checked || false;
-            const scheduleType = formData.get('schedule[type]');
-
-            if (scheduleType) {
-                config.schedule = {
-                    enabled: scheduleEnabled,
-                    type: scheduleType,
-                };
-
-                // Add type-specific fields
-                if (scheduleType === 'once') {
-                    const datetime = formData.get('schedule[datetime]');
-                    if (datetime) config.schedule.datetime = datetime;
-                } else if (scheduleType === 'periodic') {
-                    const frequency = formData.get('schedule[frequency]');
-                    if (frequency) config.schedule.frequency = frequency;
-
-                    // For hourly: use minutes format (*:MM)
-                    if (frequency === 'hourly') {
-                        const minutes = formData.get('schedule[minutes]');
-                        config.schedule.time = '*:' + (minutes || '00').padStart(2, '0');
-                    } else {
-                        // For daily/weekly: use full time (HH:MM)
-                        const time = formData.get('schedule[time]');
-                        if (time) config.schedule.time = time;
-                    }
-
-                    // For weekly: collect selected days
-                    if (frequency === 'weekly') {
-                        const days = [];
-                        formData.getAll('schedule[days][]').forEach(day => days.push(day));
-                        if (days.length > 0) config.schedule.days = days;
-                    }
-                } else if (scheduleType === 'regular') {
-                    const startTime = formData.get('schedule[start_time]');
-                    const endTime = formData.get('schedule[end_time]');
-                    const interval = formData.get('schedule[interval]');
-                    if (startTime) config.schedule.start_time = startTime;
-                    if (endTime) config.schedule.end_time = endTime;
-                    if (interval) config.schedule.interval = interval;
-                }
-            }
-
-            const url = '{{route('sTask.worker.settings.save', ['identifier' => '__IDENTIFIER__'])}}'.replace('__IDENTIFIER__', identifier);
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{csrf_token()}}'
-                },
-                body: JSON.stringify(config)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alertify.success(data.message || '@lang('sTask::global.settings_saved')');
-                        setTimeout(() => window.location.href = '{{route('sTask.workers')}}', 500);
-                    } else {
-                        alertify.error(data.message || '@lang('sTask::global.settings_save_failed')');
-                    }
-                })
-                .catch(error => {
-                    alertify.error('@lang('sTask::global.settings_save_failed')');
-                    console.error(error);
-                });
+            // Submit the form normally (POST request)
+            form.submit();
         }
 
         function toggleWorker(identifier, activate) {
@@ -607,7 +553,7 @@
                 .then(data => {
                     if (data.success) {
                         alertify.success(data.message);
-                        setTimeout(() => window.location.href = '{{route('sTask.workers')}}', 500);
+                        setTimeout(() => window.location.reload(), 500);
                     } else {
                         alertify.error(data.message || '@lang('sTask::global.error')');
                     }

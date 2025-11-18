@@ -280,9 +280,9 @@ class sTaskController
      * and other worker-specific settings.
      *
      * @param string $identifier Worker identifier
-     * @return JsonResponse JSON response with success status
+     * @return JsonResponse|RedirectResponse JSON response for AJAX or redirect for regular POST
      */
-    public function saveWorkerSettings(Request $request, string $identifier): JsonResponse
+    public function saveWorkerSettings(Request $request, string $identifier)
     {
         try {
             $worker = sWorker::where('identifier', $identifier)->firstOrFail();
@@ -318,6 +318,11 @@ class sTaskController
             // All other fields are custom worker settings
             // (endpoint, api_key, etc. - defined by worker's renderSettings)
             foreach ($data as $key => $value) {
+                // Skip CSRF token and other system fields
+                if ($key === '_token' || $key === '_method') {
+                    continue;
+                }
+
                 // Sanitize URLs
                 if (filter_var($value, FILTER_VALIDATE_URL)) {
                     $config[$key] = filter_var($value, FILTER_SANITIZE_URL);
@@ -336,6 +341,14 @@ class sTaskController
                 'identifier' => $identifier,
                 'config_keys' => array_keys($config),
             ]);
+
+            // Return JSON for AJAX requests, redirect for regular POST
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('sTask::global.settings_saved')
+                ]);
+            }
 
             // For 'once' schedule type, create task immediately with future start_at
             if (isset($config['schedule']) &&
@@ -362,10 +375,16 @@ class sTaskController
                 ]);
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => __('sTask::global.settings_saved'),
-            ]);
+            // Return JSON for AJAX requests, redirect for regular POST
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('sTask::global.settings_saved')
+                ]);
+            }
+
+            return redirect()->route('sTask.worker.settings', ['identifier' => $identifier])
+                ->with('success', __('sTask::global.settings_saved'));
         } catch (\Throwable $e) {
             Log::error('Failed to save worker settings', [
                 'identifier' => $identifier,

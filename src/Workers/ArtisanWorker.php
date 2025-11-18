@@ -140,7 +140,7 @@ class ArtisanWorker extends BaseWorker
      * @throws \RuntimeException If artisan is not found or command fails
      * @throws \Throwable For any other errors during processing
      */
-    public function taskRun(sTaskModel $task, array $opt = []): void
+    public function taskMake(sTaskModel $task, array $opt = []): void
     {
         @ini_set('auto_detect_line_endings', '1');
         @ini_set('output_buffering', '0');

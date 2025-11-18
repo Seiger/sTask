@@ -275,6 +275,7 @@
 
         const actualWidgetIdentifier = widgetIdentifier || 'widget';
         disableButtons(actualWidgetIdentifier);
+        if (root) {root.style.display = 'block';}
 
         const MIN_DELAY = 25;       // 25ms minimum
         const MAX_DELAY = 25000;    // 25s maximum

@@ -2,6 +2,16 @@
 @section('content')
     {{-- TODO: Must be used Tiilwind CSS  --}}
     <style>
+        :root {
+            --worker-header-bg: linear-gradient(135deg, #24406a 0%, #2960a1 100%);
+            --worker-header-border: #2960a1;
+            --worker-header-color: #fdfdff;
+        }
+        body.darkness {
+            --worker-header-bg: linear-gradient(135deg, #1c3557 0%, #214c87 100%);
+            --worker-header-border: #214c87;
+            --worker-header-color: #f6f8ff;
+        }
         .worker-widget {
             background: white;
             border-radius: 8px;
@@ -14,7 +24,6 @@
             transform: translateY(-1px);
         }
         .worker-widget.active {
-            border-color: #2563eb;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
         }
         .worker-widget:not(.active) {
@@ -28,44 +37,67 @@
             display: flex;
             justify-content: between;
             align-items: center;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
-            border-radius: 8px 8px 0 0;
+            background: var(--worker-header-bg);
+            border-color: var(--worker-header-border);
+            color: var(--worker-header-color);
         }
         .worker-header.active {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
+            background: var(--worker-header-bg);
+            border-color: var(--worker-header-border);
+            color: var(--worker-header-color);
         }
         .worker-info {
             display: flex;
             align-items: center;
             gap: 0.75rem;
             flex: 1;
+            flex-wrap: wrap;
         }
         .worker-icon {
             font-size: 1.5rem;
-            color: white;
+            color: var(--worker-header-color);
             min-width: 2rem;
         }
         .worker-header.active .worker-icon {
-            color: white;
+            color: var(--worker-header-color);
         }
         .worker-title {
             font-weight: 600;
             font-size: 1.1rem;
             margin: 0;
-            color: white;
+            color: var(--worker-header-color);
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
         .worker-header.active .worker-title {
-            color: white;
+            color: var(--worker-header-color);
         }
         .worker-actions {
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        @media (max-width: 640px) {
+            .worker-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.35rem;
+            }
+            .worker-info .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .worker-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .worker-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
         }
         .settings-icon {
             width: 20px;
@@ -75,7 +107,7 @@
             transition: color 0.2s ease;
         }
         .settings-icon:hover {
-            color: white;
+            color: var(--worker-header-color);
         }
         .worker-header.active .settings-icon {
             color: rgba(255,255,255,0.8);
@@ -101,6 +133,7 @@
         .btn.disabled {opacity:0.6;cursor:not-allowed;pointer-events:none;}
         .btn.disabled:hover {opacity:0.6;}
         .widget-log {
+            display: none;
             height:150px;overflow-y:auto;background:#f1f1f1;border:1px solid #e1e1e1;border-radius:.5rem;
             margin:.1rem .9rem .6rem .9rem;padding:.6rem .9rem .6rem .9rem;white-space:normal;line-height:1.15;
             font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;font-size:.8rem;
@@ -157,16 +190,39 @@
             border-color: #374151;
         }
         body.darkness .worker-header {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            border-color: #4b5563;
+            background: var(--worker-header-bg);
+            border-color: var(--worker-header-border);
         }
         body.darkness .worker-header.active {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            background: var(--worker-header-bg);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.5rem;
+            font-size: 0.7rem;
+            border-radius: 999px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+        .badge-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #076449;
+        }
+        .badge-secondary {
+            background: rgba(107, 114, 128, 0.2);
+            color: #374151;
+        }
+        .badge-info {
+            background: rgba(59, 130, 246, 0.15);
+            color: #1d4ed8;
         }
         .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 0.875rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 5px;
+            font-size: 0.75rem;
             font-weight: 500;
             border: none;
             cursor: pointer;
@@ -209,44 +265,53 @@
             transform: translateY(-1px);
         }
     </style>
-<div class="max-w-11xl mx-auto py-2 px-6">
-    @if($workers->count() > 0)
-        @foreach($workers as $worker)
-            <div class="py-2 col-sm-12 col-md-6 col-lg-4">
-                <div class="worker-widget {{$worker->active ? 'active' : ''}}">
-                    <div class="worker-header {{$worker->active ? 'active' : ''}}">
-                        <div class="worker-info">
-                            <div class="worker-icon"><i class="fas fa-cog"></i></div>
-                            <div>
-                                <h3 class="worker-title">
-                                    <span class="status-dot {{$worker->active ? 'active' : 'inactive'}}"></span>
-                                    @php
-                                        $workerInstance = class_exists($worker->class) ? new $worker->class() : null;
-                                    @endphp
-                                    {{$workerInstance && method_exists($workerInstance, 'title') ? $workerInstance->title() : ucfirst(str_replace('_', ' ', $worker->identifier))}}
-                                </h3>
+    <div class="py-1"></div>
+    <div class="max-w-11xl mx-auto px-5">
+        @if($workers->count() > 0)
+            @foreach($workers as $worker)
+                <div class="py-1">
+                    <div class="worker-widget {{$worker->active ? 'active' : ''}}">
+                        <div class="worker-header {{$worker->active ? 'active' : ''}}">
+                            <div class="worker-info">
+                                <div>
+                                    <h3 class="worker-title">
+                                        <span class="status-dot {{$worker->active ? 'active' : 'inactive'}}"></span>
+                                        @php
+                                            $workerInstance = class_exists($worker->class) ? new $worker->class() : null;
+                                        @endphp
+                                        {{$workerInstance && method_exists($workerInstance, 'title') ? $workerInstance->title() : ucfirst(str_replace('_', ' ', $worker->identifier))}}
+                                        @if(trim($worker->description ?? ''))<i data-lucide="help-circle" class="settings-icon" data-tooltip="@lang($worker->description)"></i>@endif
+                                    </h3>
+                                </div>
+
+                                @if($workerInstance && method_exists($workerInstance, 'taskMake'))
+                                    <button type="button" class="btn btn-primary" data-run-worker="{{$worker->identifier}}">
+                                        <i data-lucide="play" class="w-5 h-5"></i>
+                                        @lang('sTask::global.run_task')
+                                    </button>
+                                @endif
+                            </div>
+
+                            <div class="worker-actions">
+                                <i data-lucide="settings" class="settings-icon" onclick="openWorkerSettings('{{$worker->identifier}}')"></i>
                             </div>
                         </div>
-                        <div class="worker-actions">
-                            <i data-lucide="settings" class="settings-icon" onclick="openWorkerSettings('{{$worker->identifier}}')"></i>
-                        </div>
+                        @if($worker->active){!!$worker->renderWidget()!!}@endif
                     </div>
-                    @if($worker->active){!!$worker->renderWidget()!!}@endif
+                </div>
+            @endforeach
+        @else
+            <div class="col-12">
+                <div class="worker-widget">
+                    <div class="empty-state">
+                        <i data-lucide="cpu" class="w-12 h-12"></i>
+                        <h3>@lang('sTask::global.no_workers_found')</h3>
+                        <p>@lang('sTask::global.add_worker_or_install_package')</p>
+                    </div>
                 </div>
             </div>
-        @endforeach
-    @else
-        <div class="col-12">
-            <div class="worker-widget">
-                <div class="empty-state">
-                    <i data-lucide="cpu" class="w-12 h-12"></i>
-                    <h3>@lang('sTask::global.no_workers_found')</h3>
-                    <p>@lang('sTask::global.add_worker_or_install_package')</p>
-                </div>
-            </div>
-        </div>
-    @endif
-</div>
+        @endif
+    </div>
 @endsection
 
 @push('scripts.bot')
@@ -256,11 +321,42 @@
             window.location.href = baseUrl.replace('__IDENTIFIER__', identifier);
         }
 
-        // Initialize Lucide icons
+        // Initialize Lucide icons and bind run buttons
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
+
+            document.querySelectorAll('[data-run-worker]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const identifier = btn.dataset.runWorker;
+                    btn.classList.add('disabled');
+                    fetch('{{route('sTask.worker.task.run', ['identifier' => '__IDENTIFIER__', 'action' => 'make'])}}'.replace('__IDENTIFIER__', identifier), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{csrf_token()}}'
+                        },
+                        body: JSON.stringify({})
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alertify.success(data.message || '@lang('sTask::global.task_created')');
+                                setTimeout(() => {
+                                    window.location.href = '{{route('sTask.index')}}';
+                                }, 800);
+                            } else {
+                                alertify.error(data.message || '@lang('sTask::global.error')');
+                            }
+                        })
+                        .catch(error => {
+                            alertify.error('@lang('sTask::global.error')');
+                            console.error(error);
+                        })
+                        .finally(() => btn.classList.remove('disabled'));
+                });
+            });
         });
     </script>
     @include('sTask::scripts.task')
