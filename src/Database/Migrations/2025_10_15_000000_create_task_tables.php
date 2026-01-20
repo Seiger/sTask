@@ -7,7 +7,7 @@ use Illuminate\Database\Query\Expression;
 
 /**
  * Migration: sTask tables creation.
- * Permissions and groups are handled by seeder.
+ * Permissions and groups are handled by a separate migration.
  */
 return new class extends Migration {
     public function up(): void

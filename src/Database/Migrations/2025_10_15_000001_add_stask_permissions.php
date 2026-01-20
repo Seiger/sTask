@@ -1,38 +1,56 @@
 <?php
 
-namespace Seiger\sTask\Database\Seeders;
-
-use Illuminate\Database\Seeder;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Seeder for sTask permissions.
- * Idempotent - safe to run multiple times.
+ * Migration: sTask permissions and admin assignment.
  */
-class STaskPermissionsSeeder extends Seeder
-{
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+return new class extends Migration {
+    public function up(): void
     {
         if (!Schema::hasTable('permissions_groups') || !Schema::hasTable('permissions')) {
             return;
         }
 
         $groupId = $this->getOrCreateGroup();
-        $this->upsertPermissions($groupId);
-        $this->assignPermissionsToAdmin();
+        $this->upsertPermission($groupId);
+        $this->assignPermissionToAdmin();
     }
 
-    /**
-     * Get or create sTask permissions group.
-     */
+    public function down(): void
+    {
+        if (Schema::hasTable('role_permissions')) {
+            DB::table('role_permissions')
+                ->where('role_id', 1)
+                ->where('permission', 'stask')
+                ->delete();
+        }
+
+        if (Schema::hasTable('permissions')) {
+            DB::table('permissions')
+                ->where('key', 'stask')
+                ->delete();
+        }
+
+        if (Schema::hasTable('permissions_groups')) {
+            $group = DB::table('permissions_groups')->where('name', 'sTask')->first();
+
+            if ($group) {
+                $hasPermissions = Schema::hasTable('permissions')
+                    && DB::table('permissions')->where('group_id', $group->id)->exists();
+
+                if (!$hasPermissions) {
+                    DB::table('permissions_groups')->where('id', $group->id)->delete();
+                }
+            }
+        }
+    }
+
     protected function getOrCreateGroup(): int
     {
-        // Try to find existing group
         $group = DB::table('permissions_groups')
             ->where('name', 'sTask')
             ->first();
@@ -41,7 +59,6 @@ class STaskPermissionsSeeder extends Seeder
             return $group->id;
         }
 
-        // Try to insert new group
         try {
             return DB::table('permissions_groups')->insertGetId([
                 'name' => 'sTask',
@@ -50,10 +67,8 @@ class STaskPermissionsSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         } catch (QueryException $e) {
-            // If failed (duplicate key/sequence issue), fix sequence and retry
             $this->fixPostgresSequence('permissions_groups');
-            
-            // Try one more time
+
             try {
                 return DB::table('permissions_groups')->insertGetId([
                     'name' => 'sTask',
@@ -62,7 +77,6 @@ class STaskPermissionsSeeder extends Seeder
                     'updated_at' => now(),
                 ]);
             } catch (QueryException $e2) {
-                // Final attempt - just get the record (might have been created by another process)
                 $group = DB::table('permissions_groups')->where('name', 'sTask')->first();
                 if ($group) {
                     return $group->id;
@@ -72,13 +86,10 @@ class STaskPermissionsSeeder extends Seeder
         }
     }
 
-    /**
-     * Upsert permissions for sTask.
-     */
-    protected function upsertPermissions(int $groupId): void
+    protected function upsertPermission(int $groupId): void
     {
         $exists = DB::table('permissions')->where('key', 'stask')->first();
-        
+
         if ($exists) {
             DB::table('permissions')
                 ->where('key', 'stask')
@@ -99,7 +110,6 @@ class STaskPermissionsSeeder extends Seeder
                     'updated_at' => now(),
                 ]);
             } catch (QueryException $e) {
-                // Already exists (race condition), try update
                 DB::table('permissions')
                     ->where('key', 'stask')
                     ->update([
@@ -112,17 +122,14 @@ class STaskPermissionsSeeder extends Seeder
         }
     }
 
-    /**
-     * Assign sTask permissions to admin role (role_id = 1).
-     */
-    protected function assignPermissionsToAdmin(): void
+    protected function assignPermissionToAdmin(): void
     {
         if (!Schema::hasTable('role_permissions')) {
             return;
         }
 
         $permission = DB::table('permissions')->where('key', 'stask')->first();
-        
+
         if (!$permission) {
             return;
         }
@@ -141,14 +148,11 @@ class STaskPermissionsSeeder extends Seeder
                     'updated_at' => now(),
                 ]);
             } catch (QueryException $e) {
-                // Already exists - ignore
+                // Already exists - ignore.
             }
         }
     }
 
-    /**
-     * Fix PostgreSQL sequence for a table.
-     */
     protected function fixPostgresSequence(string $table): void
     {
         try {
@@ -156,7 +160,7 @@ class STaskPermissionsSeeder extends Seeder
             $maxId = DB::table($table)->max('id') ?? 0;
             DB::statement("SELECT setval(pg_get_serial_sequence('{$fullTable}', 'id'), " . ($maxId + 1) . ", false)");
         } catch (\Exception $e) {
-            // Silently ignore - might not be PostgreSQL
+            // Ignore if not PostgreSQL or permissions are missing.
         }
     }
-}
+};
