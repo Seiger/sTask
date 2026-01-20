@@ -97,6 +97,7 @@ return new class extends Migration {
                     'name' => 'Access sTask Interface',
                     'lang_key' => 'sTask::global.permission_access',
                     'group_id' => $groupId,
+                    'disabled' => 0,
                     'updated_at' => now(),
                 ]);
         } else {
@@ -106,6 +107,7 @@ return new class extends Migration {
                     'name' => 'Access sTask Interface',
                     'lang_key' => 'sTask::global.permission_access',
                     'group_id' => $groupId,
+                    'disabled' => 0,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -116,6 +118,7 @@ return new class extends Migration {
                         'name' => 'Access sTask Interface',
                         'lang_key' => 'sTask::global.permission_access',
                         'group_id' => $groupId,
+                        'disabled' => 0,
                         'updated_at' => now(),
                     ]);
             }
