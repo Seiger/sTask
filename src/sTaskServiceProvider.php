@@ -74,8 +74,7 @@ class sTaskServiceProvider extends ServiceProvider
         $this->registerServices();
 
         // Load plugins
-        $pluginPath = dirname(__DIR__) . '/plugins/';
-        $this->loadPluginsFrom($pluginPath);
+        $this->loadPluginsFrom(dirname(__DIR__) . '/plugins/');
 
         // Register console commands
         if ($this->app->runningInConsole()) {
@@ -110,10 +109,8 @@ class sTaskServiceProvider extends ServiceProvider
      */
     protected function loadRoutes()
     {
-        if (file_exists(__DIR__ . '/Http/routes.php')) {
-            $this->app->router->middlewareGroup('mgr', config('app.middleware.mgr', []));
-            include(__DIR__ . '/Http/routes.php');
-        }
+        $this->app->router->middlewareGroup('mgr', config('app.middleware.mgr', []));
+        include(__DIR__ . '/Http/routes.php');
     }
 
     /**
