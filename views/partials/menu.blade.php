@@ -1,7 +1,7 @@
 <aside :class="open ? 'w-60' : 'w-16'" class="s-nav" @mouseenter="handleEnter" @mouseleave="handleLeave">
     <div class="s-nav-header">
         <a href="{{route('sTask.index')}}" class="flex items-center gap-1 text-xl font-bold" x-show="open" x-cloak>sTask</a>
-        <img x-show="!open" x-cloak src="{{asset('site/stask.svg')}}" class="w-8 h-8 pointer-events-none filter drop-shadow-[0_0_6px_#3b82f6]" alt="sTask">
+        <img x-show="!open" x-cloak src="{{rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/stask.svg'}}" class="w-8 h-8 pointer-events-none filter drop-shadow-[0_0_6px_#3b82f6]" alt="sTask">
     </div>
     <nav class="s-nav-menu">
         <a href="{{route('sTask.index')}}" @class(['s-nav-menu-item', 's-nav-menu-item--active' => 'sTask.index' == Route::currentRouteName()])>

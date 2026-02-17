@@ -57,7 +57,7 @@ class PublishAssets extends Command
         // 2) Publish (force overwrite)
         $this->call('vendor:publish', [
             '--provider' => 'Seiger\sTask\sTaskServiceProvider',
-            '--tag' => 'stask-assets',
+            '--tag' => 'stask',
             '--force' => true,
         ]);
 

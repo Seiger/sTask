@@ -7,9 +7,9 @@
     <meta name="viewport" content="initial-scale=1.0,user-scalable=no,maximum-scale=1,width=device-width"/>
     <meta name="theme-color" content="#0b1a2f"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <link rel="icon" type="image/svg+xml" href="{{asset('site/stask.svg')}}" />
+    <link rel="icon" type="image/svg+xml" href="{{rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/stask.svg'}}" />
     <style>[x-cloak]{display:none!important}</style>
-    <link rel="stylesheet" href="{{asset('site/stask.min.css')}}?{{evo()->getConfig('sTaskVer')}}">
+    <link rel="stylesheet" href="{{rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/stask.min.css'}}?{{evo()->getConfig('sTaskVer')}}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@latest/build/css/alertify.min.css"/>
     @if(class_exists(Tracy\Debugger::class) && config('tracy.active')){!!Tracy\Debugger::renderLoader()!!}@endif
     {!!ManagerTheme::getMainFrameHeaderHTMLBlock()!!}
@@ -33,7 +33,7 @@
         evo.config.which_browser = '{{evo()->getConfig('which_browser')}}';
     </script>
     <script src="media/script/main.js"></script>
-    <script src="{{asset('site/stask.js')}}?{{evo()->getConfig('sTaskVer')}}"></script>
+    <script src="{{rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/stask.js'}}?{{evo()->getConfig('sTaskVer')}}"></script>
     @stack('scripts.top')
     {!!evo()->getRegisteredClientStartupScripts()!!}
 </head>
@@ -51,7 +51,7 @@
 </div>
 <div x-data="{open:false}" @mouseenter="open=true" @mouseleave="open=false" :class="open ? 's-brand s-brand--open' : 's-brand'">
     <div class="s-brand-logo">
-        <img src="{{asset('site/seigerit.svg')}}" alt="Seiger IT">
+        <img src="{{rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/seigerit.svg'}}" alt="Seiger IT">
     </div>
     <template x-if="open">
         <div x-transition.opacity class="s-brand-text">
@@ -61,7 +61,7 @@
         </div>
     </template>
 </div>
-<script src="{{asset('site/seigerit.tooltip.js')}}" defer></script>
+<script src="{{rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/seigerit.tooltip.js'}}" defer></script>
 @push('scripts.bot')
     <script>
         document.addEventListener("DOMContentLoaded", function () {
