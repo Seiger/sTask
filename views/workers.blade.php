@@ -327,9 +327,40 @@
                 lucide.createIcons();
             }
 
+            const progressUrlTemplate = "{{route('sTask.task.progress', ['id' => '__ID__'])}}";
+
+            function startWorkerWatcher(identifier, taskId) {
+                const root = document.getElementById(`${identifier}Log`);
+                if (!root || !taskId) {
+                    return false;
+                }
+
+                if (typeof widgetClearLog === 'function') {
+                    widgetClearLog(root);
+                }
+                if (typeof widgetLogLine === 'function') {
+                    widgetLogLine(root, '_Завдання запущено. Отримую прогрес..._');
+                }
+                if (typeof widgetProgressBar === 'function') {
+                    widgetProgressBar(identifier, 0, '—');
+                }
+                if (typeof widgetWatcher === 'function') {
+                    widgetWatcher(root, progressUrlTemplate.replace('__ID__', taskId), identifier);
+                    try {
+                        root.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+                    } catch (e) {
+                        // noop
+                    }
+                    return true;
+                }
+
+                return false;
+            }
+
             document.querySelectorAll('[data-run-worker]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const identifier = btn.dataset.runWorker;
+                    btn.disabled = true;
                     btn.classList.add('disabled');
                     fetch('{{route('sTask.worker.task.run', ['identifier' => '__IDENTIFIER__', 'action' => 'make'])}}'.replace('__IDENTIFIER__', identifier), {
                         method: 'POST',
@@ -343,9 +374,15 @@
                         .then(data => {
                             if (data.success) {
                                 alertify.success(data.message || '@lang('sTask::global.task_created')');
-                                setTimeout(() => {
-                                    window.location.href = '{{route('sTask.index')}}';
-                                }, 800);
+
+                                // Stay on workers page and open progress/log area for this worker.
+                                const watcherStarted = startWorkerWatcher(identifier, data?.id || 0);
+                                if (!watcherStarted) {
+                                    // Fallback: reload workers list (still no redirect to dashboard).
+                                    setTimeout(() => {
+                                        window.location.href = '{{route('sTask.workers')}}';
+                                    }, 300);
+                                }
                             } else {
                                 alertify.error(data.message || '@lang('sTask::global.error')');
                             }
@@ -354,7 +391,10 @@
                             alertify.error('@lang('sTask::global.error')');
                             console.error(error);
                         })
-                        .finally(() => btn.classList.remove('disabled'));
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.classList.remove('disabled');
+                        });
                 });
             });
         });
