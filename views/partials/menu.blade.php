@@ -1,4 +1,4 @@
-<aside :class="open ? 'w-60' : 'w-16'" class="s-nav" @mouseenter="handleEnter" @mouseleave="handleLeave">
+<aside :class="open ? 'w-60' : 'w-16'" class="s-nav">
     <div class="s-nav-header">
         <a href="{{route('sTask.index')}}" class="flex items-center gap-1 text-xl font-bold" x-show="open" x-cloak>sTask</a>
         <img x-show="!open" x-cloak src="{{rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/stask.svg'}}" class="w-8 h-8 pointer-events-none filter drop-shadow-[0_0_6px_#3b82f6]" alt="sTask">
@@ -17,7 +17,12 @@
             <span x-show="open">@lang('sTask::global.statistics')</span>
         </a>
     </nav>
-    <span @click="togglePin" role="button" tabindex="0" class="s-pin-btn" :class="open ? 'left-24' : 'left-4'" title="Pin sidebar / Unpin sidebar">
-        <i :data-lucide="pinned ? 'pin-off' : 'pin'" class="w-4 h-4 pointer-events-none"></i>
+    <span @click="toggle()" role="button" tabindex="0" class="s-pin-btn" :class="open ? 'left-24' : 'left-4'" title="Toggle sidebar">
+        <template x-if="open">
+            @svg('tabler-pinned', 'w-4 h-4 pointer-events-none')
+        </template>
+        <template x-if="!open">
+            @svg('tabler-pin', 'w-4 h-4 pointer-events-none')
+        </template>
     </span>
 </aside>

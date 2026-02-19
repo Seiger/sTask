@@ -21,33 +21,19 @@ window.addEventListener('DOMContentLoaded', () => {
  * Handle pinning and hover behavior.
  */
 window.sTask.sPinner = function sPinner(key) {
-    const saved = localStorage.getItem(key) === 'true';
     return {
-        pinned: saved,
-        open: saved,
-        skipLeave: false,
-        togglePin() {
-            this.pinned = !this.pinned;
-            this.open = this.pinned;
-            this.skipLeave = true;
-            setTimeout(() => this.skipLeave = false, 50);
-            localStorage.setItem(key, this.pinned);
-            window.sTask.queueLucide();
+        open: false,
+
+        init() {
+            const v = localStorage.getItem(key);
+            this.open = (v === 'true' || v === '1');
         },
-        handleEnter() {
-            if (!this.pinned) {
-                this.open = true;
-                window.sTask.queueLucide();
-            }
+
+        toggle() {
+            this.open = !this.open;
+            localStorage.setItem(key, this.open ? '1' : '0');
         },
-        handleLeave() {
-            if (this.skipLeave) return;
-            if (!this.pinned) {
-                this.open = false;
-                window.sTask.queueLucide();
-            }
-        },
-    }
+    };
 }
 
 /**
