@@ -78,6 +78,7 @@ class WorkerService
      * 2. Laravel cache (fast, shared across requests)
      * 3. Database query (slowest, fallback)
      *
+     * @since 1.0.9
      * @param string $identifier The worker identifier to resolve
      * @param bool $forceRefresh Force refresh from database (bypass cache)
      * @return TaskInterface The resolved worker instance
@@ -89,17 +90,36 @@ class WorkerService
     {
         // Check in-memory cache first
         if (!$forceRefresh && isset(self::$workerCache[$identifier])) {
-            self::$cacheStats['hits']++;
-            return self::$workerCache[$identifier];
+            $worker = self::$workerCache[$identifier];
+            if ($this->isValidWorkerInstance($worker)) {
+                self::$cacheStats['hits']++;
+                return $worker;
+            }
+
+            unset(self::$workerCache[$identifier]);
+            self::$cacheStats['evictions']++;
+            Log::warning('Invalid worker instance found in memory cache, evicted', [
+                'identifier' => $identifier,
+                'type' => is_object($worker) ? get_class($worker) : gettype($worker),
+            ]);
         }
 
         // Check Laravel cache
         $cacheKey = self::CACHE_PREFIX . $identifier;
         if (!$forceRefresh && Cache::has($cacheKey)) {
             $worker = Cache::get($cacheKey);
-            self::$workerCache[$identifier] = $worker;
-            self::$cacheStats['hits']++;
-            return $worker;
+            if ($this->isValidWorkerInstance($worker)) {
+                self::$workerCache[$identifier] = $worker;
+                self::$cacheStats['hits']++;
+                return $worker;
+            }
+
+            Cache::forget($cacheKey);
+            self::$cacheStats['evictions']++;
+            Log::warning('Invalid worker instance found in persistent cache, evicted', [
+                'identifier' => $identifier,
+                'type' => is_object($worker) ? get_class($worker) : gettype($worker),
+            ]);
         }
 
         // Database fallback
@@ -119,6 +139,7 @@ class WorkerService
      * fetching them all in a single database query and caching
      * them efficiently.
      *
+     * @since 1.0.9
      * @param array<string> $identifiers Array of worker identifiers
      * @return array<string, TaskInterface> Array of resolved workers
      */
@@ -130,8 +151,15 @@ class WorkerService
         // Check cache for each identifier
         foreach ($identifiers as $identifier) {
             if (isset(self::$workerCache[$identifier])) {
-                $workers[$identifier] = self::$workerCache[$identifier];
-                self::$cacheStats['hits']++;
+                $worker = self::$workerCache[$identifier];
+                if ($this->isValidWorkerInstance($worker)) {
+                    $workers[$identifier] = $worker;
+                    self::$cacheStats['hits']++;
+                } else {
+                    unset(self::$workerCache[$identifier]);
+                    self::$cacheStats['evictions']++;
+                    $missingIdentifiers[] = $identifier;
+                }
             } else {
                 $missingIdentifiers[] = $identifier;
             }
@@ -348,5 +376,17 @@ class WorkerService
             'memory_before' => memory_get_usage(true),
             'memory_after' => memory_get_usage(true),
         ]);
+    }
+
+    /**
+     * Validate cached worker instance type.
+     *
+     * @since 1.0.9
+     * @param mixed $worker
+     * @return bool
+     */
+    private function isValidWorkerInstance(mixed $worker): bool
+    {
+        return $worker instanceof TaskInterface;
     }
 }
