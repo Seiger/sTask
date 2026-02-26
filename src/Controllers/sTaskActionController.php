@@ -97,17 +97,17 @@ class sTaskActionController extends BaseController
                     // Strategy: send headers and content, close connection, then execute worker
 
                     // Set headers to prevent buffering
-                    header('Connection: close');
-                    header('Content-Length: ' . ob_get_length());
+                    //header('Connection: close');
+                    //header('Content-Length: ' . ob_get_length());
 
                     // Send response
                     $response->send();
 
                     // Flush all output buffers
-                    if (ob_get_level() > 0) {
-                        ob_end_flush();
-                    }
-                    flush();
+                    //if (ob_get_level() > 0) {
+                    //    ob_end_flush();
+                    //}
+                    //flush();
 
                     // Close FastCGI connection
                     fastcgi_finish_request();

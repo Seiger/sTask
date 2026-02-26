@@ -210,10 +210,12 @@ class TaskProgress
         $processed = $payload['processed'] ?? 0;
         $total = $payload['total'] ?? 0;
         $eta = $payload['eta'] ?? '—';
-        $message = $payload['message'] ?? '';
+        $message = (string)($payload['message'] ?? '');
 
         // Escape pipe characters in message to avoid breaking format
         $message = str_replace('|', '¦', $message);
+        // Keep each progress record strictly one-line to avoid corrupting parser state.
+        $message = preg_replace('/\R+/u', '<br>', $message) ?? $message;
 
         // Build line
         $line = implode('|', [$status, $progress, $processed, $total, $eta, $message]);
