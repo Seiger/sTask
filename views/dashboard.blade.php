@@ -90,7 +90,7 @@
                             <th class="pb-3 font-medium">@lang('sTask::global.status')</th>
                             <th class="pb-3 font-medium">@lang('sTask::global.progress')</th>
                             <th class="pb-3 font-medium">@lang('sTask::global.created')</th>
-                            {{--<th class="pb-3 font-medium text-right">@lang('sTask::global.actions')</th>--}}
+                            <th class="pb-3 font-medium text-right">@lang('sTask::global.actions')</th>
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 darkness:divide-slate-700">
@@ -106,7 +106,7 @@
                                 <td class="py-3">
                                     @if($task->status == \Seiger\sTask\Models\sTaskModel::TASK_STATUS_QUEUED)
                                         <span class="px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs font-medium darkness:bg-gray-700 darkness:text-gray-300">
-                                                @lang('sTask::global.pending')
+                                            @lang('sTask::global.pending')
                                             @if($task->start_at && $task->start_at > now())
                                                 <span style="opacity: 0.8;">({{$task->start_at->format('H:i')}})</span>
                                             @endif
@@ -132,13 +132,13 @@
                                     </div>
                                 </td>
                                 <td class="py-3 text-xs text-slate-500 darkness:text-slate-400">
-                                    {{$task->created_at->diffForHumans()}}
+                                    {{$task->created_at?->locale(ManagerTheme::getLang())->diffForHumans()}}
                                 </td>
-                                {{--<td class="py-3 text-right">
-                                    <a href="{{route('stask.task.show', $task->id)}}" class="text-blue-600 hover:underline text-xs darkness:text-sky-400">
+                                <td class="py-3 text-right">
+                                    <a href="{{route('sTask.task.show', $task->id)}}" class="text-blue-600 hover:underline text-xs darkness:text-sky-400">
                                         @lang('sTask::global.details')
                                     </a>
-                                </td>--}}
+                                </td>
                             </tr>
                         @endforeach
                         </tbody>

@@ -14,6 +14,7 @@ Route::middleware(['mgr'])->group(function () {
         // Task management
         Route::post('/task', [sTaskController::class, 'create'])->name('task.create');
         Route::post('/task/store', [sTaskController::class, 'store'])->name('task.store');
+        Route::get('/task/{id}', [sTaskController::class, 'show'])->name('task.show');
 
         // Task actions
         Route::post('/worker/{identifier}/run/{action}', [sTaskActionController::class, 'run'])->name('worker.task.run');

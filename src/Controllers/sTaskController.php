@@ -1,5 +1,6 @@
 <?php namespace Seiger\sTask\Controllers;
 
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -39,6 +40,24 @@ class sTaskController
     }
 
     /**
+     * Display task details and execution log.
+     */
+    public function show(int $id): View
+    {
+        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+
+        $task = sTaskModel::with(['worker', 'user'])->findOrFail($id);
+
+        return view('sTask::task', [
+            'tabIcon' => '<i data-lucide="file-text" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
+            'tabName' => __('sTask::global.task') . ' #' . $task->id,
+            'task' => $task,
+            'metaPretty' => $this->prettyPrintPayload($task->meta),
+            'resultPretty' => $this->prettyPrintPayload($task->result),
+        ]);
+    }
+
+    /**
      * Create a new task
      */
     public function create(Request $request)
@@ -73,6 +92,24 @@ class sTaskController
     public function store(Request $request)
     {
         return $this->create($request);
+    }
+
+    /**
+     * Pretty print task payload for diagnostic view.
+     */
+    private function prettyPrintPayload($payload): ?string
+    {
+        if ($payload === null || $payload === '' || $payload === []) {
+            return null;
+        }
+
+        if (is_string($payload)) {
+            return trim($payload) !== '' ? $payload : null;
+        }
+
+        $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return $encoded !== false ? $encoded : (string)$payload;
     }
 
     /**
