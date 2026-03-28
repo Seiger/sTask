@@ -36,9 +36,9 @@
                     $frequency = $schedule['frequency'] ?? 'hourly';
                     $time = $schedule['time'] ?? '00:00';
                     $frequencyLabels = [
-                        'hourly' => 'Щогодини',
-                        'daily' => 'Щодня',
-                        'weekly' => 'Щотижня'
+                        'hourly' => __('sTask::global.frequency_hourly'),
+                        'daily' => __('sTask::global.frequency_daily'),
+                        'weekly' => __('sTask::global.frequency_weekly'),
                     ];
                     $frequencyLabel = $frequencyLabels[$frequency] ?? ucfirst($frequency);
 
@@ -67,13 +67,21 @@
                     <i class="fas fa-clock"></i> {{$frequencyLabel}} о {{$timeDisplay}}
                 </span>
             @elseif($schedule['type'] == 'regular')
+                @php
+                    $intervalLabels = [
+                        'every_5min' => __('sTask::global.interval_5min'),
+                        'every_15min' => __('sTask::global.interval_15min'),
+                        'every_30min' => __('sTask::global.interval_30min'),
+                        'hourly' => __('sTask::global.interval_hourly'),
+                    ];
+                @endphp
                 <span class="badge badge-info">
-                    <i class="fas fa-redo"></i> {{ucfirst($schedule['interval'] ?? 'hourly')}}: {{$schedule['start_time']}} - {{$schedule['end_time']}}
+                    <i class="fas fa-redo"></i> {{$intervalLabels[$schedule['interval'] ?? 'hourly'] ?? ucfirst($schedule['interval'] ?? 'hourly')}}: {{$schedule['start_time']}} - {{$schedule['end_time']}}
                 </span>
             @endif
         @else
             <span class="badge badge-secondary">
-                <i class="fas fa-hand-paper"></i> Тільки вручну
+                <i class="fas fa-hand-paper"></i> @lang('sTask::global.schedule_manual')
             </span>
         @endif
     </div>

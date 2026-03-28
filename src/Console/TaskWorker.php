@@ -174,7 +174,7 @@ class TaskWorker extends Command
                         continue; // No datetime set - skip
                     }
                 } elseif ($scheduleType === 'periodic' || $scheduleType === 'regular') {
-                    // For periodic: calculate next run time
+                    // For periodic and regular schedules: calculate next run time
                     $startAt = $this->calculateNextRunTime($schedule);
                     if (!$startAt) {
                         continue; // Can't calculate - skip
@@ -292,6 +292,47 @@ class TaskWorker extends Command
         $frequency = $schedule['frequency'] ?? 'hourly';
         $time = $schedule['time'] ?? '';
 
+        $now = now();
+
+        if ($type === 'regular') {
+            $startTime = $schedule['start_time'] ?? null;
+            $endTime = $schedule['end_time'] ?? null;
+
+            if (empty($startTime) || empty($endTime)) {
+                return null;
+            }
+
+            [$startHour, $startMinute] = array_pad(explode(':', $startTime), 2, 0);
+            [$endHour, $endMinute] = array_pad(explode(':', $endTime), 2, 0);
+
+            $windowStart = $now->copy()->hour((int)$startHour)->minute((int)$startMinute)->second(0);
+            $windowEnd = $now->copy()->hour((int)$endHour)->minute((int)$endMinute)->second(0);
+
+            if ($windowEnd < $windowStart) {
+                return null;
+            }
+
+            $intervalMinutes = match ($schedule['interval'] ?? 'hourly') {
+                'every_5min' => 5,
+                'every_15min' => 15,
+                'every_30min' => 30,
+                'hourly' => 60,
+                default => null,
+            };
+
+            if ($intervalMinutes === null) {
+                return null;
+            }
+
+            $candidate = $windowStart->copy();
+
+            while ($candidate <= $now) {
+                $candidate->addMinutes($intervalMinutes);
+            }
+
+            return $candidate <= $windowEnd ? $candidate : null;
+        }
+
         if (empty($time) || $type !== 'periodic') {
             return null;
         }
@@ -299,8 +340,6 @@ class TaskWorker extends Command
         $timeParts = explode(':', $time);
         $hour = $timeParts[0] ?? '*';
         $minute = (int)($timeParts[1] ?? 0);
-
-        $now = now();
 
         // For hourly: next occurrence of target minute
         if ($frequency === 'hourly' && $hour === '*') {

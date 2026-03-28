@@ -132,6 +132,7 @@
     'start_time' => 'Початок',
     'end_time' => 'Кінець',
     'interval' => 'Інтервал',
+    'interval_5min' => 'Кожні 5 хв',
     'interval_15min' => 'Кожні 15 хв',
     'interval_30min' => 'Кожні 30 хв',
     'interval_hourly' => 'Щогодини',

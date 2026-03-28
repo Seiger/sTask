@@ -132,6 +132,7 @@
     'start_time' => 'Начало',
     'end_time' => 'Конец',
     'interval' => 'Интервал',
+    'interval_5min' => 'Каждые 5 мин',
     'interval_15min' => 'Каждые 15 мин',
     'interval_30min' => 'Каждые 30 мин',
     'interval_hourly' => 'Ежечасно',

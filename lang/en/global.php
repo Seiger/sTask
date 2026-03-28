@@ -132,6 +132,7 @@
     'start_time' => 'Start',
     'end_time' => 'End',
     'interval' => 'Interval',
+    'interval_5min' => 'Every 5 minutes',
     'interval_15min' => 'Every 15 minutes',
     'interval_30min' => 'Every 30 minutes',
     'interval_hourly' => 'Hourly',

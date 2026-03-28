@@ -259,6 +259,8 @@ abstract class BaseWorker implements TaskInterface
 
                     // Check interval
                     switch ($schedule['interval'] ?? 'hourly') {
+                        case 'every_5min':
+                            return $currentMinute % 5 === 0;
                         case 'every_15min':
                             return $currentMinute % 15 === 0;
                         case 'every_30min':

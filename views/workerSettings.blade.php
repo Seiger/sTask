@@ -409,6 +409,7 @@
                                     <div class="form-group">
                                         <label>@lang('sTask::global.interval')</label>
                                         <select class="form-control" name="schedule[interval]">
+                                            <option value="every_5min" {{($schedule['interval'] ?? 'hourly') == 'every_5min' ? 'selected' : ''}}>@lang('sTask::global.interval_5min')</option>
                                             <option value="every_15min" {{($schedule['interval'] ?? 'hourly') == 'every_15min' ? 'selected' : ''}}>@lang('sTask::global.interval_15min')</option>
                                             <option value="every_30min" {{($schedule['interval'] ?? 'hourly') == 'every_30min' ? 'selected' : ''}}>@lang('sTask::global.interval_30min')</option>
                                             <option value="hourly" {{($schedule['interval'] ?? 'hourly') == 'hourly' ? 'selected' : ''}}>@lang('sTask::global.interval_hourly')</option>
