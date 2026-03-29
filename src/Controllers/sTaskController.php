@@ -368,6 +368,10 @@ class sTaskController
                 }
             }
 
+            if (method_exists($workerInstance, 'normalizeSettingsForSave')) {
+                $config = $workerInstance->normalizeSettingsForSave($config);
+            }
+
             // Update worker settings
             $workerInstance->updateConfig($config);
 
