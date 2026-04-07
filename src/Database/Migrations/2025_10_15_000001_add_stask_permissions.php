@@ -9,6 +9,18 @@ use Illuminate\Support\Facades\Schema;
  * Migration: sTask permissions and admin assignment.
  */
 return new class extends Migration {
+    /**
+     * PostgreSQL aborts the whole transaction after the first failed statement.
+     * This migration intentionally retries inserts after sequence repair and after
+     * duplicate-key races, so it must run without Laravel's transaction wrapper.
+     *
+     * Keeping it disabled is safe for MySQL, MariaDB and SQLite as well because
+     * all operations are idempotent and guarded by existence checks.
+     *
+     * @var bool
+     */
+    public $withinTransaction = false;
+
     public function up(): void
     {
         if (!Schema::hasTable('permissions_groups') || !Schema::hasTable('permissions')) {
