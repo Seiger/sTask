@@ -15,6 +15,16 @@
 
 Whether you need to process large data imports, generate reports, send emails in bulk, or perform any other time-consuming operations, **sTask** gives you the tools to handle these tasks efficiently without blocking your main application. Built with performance and scalability in mind, it's designed to become the fundamental task management solution for the entire Evolution CMS ecosystem.
 
+> sTask 1.x is the stable maintenance line for the current Evolution CMS manager UI.
+> The upcoming 2.x line will include the new evo-ui based design.
+
+## Versions
+
+| Version | Branch | Status | Notes |
+| --- | --- | --- | --- |
+| 1.x | `1.x` | Stable / maintenance | Current manager UI, bug fixes only |
+| 2.x | `2.x` | In development | New evo-ui based interface |
+
 ## Features
 
 ### 🚀 Core Task Management
