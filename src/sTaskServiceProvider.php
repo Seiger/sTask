@@ -18,6 +18,8 @@ use Seiger\sTask\Console\TaskWorker;
  */
 class sTaskServiceProvider extends ServiceProvider
 {
+    public const MODULE_ICON = 'tabler-progress-check';
+
     /**
      * Bootstrap the application services.
      *

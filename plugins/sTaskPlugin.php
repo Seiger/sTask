@@ -1,4 +1,4 @@
-<?php
+<?php use Seiger\sTask\sTaskServiceProvider;
 
 /**
  * sTask Plugin
@@ -7,14 +7,25 @@
  *
  * @package Seiger\sTask
  * @author Seiger IT Team
- * @since 1.0.0
+ * @since 2.0.0
  */
 Event::listen('evolution.OnManagerMenuPrerender', function($params) {
     if (evo()->hasPermission('stask')) {
+        $icon = sTaskServiceProvider::MODULE_ICON;
+        $iconHtml = '<i class="' . $icon . '"></i>';
+
+        if (strpos($icon, 'tabler-') === 0 && function_exists('svg')) {
+            $iconHtml = svg($icon, '', [
+                'aria-hidden' => 'true',
+                'focusable' => 'false',
+                'style' => 'flex:0 0 auto;display:inline-block;',
+            ])->toHtml();
+        }
+
         $menu['stask'] = [
             'stask',
             'tools',
-            '<img src="' . rtrim(evo()->getConfig('site_url'), '/') . '/assets/site/stask.svg" width="20" height="20" style="display:inline-block;vertical-align:middle;margin-right:8px;transition:filter 0.2s ease;" class="stask-logo">' .  __('sTask::global.title'),
+            $iconHtml . __('sTask::global.title'),
             route('sTask.index'),
             __('sTask::global.title'),
             "",
