@@ -3,7 +3,7 @@
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
-                    <div class="evo-ui-card__heading">
+                        <div class="evo-ui-card__header">
                         <x-evo::icon name="activity" />
                         <h3>@lang('sTask::global.recent_tasks')</h3>
                     </div>
@@ -57,7 +57,7 @@
 
                 @if($recentErrorRows->isNotEmpty())
                     <section class="evo-ui-dashboard-section">
-                        <div class="evo-ui-card__heading">
+                    <div class="evo-ui-card__header">
                             <x-evo::icon name="circle-x" />
                             <h3>@lang('sTask::global.recent_error_logs')</h3>
                         </div>
@@ -199,7 +199,7 @@
         <x-evo::dashboard :cards="$performanceCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
-                    <div class="evo-ui-card__heading">
+                        <div class="evo-ui-card__header">
                         <x-evo::icon name="bell" />
                         <h3>@lang('sTask::global.performance_alerts')</h3>
                     </div>
@@ -231,7 +231,7 @@
                 </section>
 
                 <section class="evo-ui-dashboard-section">
-                    <div class="evo-ui-card__heading">
+                    <div class="evo-ui-card__header">
                         <x-evo::icon name="database" />
                         <h3>@lang('sTask::global.worker_cache')</h3>
                     </div>

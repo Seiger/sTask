@@ -35,7 +35,7 @@ $notContains = static function (string $haystack, string $needle, string $messag
 $composer = json_decode($read('composer.json'), true);
 $assert(is_array($composer), 'composer.json must be valid JSON.');
 $assert(($composer['name'] ?? null) === 'seiger/stask', 'composer package name must stay seiger/stask.');
-$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.0.1', 'sTask must pin evo-ui baseline dependency.');
+$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.0.6', 'sTask must pin evo-ui baseline dependency.');
 $assert(($composer['scripts']['test'] ?? null) === 'php tests/run.php', 'composer test must run the package smoke suite.');
 $assert(
     in_array('Seiger\\sTask\\sTaskServiceProvider', $composer['extra']['laravel']['providers'] ?? [], true),
