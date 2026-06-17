@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
-use Seiger\sTask\Models\sWorker;
+use Seiger\sTask\Models\sWorker as sWorker;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Class sTaskController
@@ -24,19 +26,34 @@ class sTaskController
      */
     public function index()
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
-        $data = [
-            'tabIcon' => '<i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
-            'tabName' => __('sTask::global.dashboard'),
+        $tabs = [
+            ['key' => 'dashboard', 'label' => __('sTask::global.dashboard'), 'icon' => 'layout-dashboard'],
+            ['key' => 'tasks', 'label' => __('sTask::global.tasks'), 'icon' => 'list-checks'],
+            ['key' => 'workers', 'label' => __('sTask::global.workers'), 'icon' => 'cpu'],
+            ['key' => 'logs', 'label' => __('sTask::global.logs'), 'icon' => 'file-text'],
+            ['key' => 'performance', 'label' => __('sTask::global.statistics'), 'icon' => 'chart-bar'],
         ];
 
-        $data['tasks'] = sTaskModel::orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
+        return view('sTask::module.shell', [
+            'moduleTitle' => __('sTask::global.module_title'),
+            'tabs' => $tabs,
+            'activeTab' => $this->normalizeModuleTab((string)request()->query('get', 'dashboard'), $tabs),
+            'context' => [
+                'moduleUrl' => (string)request()->fullUrl(),
+            ],
+        ]);
+    }
 
-        $data['stats'] = sTaskFacade::getStats();
-        return view('sTask::dashboard', $data);
+    protected function normalizeModuleTab(string $tab, array $tabs): string
+    {
+        $allowed = array_values(array_filter(array_map(
+            static fn (array $item): string => (string)($item['key'] ?? ''),
+            $tabs
+        )));
+
+        return in_array($tab, $allowed, true) ? $tab : ($allowed[0] ?? 'dashboard');
     }
 
     /**
@@ -44,11 +61,11 @@ class sTaskController
      */
     public function show(int $id): View
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $task = sTaskModel::with(['worker', 'user'])->findOrFail($id);
 
-        return view('sTask::task', [
+        return view('sTask::module.task-detail', [
             'tabIcon' => '<i data-lucide="file-text" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
             'tabName' => __('sTask::global.task') . ' #' . $task->id,
             'task' => $task,
@@ -62,7 +79,7 @@ class sTaskController
      */
     public function create(Request $request)
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $request->validate([
             'identifier' => 'required|string',
@@ -141,19 +158,11 @@ class sTaskController
      */
     public function workers(Request $request)
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $this->autoDiscoverWorkers();
 
-        $data = [
-            'tabIcon' => '<i data-lucide="cpu" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
-            'tabName' => __('sTask::global.workers'),
-        ];
-
-        $data['workers'] = sTaskFacade::getWorkers();
-        $data['stats'] = sTaskFacade::getStats();
-
-        return view('sTask::workers', $data);
+        return redirect()->route('sTask.index', ['get' => 'workers']);
     }
 
     /**
@@ -188,7 +197,7 @@ class sTaskController
     public function getPerformanceSummary(Request $request)
     {
         // Check permissions
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $hours = (int) $request->input('hours', 24);
         $metrics = sTaskFacade::getPerformanceMetrics($hours);
@@ -205,7 +214,7 @@ class sTaskController
     public function getWorkerStats(Request $request)
     {
         // Check permissions
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $identifier = $request->input('identifier');
         $hours = (int) $request->input('hours', 24);
@@ -222,7 +231,7 @@ class sTaskController
      */
     public function getPerformanceAlerts()
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $alerts = sTaskFacade::getPerformanceAlerts();
 
@@ -237,7 +246,7 @@ class sTaskController
      */
     public function getCacheStats()
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $stats = sTaskFacade::getCacheStats();
 
@@ -252,7 +261,7 @@ class sTaskController
      */
     public function clearCache(Request $request)
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $identifier = $request->input('identifier');
         sTaskFacade::clearWorkerCache($identifier);
@@ -268,18 +277,14 @@ class sTaskController
      */
     public function workerSettings(Request $request, string $identifier)
     {
-        if (!evo()->hasPermission('stask')) {abort(403, 'Access denied');}
+        $this->authorizeStask();
 
         $worker = sTaskFacade::getWorker($identifier);
-        if (!$worker) {abort(404, 'Worker not found');}
+        if (!$worker) {
+            throw new NotFoundHttpException('Worker not found');
+        }
 
-        $data = [
-            'tabIcon' => '<i data-lucide="settings" class="w-6 h-6 text-blue-400 drop-shadow-[0_0_6px_#3b82f6]"></i>',
-            'tabName' => __('sTask::global.worker_settings'),
-            'worker' => $worker,
-        ];
-
-        return view('sTask::workerSettings', $data);
+        return redirect()->route('sTask.index', ['get' => 'workers']);
     }
 
     /**
@@ -436,6 +441,18 @@ class sTaskController
                 'success' => false,
                 'message' => __('sTask::global.settings_save_failed') . ': ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Ensure the current manager user can access sTask.
+     *
+     * @return void
+     */
+    private function authorizeStask(): void
+    {
+        if (!evo()->hasPermission('stask', 'mgr')) {
+            throw new AccessDeniedHttpException('Access denied');
         }
     }
 }

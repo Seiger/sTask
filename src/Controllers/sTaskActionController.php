@@ -6,7 +6,7 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Contracts\TaskInterface;
 use Seiger\sTask\Models\sTaskModel;
-use Seiger\sTask\Models\sWorker;
+use Seiger\sTask\Models\sWorker as sWorker;
 use Seiger\sTask\Services\TaskProgress;
 use Seiger\sTask\Services\WorkerService;
 

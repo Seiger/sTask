@@ -2,6 +2,7 @@
 
 use EvolutionCMS\ServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
+use Livewire\Livewire;
 use Seiger\sTask\Console\PublishAssets;
 use Seiger\sTask\Console\TaskWorker;
 
@@ -38,6 +39,10 @@ class sTaskServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
+        $this->mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.php', 'stask.tasks.table');
+        $this->mergeConfigFrom(dirname(__DIR__) . '/config/workers/table.php', 'stask.workers.table');
+        $this->mergeConfigFrom(dirname(__DIR__) . '/config/logs/table.php', 'stask.logs.table');
+        Livewire::component('stask.module-panel', \Seiger\sTask\Livewire\ModulePanel::class);
 
         // Load routes
         $this->loadRoutes();
@@ -76,6 +81,10 @@ class sTaskServiceProvider extends ServiceProvider
         // Load plugins
         $this->loadPluginsFrom(dirname(__DIR__) . '/plugins/');
 
+        if (defined('IN_MANAGER_MODE') && IN_MANAGER_MODE) {
+            $this->registerManagerModule();
+        }
+
         // Register console commands
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -83,6 +92,37 @@ class sTaskServiceProvider extends ServiceProvider
                 PublishAssets::class,
             ]);
         }
+    }
+
+    /**
+     * Register module entry in the Evolution manager menu.
+     *
+     * @return void
+     */
+    protected function registerManagerModule(): void
+    {
+        $lang = 'en';
+
+        if (isset($_SESSION['mgrUsrConfigSet']['manager_language'])) {
+            $lang = (string) $_SESSION['mgrUsrConfigSet']['manager_language'];
+        } elseif (function_exists('evo') && is_file(evo()->getSiteCacheFilePath())) {
+            $siteCache = file_get_contents(evo()->getSiteCacheFilePath());
+            preg_match('@\$c\[\'manager_language\'\]="\w+@i', $siteCache, $matches);
+            if (count($matches)) {
+                $lang = str_replace('$c[\'manager_language\']="', '', $matches[0]);
+            }
+        }
+
+        $basePath = dirname(__DIR__);
+        $langFile = $basePath . '/lang/' . $lang . '/global.php';
+        $fallbackLangFile = $basePath . '/lang/en/global.php';
+        $labels = is_file($langFile) ? include $langFile : include $fallbackLangFile;
+
+        $this->app->registerModule(
+            $labels['module_title'] ?? $labels['title'] ?? 'sTask',
+            $basePath . '/module/sTaskModule.php',
+            $labels['module_icon'] ?? 'tabler-list-check'
+        );
     }
 
     /**

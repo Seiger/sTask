@@ -4,6 +4,7 @@ use Seiger\sTask\Contracts\TaskInterface;
 use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Services\TaskProgress;
+use Seiger\sTask\Support\TaskRunnerDescriptor;
 
 /**
  * BaseWorker - Abstract base class for sTask workers
@@ -298,7 +299,7 @@ abstract class BaseWorker implements TaskInterface
      */
     public function renderWidget(): string
     {
-        return view('sTask::partials.defaultWorkerWidget', [
+        $payload = [
             'worker' => $this->worker,
             'identifier' => $this->identifier(),
             'scope' => $this->scope(),
@@ -307,6 +308,10 @@ abstract class BaseWorker implements TaskInterface
             'description' => $this->description(),
             'settings' => $this->settings(),
             'class' => static::class,
+        ];
+
+        return view('sTask::widgets.task-runner', $payload + [
+            'descriptor' => TaskRunnerDescriptor::default($payload),
         ])->render();
     }
 

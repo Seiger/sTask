@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Models\sTaskModel;
+use Seiger\sTask\Support\TaskRunnerDescriptor;
 
 /**
  * ArtisanWorker - Worker for executing Artisan commands
@@ -88,9 +89,14 @@ class ArtisanWorker extends BaseWorker
      */
     public function renderWidget(): string
     {
-        return view('sTask::widgets.artisanWorkerWidget', [
+        $payload = [
             'identifier' => $this->identifier(),
+            'title' => $this->title(),
             'description' => $this->description(),
+        ];
+
+        return view('sTask::widgets.task-runner', $payload + [
+            'descriptor' => TaskRunnerDescriptor::artisan($payload),
         ])->render();
     }
 
@@ -610,4 +616,3 @@ class ArtisanWorker extends BaseWorker
         return (bool)preg_match('/^' . $pattern . '$/', $command);
     }
 }
-

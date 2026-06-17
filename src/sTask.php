@@ -89,7 +89,10 @@ class sTask
             // Invoke the action method
             $worker->invokeAction($task->action, $task, $task->meta);
 
-            $task->markAsFinished('Task completed successfully');
+            $freshTask = $task->fresh();
+            if (!$freshTask || !$freshTask->isFinished()) {
+                $task->markAsFinished('Task completed successfully');
+            }
 
             // Record successful completion metrics
             $this->metricsService->recordTaskEnd($task, true);

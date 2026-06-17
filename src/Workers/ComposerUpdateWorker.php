@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Models\sTaskModel;
+use Seiger\sTask\Support\TaskRunnerDescriptor;
 
 /**
  * ComposerUpdateWorker - Worker for updating Composer dependencies
@@ -88,9 +89,14 @@ class ComposerUpdateWorker extends BaseWorker
      */
     public function renderWidget(): string
     {
-        return view('sTask::widgets.composerUpdateWorkerWidget', [
+        $payload = [
             'identifier' => $this->identifier(),
+            'title' => $this->title(),
             'description' => $this->description(),
+        ];
+
+        return view('sTask::widgets.task-runner', $payload + [
+            'descriptor' => TaskRunnerDescriptor::composer($payload),
         ])->render();
     }
 
