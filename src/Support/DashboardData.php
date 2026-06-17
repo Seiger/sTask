@@ -74,7 +74,7 @@ class DashboardData
         return [
             'title' => __('sTask::global.' . $titleKey),
             'icon' => $icon,
-            'span' => 4,
+            'span' => 2,
             'status' => $status,
             'stats' => [
                 [
