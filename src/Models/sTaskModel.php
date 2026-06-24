@@ -173,7 +173,6 @@ class sTaskModel extends Model
     {
         $this->update([
             'status' => self::TASK_STATUS_FINISHED,
-            'progress' => 100,
             'finished_at' => now(),
             'message' => $message ?? 'Task completed successfully',
         ]);

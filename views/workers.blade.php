@@ -292,9 +292,6 @@
                                 @endif
                             </div>
 
-                            <div class="worker-actions">
-                                <i data-lucide="settings" class="settings-icon" onclick="openWorkerSettings('{{$worker->identifier}}')"></i>
-                            </div>
                         </div>
                         @if($worker->active){!!$worker->renderWidget()!!}@endif
                     </div>
@@ -316,11 +313,6 @@
 
 @push('scripts.bot')
     <script>
-        function openWorkerSettings(identifier) {
-            const baseUrl = '{{route('sTask.worker.settings', ['identifier' => '__IDENTIFIER__'])}}';
-            window.location.href = baseUrl.replace('__IDENTIFIER__', identifier);
-        }
-
         // Initialize Lucide icons and bind run buttons
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof lucide !== 'undefined') {

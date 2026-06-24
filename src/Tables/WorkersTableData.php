@@ -1,9 +1,11 @@
 <?php namespace Seiger\sTask\Tables;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker as sWorker;
+use Seiger\sTask\Services\WorkerDiscovery;
 use Seiger\sTask\Services\WorkerService;
 
 class WorkersTableData
@@ -70,6 +72,17 @@ class WorkersTableData
         $worker->update(['active' => !$worker->active]);
     }
 
+    public function toggleVisibility(int $id): void
+    {
+        $worker = sWorker::query()->find($id);
+
+        if (!$worker) {
+            return;
+        }
+
+        $worker->update(['hidden' => (int)$worker->hidden > 0 ? 0 : 1]);
+    }
+
     public function modalData(int $id): array
     {
         $worker = sWorker::query()->find($id);
@@ -79,6 +92,8 @@ class WorkersTableData
         }
 
         $schedule = (array)(data_get($worker->settings ?? [], 'schedule', []));
+        $settingsPayload = $worker->settings ?? [];
+        unset($settingsPayload['schedule']);
 
         return [
             'title' => $worker->title,
@@ -95,9 +110,9 @@ class WorkersTableData
             'schedule_start_time' => (string)($schedule['start_time'] ?? ''),
             'schedule_end_time' => (string)($schedule['end_time'] ?? ''),
             'schedule_interval' => (string)($schedule['interval'] ?? 'hourly'),
+            'settings_payload' => json_encode($settingsPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
             'class' => (string)$worker->class,
             'description' => $worker->description,
-            'settings_url' => route('sTask.worker.settings', $worker->identifier),
         ];
     }
 
@@ -135,6 +150,13 @@ class WorkersTableData
         ]);
 
         $settings = $worker->settings ?? [];
+        $customSettings = $this->decodeSettingsPayload((string)($data['settings_payload'] ?? '{}'));
+
+        if ($customSettings === null) {
+            $customSettings = Arr::except($settings, ['schedule']);
+        }
+
+        $settings = $customSettings;
         $settings['schedule'] = [
             'enabled' => (bool)($data['schedule_enabled'] ?? false),
             'type' => $this->allowedValue((string)($data['schedule_type'] ?? 'manual'), ['manual', 'once', 'periodic', 'regular'], 'manual'),
@@ -177,6 +199,21 @@ class WorkersTableData
         return $id ? $this->runWorker((int)$id, $action) : null;
     }
 
+    public function runSelectedWorkerAttributes(array $action = [], ?int $id = null): array
+    {
+        if (!$id) {
+            return [];
+        }
+
+        $worker = sWorker::query()->find($id);
+
+        if (!$worker || !$this->canRun($worker)) {
+            return ['disabled' => true];
+        }
+
+        return [];
+    }
+
     public function toggleSelectedActive(array $action = [], ?int $id = null): ?int
     {
         if (!$id) {
@@ -186,6 +223,19 @@ class WorkersTableData
         $this->togglePublished((int)$id);
 
         return (int)$id;
+    }
+
+    public function refreshWorkerRegistry(array $action = [], ?int $id = null): ?int
+    {
+        $discovery = app(WorkerDiscovery::class);
+
+        $discovery->discover();
+        $discovery->rescan();
+        $discovery->cleanOrphaned();
+
+        app(WorkerService::class)->clearCache();
+
+        return null;
     }
 
     protected function workers(): Collection
@@ -253,16 +303,10 @@ class WorkersTableData
     protected function row(sWorker $worker, ?sTaskModel $lastTask): array
     {
         $classExists = $worker->class_exists;
-        $status = $lastTask ? sTaskModel::statusText((int)$lastTask->status) : 'unknown';
-
         return [
             'id' => (int)$worker->id,
             'wire_key' => 'stask-worker-' . $worker->id,
-            'worker_link' => [
-                'label' => $worker->title,
-                'href' => route('sTask.worker.settings', $worker->identifier),
-                'strong' => true,
-            ],
+            'worker_title' => $worker->title,
             'identifier' => (string)$worker->identifier,
             'scope' => (string)$worker->scope,
             'class' => (string)$worker->class,
@@ -286,14 +330,10 @@ class WorkersTableData
             'tasks_count' => (int)$worker->tasks_count,
             'can_run' => $this->canRun($worker),
             'run_disabled' => !$this->canRun($worker),
-            'last_task_badge' => [
-                'label' => $lastTask ? __('sTask::global.' . $status) : __('sTask::global.no_tasks_yet'),
-                'color' => $lastTask ? $this->statusColor((int)$lastTask->status) : '#64748B',
-            ],
+            'last_action_label' => $lastTask?->action ?? '',
             'position' => (int)$worker->position,
+            'last_run_at_label' => $lastTask?->created_at?->format('Y-m-d H:i') ?? '',
             'updated_at_label' => $worker->updated_at?->format('Y-m-d H:i') ?? '',
-            'edit_url' => route('sTask.worker.settings', $worker->identifier),
-            'settings_url' => route('sTask.worker.settings', $worker->identifier),
         ];
     }
 
@@ -328,6 +368,19 @@ class WorkersTableData
             sTaskModel::TASK_STATUS_PREPARING => '#D97706',
             default => '#64748B',
         };
+    }
+
+    protected function decodeSettingsPayload(string $payload): ?array
+    {
+        $payload = trim($payload);
+
+        if ($payload === '') {
+            return [];
+        }
+
+        $decoded = json_decode($payload, true);
+
+        return is_array($decoded) ? Arr::except($decoded, ['schedule']) : null;
     }
 
     protected function canRun(sWorker $worker): bool
