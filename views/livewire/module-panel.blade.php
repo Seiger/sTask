@@ -1,9 +1,9 @@
 <x-evo::module-tab-shell :tabs="$tabs" model="activeTab">
-    @if($activeTab === 'dashboard')
+    <div x-show="activeTab === 'dashboard'" x-cloak>
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
-                        <div class="evo-ui-card__header">
+                    <div class="evo-ui-card__header">
                         <x-evo::icon name="activity" />
                         <h3>@lang('sTask::global.recent_tasks')</h3>
                     </div>
@@ -57,7 +57,7 @@
 
                 @if($recentErrorRows->isNotEmpty())
                     <section class="evo-ui-dashboard-section">
-                    <div class="evo-ui-card__header">
+                        <div class="evo-ui-card__header">
                             <x-evo::icon name="circle-x" />
                             <h3>@lang('sTask::global.recent_error_logs')</h3>
                         </div>
@@ -177,29 +177,37 @@
                 </button>
             </footer>
         </x-evo::modal>
-    @elseif($activeTab === 'tasks')
+    </div>
+
+    <div x-show="activeTab === 'tasks'" x-cloak>
         <livewire:evo-ui.module-table
             preset="stask.tasks"
             :context="['module' => 'stask']"
             wire:key="stask-tasks-table"
         />
-    @elseif($activeTab === 'workers')
+    </div>
+
+    <div x-show="activeTab === 'workers'" x-cloak>
         <livewire:evo-ui.module-table
             preset="stask.workers"
             :context="['module' => 'stask']"
             wire:key="stask-workers-table"
         />
-    @elseif($activeTab === 'logs')
+    </div>
+
+    <div x-show="activeTab === 'logs'" x-cloak>
         <livewire:evo-ui.module-table
             preset="stask.logs"
             :context="['module' => 'stask']"
             wire:key="stask-logs-table"
         />
-    @else
+    </div>
+
+    <div x-show="activeTab === 'performance'" x-cloak>
         <x-evo::dashboard :cards="$performanceCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
-                        <div class="evo-ui-card__header">
+                    <div class="evo-ui-card__header">
                         <x-evo::icon name="bell" />
                         <h3>@lang('sTask::global.performance_alerts')</h3>
                     </div>
@@ -250,5 +258,5 @@
                 </section>
             </x-slot:body>
         </x-evo::dashboard>
-    @endif
+    </div>
 </x-evo::module-tab-shell>
