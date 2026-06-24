@@ -1,14 +1,11 @@
 <?php namespace Seiger\sTask\Controllers;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
-use Seiger\sTask\Models\sWorker as sWorker;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Class sTaskController
@@ -273,21 +270,6 @@ class sTaskController
     }
 
     /**
-     * Show worker settings page
-     */
-    public function workerSettings(Request $request, string $identifier)
-    {
-        $this->authorizeStask();
-
-        $worker = sTaskFacade::getWorker($identifier);
-        if (!$worker) {
-            throw new NotFoundHttpException('Worker not found');
-        }
-
-        return redirect()->route('sTask.index', ['get' => 'workers']);
-    }
-
-    /**
      * Activate worker
      */
     public function activateWorker(Request $request)
@@ -313,135 +295,6 @@ class sTaskController
             'success' => $result,
             'message' => $result ? 'Worker deactivated' : 'Failed to deactivate worker'
         ]);
-    }
-
-    /**
-     * Save worker settings.
-     *
-     * This method updates the worker configuration including endpoint, schedule,
-     * and other worker-specific settings.
-     *
-     * @param string $identifier Worker identifier
-     * @return JsonResponse|RedirectResponse JSON response for AJAX or redirect for regular POST
-     */
-    public function saveWorkerSettings(Request $request, string $identifier)
-    {
-        try {
-            $worker = sWorker::where('identifier', $identifier)->firstOrFail();
-            $workerInstance = $worker->getInstance();
-
-            if (!$workerInstance) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Worker instance not found',
-                ], 404);
-            }
-
-            $data = $request->all();
-
-            // Prepare config - separate schedule from other settings
-            $config = [];
-
-            // Schedule configuration (if provided)
-            if (isset($data['schedule'])) {
-                $config['schedule'] = [
-                    'type' => $data['schedule']['type'] ?? 'manual',
-                    'enabled' => (bool)($data['schedule']['enabled'] ?? false),
-                    'datetime' => $data['schedule']['datetime'] ?? null,
-                    'time' => $data['schedule']['time'] ?? null,
-                    'frequency' => $data['schedule']['frequency'] ?? 'hourly',
-                    'start_time' => $data['schedule']['start_time'] ?? null,
-                    'end_time' => $data['schedule']['end_time'] ?? null,
-                    'interval' => $data['schedule']['interval'] ?? 'hourly',
-                ];
-                unset($data['schedule']);
-            }
-
-            // All other fields are custom worker settings
-            // (endpoint, api_key, etc. - defined by worker's renderSettings)
-            foreach ($data as $key => $value) {
-                // Skip CSRF token and other system fields
-                if ($key === '_token' || $key === '_method') {
-                    continue;
-                }
-
-                // Sanitize URLs
-                if (filter_var($value, FILTER_VALIDATE_URL)) {
-                    $config[$key] = filter_var($value, FILTER_SANITIZE_URL);
-                } else {
-                    $config[$key] = $value;
-                }
-            }
-
-            if (method_exists($workerInstance, 'normalizeSettingsForSave')) {
-                $config = $workerInstance->normalizeSettingsForSave($config);
-            }
-
-            // Update worker settings
-            $workerInstance->updateConfig($config);
-
-            // Clear worker cache to ensure fresh data on next load
-            app(\Seiger\sTask\Services\WorkerService::class)->clearCache($identifier);
-
-            Log::info('Worker settings updated', [
-                'identifier' => $identifier,
-                'config_keys' => array_keys($config),
-            ]);
-
-            // Return JSON for AJAX requests, redirect for regular POST
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => __('sTask::global.settings_saved')
-                ]);
-            }
-
-            // For 'once' schedule type, create task immediately with future start_at
-            if (isset($config['schedule']) &&
-                ($config['schedule']['enabled'] ?? false) &&
-                ($config['schedule']['type'] ?? '') === 'once' &&
-                !empty($config['schedule']['datetime'])) {
-
-                // Delete any existing queued/preparing tasks for this worker
-                $worker->tasks()
-                    ->whereIn('status', [sTaskModel::TASK_STATUS_QUEUED, sTaskModel::TASK_STATUS_PREPARING])
-                    ->delete();
-
-                // Create new scheduled task
-                $scheduledTime = \Carbon\Carbon::parse($config['schedule']['datetime']);
-                $task = $workerInstance->createTask('make', ['manual' => false]);
-
-                // Update start_at to scheduled time (this field controls when task should start)
-                $task->update(['start_at' => $scheduledTime]);
-
-                Log::info('Scheduled task created', [
-                    'identifier' => $identifier,
-                    'task_id' => $task->id,
-                    'scheduled_for' => $scheduledTime->toDateTimeString(),
-                ]);
-            }
-
-            // Return JSON for AJAX requests, redirect for regular POST
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => __('sTask::global.settings_saved')
-                ]);
-            }
-
-            return redirect()->route('sTask.worker.settings', ['identifier' => $identifier])
-                ->with('success', __('sTask::global.settings_saved'));
-        } catch (\Throwable $e) {
-            Log::error('Failed to save worker settings', [
-                'identifier' => $identifier,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => __('sTask::global.settings_save_failed') . ': ' . $e->getMessage(),
-            ], 500);
-        }
     }
 
     /**

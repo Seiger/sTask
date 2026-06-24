@@ -256,13 +256,14 @@ class TaskWorker extends Command
             $freshTask = $task->fresh();
             if (!$freshTask->isFinished()) {
                 $task->markAsFinished('Task completed successfully');
+                $freshTask = $task->fresh();
 
                 TaskProgress::write([
-                    'id'         => (int)$task->id,
-                    'identifier' => $task->identifier,
-                    'action'     => $task->action,
-                    'status'     => $task->status_text,
-                    'progress'   => 100,
+                    'id'         => (int)$freshTask->id,
+                    'identifier' => $freshTask->identifier,
+                    'action'     => $freshTask->action,
+                    'status'     => $freshTask->status_text,
+                    'progress'   => max(0, min(100, (int)$freshTask->progress)),
                     'message'    => '***' . __('sTask::global.task_completed') . '***',
                 ]);
             }

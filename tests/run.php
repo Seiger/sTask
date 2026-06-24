@@ -32,6 +32,13 @@ $notContains = static function (string $haystack, string $needle, string $messag
     $assert(!str_contains($haystack, $needle), $message);
 };
 
+$appearsBefore = static function (string $haystack, string $first, string $second, string $message) use ($assert): void {
+    $firstPosition = strpos($haystack, $first);
+    $secondPosition = strpos($haystack, $second);
+
+    $assert($firstPosition !== false && $secondPosition !== false && $firstPosition < $secondPosition, $message);
+};
+
 $composer = json_decode($read('composer.json'), true);
 $assert(is_array($composer), 'composer.json must be valid JSON.');
 $assert(($composer['name'] ?? null) === 'seiger/stask', 'composer package name must stay seiger/stask.');
@@ -106,6 +113,8 @@ $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.ph
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/workers/table.php', 'stask.workers.table')", 'Provider must merge the sTask EvoUI workers table preset.');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/logs/table.php', 'stask.logs.table')", 'Provider must merge the sTask EvoUI logs table preset.');
 $contains($provider, "Livewire::component('stask.module-panel'", 'Provider must register the sTask EvoUI module panel.');
+$notContains($provider, 'discoverWorkers', 'Provider must not discover workers during every boot.');
+$notContains($provider, 'WorkerDiscovery::class', 'Provider must keep worker discovery behind an explicit workers-table action.');
 $contains($provider, '$this->loadRoutes();', 'Provider must load manager routes.');
 $contains($provider, '$this->loadPluginsFrom(dirname(__DIR__) . \'/plugins/\');', 'Provider must load Evolution plugin bridge.');
 $contains($provider, '$this->app->registerModule(', 'Provider must register the Evolution manager module.');
@@ -127,11 +136,13 @@ $contains($controller, "'tasks'", 'Controller must define tasks module tab.');
 $contains($controller, "'workers'", 'Controller must define workers module tab.');
 $contains($controller, "'logs'", 'Controller must define logs module tab.');
 $contains($controller, "'performance'", 'Controller must define performance module tab.');
-$contains($controller, 'use Seiger\\sTask\\Models\\sWorker as sWorker;', 'Controller must import the real lowercase-s worker model.');
+$notContains($controller, 'use Seiger\\sTask\\Models\\sWorker as sWorker;', 'Controller must not import worker model just for removed legacy settings flow.');
 $notContains($controller, 'use Seiger\\sTask\\Models\\Worker;', 'Controller must not import the non-existent Worker model.');
-$contains($controller, "redirect()->route('sTask.index', ['get' => 'workers'])", 'Legacy workers/settings routes must redirect to the EvoUI workers tab.');
+$contains($controller, "redirect()->route('sTask.index', ['get' => 'workers'])", 'Legacy workers route must redirect to the EvoUI workers tab.');
 $notContains($controller, "view('sTask::workers'", 'Controller must not render the legacy workers page as an active surface.');
 $notContains($controller, "view('sTask::workerSettings'", 'Controller must not render the legacy worker settings page as an active surface.');
+$notContains($controller, 'function workerSettings', 'Controller must not expose the removed legacy worker settings page.');
+$notContains($controller, 'function saveWorkerSettings', 'Controller must not expose the removed legacy worker settings form.');
 
 $shell = $read('views/module/shell.blade.php');
 $contains($shell, 'EvoUI\\Support\\ManagerContext', 'EvoUI shell must use ManagerContext theme bridge.');
@@ -221,6 +232,7 @@ $notContains($taskRunnerView, '<script', 'Task-runner view must not embed inline
 $notContains($taskRunnerView, '<style', 'Task-runner view must not embed inline styles.');
 
 $baseWorker = $read('src/Workers/BaseWorker.php');
+$notContains($baseWorker, "'progress' => 100", 'BaseWorker markFinished must not fake completed task progress.');
 $composerWorker = $read('src/Workers/ComposerUpdateWorker.php');
 $artisanWorker = $read('src/Workers/ArtisanWorker.php');
 $contains($baseWorker, 'TaskRunnerDescriptor::default', 'Default worker widget must use the task-runner descriptor.');
@@ -315,9 +327,18 @@ $workersTableConfig = $read('config/workers/table.php');
 $contains($workersTableConfig, "'key' => 'stask.workers'", 'Workers table config must use the stask.workers preset key.');
 $contains($workersTableConfig, "\\Seiger\\sTask\\Tables\\WorkersTableData::class", 'Workers table config must use the sTask workers provider.');
 $contains($workersTableConfig, "'default_sort' => 'position'", 'Workers table config default sort must reference a sortable column key.');
+$contains($workersTableConfig, "'row_states' => [", 'Workers table config must expose row states.');
+$contains($workersTableConfig, "'field' => 'active'", 'Workers table row states must key inactive styling by active flag.');
+$contains($workersTableConfig, "'class' => 'is-dimmed'", 'Workers table row states must dim inactive workers.');
 $contains($workersTableConfig, 'sTask::global.search_workers', 'Workers table config must expose a localized search placeholder.');
 $contains($workersTableConfig, "'actions' => [", 'Workers table config must duplicate core row actions in the toolbar.');
+$contains($workersTableConfig, "'provider' => 'refreshWorkerRegistry'", 'Workers toolbar must expose manual worker registry refresh.');
+$contains($workersTableConfig, 'sTask::global.refresh_worker_registry', 'Workers toolbar registry refresh must use localized label.');
+$contains($workersTableConfig, "color: var(--evo-ui-muted);", 'Workers toolbar registry refresh must stay visually muted.');
+$contains($workersTableConfig, 'runTableAction', 'Workers table wire targets must allow provider-backed toolbar actions.');
+$contains($workersTableConfig, 'toggleVisibility', 'Workers table wire targets must allow visibility toggles.');
 $contains($workersTableConfig, "'provider' => 'runSelectedWorker'", 'Workers toolbar run action must call provider-backed selected run.');
+$contains($workersTableConfig, "'attributes_provider' => 'runSelectedWorkerAttributes'", 'Workers toolbar run action must be disabled for inactive workers.');
 $contains($workersTableConfig, "'provider' => 'toggleSelectedActive'", 'Workers toolbar toggle action must call provider-backed selected toggle.');
 $contains($workersTableConfig, "'state' => 'active'", 'Workers table config must include an active filter.');
 $contains($workersTableConfig, "'state' => 'class_exists'", 'Workers table config must include a class_exists filter.');
@@ -325,11 +346,25 @@ $contains($workersTableConfig, "'state' => 'hidden'", 'Workers table config must
 $contains($workersTableConfig, "'type' => 'multi-select'", 'Workers table filters must use standard EvoUI multi-select filters.');
 $notContains($workersTableConfig, "'state' => 'active',\n            'type' => 'select'", 'Workers table active filter must not regress to a single select.');
 $notContains($workersTableConfig, "'default' => 'all'", 'Workers table filters must not use static all select defaults.');
-$contains($workersTableConfig, "'key' => 'worker_link'", 'Workers table config must include worker link column.');
+$contains($workersTableConfig, "'key' => 'worker_title'", 'Workers table config must include worker title column.');
 $contains($workersTableConfig, "'key' => 'description_excerpt'", 'Workers table config must include description column.');
-$contains($workersTableConfig, "'key' => 'active_badge'", 'Workers table config must include active badge column.');
-$contains($workersTableConfig, "'key' => 'class_exists_badge'", 'Workers table config must include class exists badge column.');
-$contains($workersTableConfig, "'key' => 'last_task_badge'", 'Workers table config must include last task badge column.');
+$contains($workersTableConfig, "'key' => 'last_action_label'", 'Workers table config must include last action column.');
+$contains($workersTableConfig, "'key' => 'last_run_at_label'", 'Workers table config must include last run column.');
+$contains($workersTableConfig, "sTask::global.default_position", 'Workers edit modal must label position as default position.');
+$contains($workersTableConfig, "sTask::global.additional_settings", 'Workers edit modal must expose additional settings.');
+$contains($workersTableConfig, "'icon' => 'player-play'", 'Workers run action must use the player-play icon.');
+$appearsBefore($workersTableConfig, "'key' => 'identifier'", "'key' => 'worker_title'", 'Workers table identifier column must be first.');
+$appearsBefore($workersTableConfig, "'key' => 'run'", "'key' => 'edit'", 'Workers row action block must put run before edit.');
+$notContains($workersTableConfig, "'key' => 'scope', 'type' => 'text'", 'Workers table must not show scope column.');
+$notContains($workersTableConfig, "'key' => 'active_badge'", 'Workers table must not show active status column.');
+$notContains($workersTableConfig, "'key' => 'class_exists_badge'", 'Workers table must not show class availability column.');
+$notContains($workersTableConfig, "'key' => 'hidden_badge'", 'Workers table must not show visibility as a column.');
+$notContains($workersTableConfig, "'key' => 'position', 'type' => 'text'", 'Workers table must not show position column.');
+$notContains($workersTableConfig, "'key' => 'updated_at_label'", 'Workers table must replace updated column with last run.');
+$contains($workersTableConfig, "'key' => 'toggle_hidden'", 'Workers row actions must expose visibility toggle.');
+$contains($workersTableConfig, "'provider' => 'toggleVisibility'", 'Workers visibility action must call the provider through runRowAction.');
+$contains($workersTableConfig, "'icon_true' => 'eye-off'", 'Workers visibility action must show hidden state icon.');
+$contains($workersTableConfig, "'icon_false' => 'eye'", 'Workers visibility action must show visible state icon.');
 $contains($workersTableConfig, "'modal' => [", 'Workers table config must enable the EvoUI edit modal.');
 $contains($workersTableConfig, "'row_dblclick' => true", 'Workers table rows must open the worker edit modal on double-click.');
 $contains($workersTableConfig, "'method' => 'openEditModal'", 'Workers table config must use standard EvoUI edit action.');
@@ -345,20 +380,35 @@ $contains($workersTableData, 'public function total(): int', 'WorkersTableData m
 $contains($workersTableData, 'public function rows(int $page, int $perPage): array', 'WorkersTableData must expose rows().');
 $contains($workersTableData, 'public function filterGroups(): array', 'WorkersTableData must expose filterGroups().');
 $contains($workersTableData, 'public function togglePublished(int $id): void', 'WorkersTableData must expose EvoUI togglePublished hook for active state.');
+$contains($workersTableData, 'public function toggleVisibility(int $id): void', 'WorkersTableData must expose EvoUI visibility toggle hook.');
+$contains($workersTableData, "['hidden' => (int)\$worker->hidden > 0 ? 0 : 1]", 'WorkersTableData must toggle hidden state.');
 $contains($workersTableData, 'public function modalData(int $id): array', 'WorkersTableData must expose modal edit data.');
 $contains($workersTableData, 'public function saveModal(array $data, ?int $id, string $mode): ?int', 'WorkersTableData must save worker edit modal data.');
 $contains($workersTableData, 'public function runWorker(int $id, array $action = []): ?int', 'WorkersTableData must expose provider-backed run action.');
 $contains($workersTableData, 'public function runSelectedWorker(array $action = [], ?int $id = null): ?int', 'WorkersTableData must expose toolbar run action.');
+$contains($workersTableData, 'public function runSelectedWorkerAttributes(array $action = [], ?int $id = null): array', 'WorkersTableData must expose toolbar run button attributes.');
+$contains($workersTableData, "return ['disabled' => true];", 'WorkersTableData must disable toolbar run action for non-runnable workers.');
+$contains($workersTableData, 'settings_payload', 'WorkersTableData must expose additional settings payload.');
+$contains($workersTableData, 'decodeSettingsPayload', 'WorkersTableData must decode additional settings payload.');
+$contains($workersTableData, "Arr::except", 'WorkersTableData must keep schedule out of the additional settings payload.');
 $contains($workersTableData, 'public function toggleSelectedActive(array $action = [], ?int $id = null): ?int', 'WorkersTableData must expose toolbar active toggle action.');
+$contains($workersTableData, 'public function refreshWorkerRegistry(array $action = [], ?int $id = null): ?int', 'WorkersTableData must expose manual worker registry refresh action.');
+$contains($workersTableData, 'WorkerDiscovery::class', 'WorkersTableData registry refresh must reuse WorkerDiscovery.');
+$contains($workersTableData, '->discover()', 'WorkersTableData registry refresh must discover new workers.');
+$contains($workersTableData, '->rescan()', 'WorkersTableData registry refresh must rescan existing workers.');
+$contains($workersTableData, '->cleanOrphaned()', 'WorkersTableData registry refresh must remove orphaned worker rows.');
+$contains($workersTableData, 'clearCache()', 'WorkersTableData registry refresh must clear worker cache.');
 $contains($workersTableData, "sWorker::query()->withCount('tasks')", 'WorkersTableData must query real workers with task counts.');
 $contains($workersTableData, "'label' => __('sTask::global.active')", 'WorkersTableData filter groups must return EvoUI label keys.');
 $notContains($workersTableData, "'name' => __('sTask::global.active')", 'WorkersTableData filter groups must not use stale name keys.');
 $contains($workersTableData, 'selectedFilterIds', 'WorkersTableData must read numeric multi-select filter ids.');
-$contains($workersTableData, "route('sTask.worker.settings'", 'WorkersTableData rows must link to the existing worker settings route.');
+$notContains($workersTableData, "route('sTask.worker.settings'", 'WorkersTableData rows must not link to the removed worker settings route.');
 $contains($workersTableData, "\$settings['schedule'] = [", 'WorkersTableData edit modal must persist schedule settings.');
 $contains($workersTableData, "'manual' => true", 'WorkersTableData run action must create manual tasks.');
 $contains($workersTableData, 'launchTaskWorker', 'WorkersTableData run action must trigger the existing worker processor path.');
 $contains($workersTableData, 'lastTasksFor', 'WorkersTableData must expose last task status data.');
+$contains($workersTableData, 'last_action_label', 'WorkersTableData must expose last action data.');
+$contains($workersTableData, 'last_run_at_label', 'WorkersTableData must expose last run timestamp data.');
 $contains($workersTableData, 'statusColor', 'WorkersTableData must map last task statuses to badge colors.');
 
 $routes = $read('src/Http/routes.php');
@@ -369,7 +419,7 @@ $contains($routes, "->name('worker.task.run')", 'Routes must expose worker task 
 $contains($routes, "->name('task.progress')", 'Routes must expose task progress API.');
 $contains($routes, "->name('task.download')", 'Routes must expose task download API.');
 $contains($routes, "->name('task.upload')", 'Routes must expose task upload API.');
-$contains($routes, "->name('worker.settings')", 'Routes must expose worker settings API.');
+$notContains($routes, "->name('worker.settings')", 'Routes must not expose the removed legacy worker settings page.');
 $contains($routes, "->name('performance.summary')", 'Routes must expose performance summary API.');
 $notContains($routes, 'abort(', 'Routes must not use Laravel abort fallback.');
 
@@ -395,6 +445,12 @@ $contains($taskWorker, 'use Seiger\\sTask\\Models\\sWorker;', 'TaskWorker must i
 $notContains($taskWorker, 'use Seiger\\sTask\\Models\\Worker;', 'TaskWorker must not import non-existent Worker model.');
 $contains($taskWorker, "protected \$signature = 'stask:worker';", 'TaskWorker command signature must stay stask:worker.');
 
+$dashboardData = $read('src/Support/DashboardData.php');
+$contains($dashboardData, "'progress' => max(0, min(100, (int)\$task->progress))", 'Dashboard recent tasks must show stored task progress.');
+
+$logsTableData = $read('src/Tables/LogsTableData.php');
+$contains($logsTableData, "\$progress = max(0, min(100, (int)\$task->progress));", 'Logs table must show stored task progress.');
+
 foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
     $lang = $read("lang/{$locale}/global.php");
     $labels = require $root . "/lang/{$locale}/global.php";
@@ -419,12 +475,18 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         'missing',
         'visible',
         'hidden',
+        'show_worker',
+        'hide_worker',
         'visibility',
         'class_exists',
         'worker_status',
         'last_task',
+        'last_run',
+        'default_position',
+        'additional_settings',
+        'additional_settings_help',
+        'refresh_worker_registry',
         'edit_worker',
-        'full_worker_settings',
         'permissions_group',
         'permission_access',
     ] as $key) {

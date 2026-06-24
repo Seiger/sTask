@@ -472,9 +472,11 @@ abstract class BaseWorker implements TaskInterface
             'finished_at' => now(),
         ]);
 
+        $task->refresh();
+
         $this->pushProgress($task, [
             'status' => $task->status_text,
-            'progress' => 100,
+            'progress' => max(0, min(100, (int)$task->progress)),
             'message' => $message ?? __('sTask::global.done'),
             'result' => $result,
         ]);
