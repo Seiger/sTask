@@ -83,10 +83,6 @@ class sTaskServiceProvider extends ServiceProvider
         // Load plugins
         $this->loadPluginsFrom(dirname(__DIR__) . '/plugins/');
 
-        if (defined('IN_MANAGER_MODE') && IN_MANAGER_MODE) {
-            $this->registerManagerModule();
-        }
-
         // Register console commands
         if ($this->app->runningInConsole()) {
             $this->commands([
