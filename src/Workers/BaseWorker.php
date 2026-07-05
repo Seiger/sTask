@@ -313,8 +313,10 @@ abstract class BaseWorker implements TaskInterface
     /**
      * Create a new worker task and initialize progress tracking.
      *
-     * This method creates a new sTaskModel record with the specified action and options,
-     * initializes the TaskProgress system, and returns the created task instance.
+     * This method returns an active duplicate task when the same worker action
+     * with the same options is already queued, preparing, or running.
+     * Otherwise, it creates a new sTaskModel record with the specified action
+     * and options, initializes the TaskProgress system, and returns it.
      *
      * The method automatically:
      * - Retrieves options from the current request if not provided
@@ -324,7 +326,8 @@ abstract class BaseWorker implements TaskInterface
      *
      * @param string $action The action to perform (e.g., 'import', 'export', 'sync_stock')
      * @param array|null $options Optional explicit options (overrides request input)
-     * @return sTaskModel The created task instance
+     * @return sTaskModel Existing active task or newly queued task
+     * @since 1.1.0
      */
     public function createTask(string $action, ?array $options = null): sTaskModel
     {
@@ -336,6 +339,12 @@ abstract class BaseWorker implements TaskInterface
             if (isset($requestData['filename'])) {
                 $options['filename'] = $requestData['filename'];
             }
+        }
+
+        $options = sTaskModel::normalizeMeta($options);
+        $duplicate = sTaskModel::findActiveDuplicate($this->identifier(), $action, $options);
+        if ($duplicate) {
+            return $duplicate;
         }
 
         $startedBy = 0;

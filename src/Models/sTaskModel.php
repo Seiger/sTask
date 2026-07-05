@@ -22,6 +22,12 @@ class sTaskModel extends Model
     public const TASK_STATUS_FINISHED = 80;    // Task completed successfully
     public const TASK_STATUS_FAILED = 100;     // Task failed with error
 
+    public const TASK_ACTIVE_STATUSES = [
+        self::TASK_STATUS_QUEUED,
+        self::TASK_STATUS_PREPARING,
+        self::TASK_STATUS_RUNNING,
+    ];
+
     protected $table = 's_tasks';
 
     protected $fillable = [
@@ -61,6 +67,63 @@ class sTaskModel extends Model
     public function worker(): BelongsTo
     {
         return $this->belongsTo(sWorker::class, 'identifier', 'identifier');
+    }
+
+    /**
+     * Return statuses that represent queued or currently processed tasks.
+     *
+     * @return array<int, int>
+     * @since 1.1.0
+     */
+    public static function activeStatuses(): array
+    {
+        return self::TASK_ACTIVE_STATUSES;
+    }
+
+    /**
+     * Normalize task metadata for stable duplicate comparison.
+     *
+     * @param array $meta Raw task metadata
+     * @return array Normalized metadata with sorted associative keys
+     * @since 1.1.0
+     */
+    public static function normalizeMeta(array $meta): array
+    {
+        foreach ($meta as $key => $value) {
+            if (is_array($value)) {
+                $meta[$key] = self::normalizeMeta($value);
+            }
+        }
+
+        if (!array_is_list($meta)) {
+            ksort($meta);
+        }
+
+        return $meta;
+    }
+
+    /**
+     * Find an active task with the same worker, action, and metadata.
+     *
+     * @param string $identifier Worker identifier
+     * @param string $action Task action
+     * @param array $meta Task metadata
+     * @return self|null Existing active duplicate task, if present
+     * @since 1.1.0
+     */
+    public static function findActiveDuplicate(string $identifier, string $action, array $meta = []): ?self
+    {
+        $normalizedMeta = self::normalizeMeta($meta);
+
+        return self::query()
+            ->where('identifier', $identifier)
+            ->where('action', $action)
+            ->whereIn('status', self::activeStatuses())
+            ->orderBy('created_at')
+            ->get()
+            ->first(function (self $task) use ($normalizedMeta) {
+                return self::normalizeMeta((array)($task->meta ?? [])) === $normalizedMeta;
+            });
     }
 
     /**
