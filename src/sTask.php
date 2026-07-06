@@ -44,17 +44,24 @@ class sTask
         $this->metricsService = app(MetricsService::class);
     }
     /**
-     * Create a new task
+     * Create a new task or return an active duplicate.
      *
      * @param string $identifier Worker identifier
      * @param string $action Action to perform
      * @param array $data Task data and parameters
      * @param string $priority Task priority (low, normal, high)
      * @param int $userId User ID who initiated the task
-     * @return sTaskModel
+     * @return sTaskModel Existing active task or newly queued task
+     * @since 2.1.0
      */
     public function create(string $identifier, string $action, array $data = [], string $priority = 'normal', ?int $userId = null): sTaskModel
     {
+        $data = sTaskModel::normalizeMeta($data);
+        $duplicate = sTaskModel::findActiveDuplicate($identifier, $action, $data);
+        if ($duplicate) {
+            return $duplicate;
+        }
+
         return sTaskModel::create([
             'identifier' => $identifier,
             'action' => $action,
