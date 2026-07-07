@@ -313,7 +313,8 @@ class TaskWorker extends Command
                 return null;
             }
 
-            $intervalMinutes = match ($schedule['interval'] ?? 'hourly') {
+            $regularFrequency = $schedule['frequency'] ?? $schedule['interval'] ?? 'hourly';
+            $intervalMinutes = match ($regularFrequency) {
                 'every_5min' => 5,
                 'every_15min' => 15,
                 'every_30min' => 30,
@@ -334,7 +335,28 @@ class TaskWorker extends Command
             return $candidate <= $windowEnd ? $candidate : null;
         }
 
-        if (empty($time) || $type !== 'periodic') {
+        if ($type !== 'periodic') {
+            return null;
+        }
+
+        $intervalMinutes = match ($frequency) {
+            'minutely' => 1,
+            'every_5min' => 5,
+            'every_15min' => 15,
+            'every_30min' => 30,
+            default => null,
+        };
+
+        if ($intervalMinutes !== null) {
+            $nextRun = $now->copy()->second(0);
+            while ($nextRun <= $now || ((int)$nextRun->format('i') % $intervalMinutes) !== 0) {
+                $nextRun->addMinute();
+            }
+
+            return $nextRun;
+        }
+
+        if (empty($time)) {
             return null;
         }
 
@@ -404,6 +426,17 @@ class TaskWorker extends Command
                     return $checkDate->hour($targetHour)->minute($minute)->second(0);
                 }
             }
+        }
+
+        // For monthly: next occurrence on the current day of month at target hour:minute
+        if ($frequency === 'monthly' && $hour !== '*') {
+            $targetHour = (int)$hour;
+            $nextRun = $now->copy()->hour($targetHour)->minute($minute)->second(0);
+            if ($nextRun <= $now) {
+                $nextRun->addMonthNoOverflow();
+            }
+
+            return $nextRun;
         }
 
         return null;

@@ -193,6 +193,18 @@ abstract class BaseWorker implements TaskInterface
                 $frequency = $schedule['frequency'] ?? 'hourly';
                 $time = $schedule['time'] ?? '';
 
+                $intervalMinutes = match ($frequency) {
+                    'minutely' => 1,
+                    'every_5min' => 5,
+                    'every_15min' => 15,
+                    'every_30min' => 30,
+                    default => null,
+                };
+
+                if ($intervalMinutes !== null) {
+                    return $currentMinute % $intervalMinutes === 0;
+                }
+
                 if (empty($time)) {
                     return false;
                 }
@@ -242,6 +254,10 @@ abstract class BaseWorker implements TaskInterface
                         }
                     }
                 }
+
+                if ($frequency === 'monthly' && (int)$hour === $currentHour) {
+                    return (int)date('j') === (int)($schedule['day'] ?? date('j'));
+                }
                 return false;
 
             case 'regular':
@@ -259,7 +275,7 @@ abstract class BaseWorker implements TaskInterface
                     }
 
                     // Check interval
-                    switch ($schedule['interval'] ?? 'hourly') {
+                    switch ($schedule['frequency'] ?? $schedule['interval'] ?? 'hourly') {
                         case 'every_5min':
                             return $currentMinute % 5 === 0;
                         case 'every_15min':
