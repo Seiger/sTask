@@ -1,6 +1,4 @@
-<?php
-
-return [
+<?php return [
     'key' => 'stask.workers',
     'provider' => \Seiger\sTask\Tables\WorkersTableData::class,
     'wire_target' => 'search,perPage,applyMultiFilter,setSort,switchView,openEditModal,saveModal,closeModal,runTableAction,runRowAction,togglePublished,toggleVisibility',
@@ -194,8 +192,8 @@ return [
             'argument' => 'id',
             'action_argument' => true,
             'icon_field' => 'hidden',
-            'icon_true' => 'eye-off',
-            'icon_false' => 'eye',
+            'icon_true' => 'eye',
+            'icon_false' => 'eye-off',
             'label_field' => 'hidden',
             'label_true' => 'sTask::global.show_worker',
             'label_false' => 'sTask::global.hide_worker',
