@@ -198,8 +198,8 @@
             'label_true' => 'sTask::global.show_worker',
             'label_false' => 'sTask::global.hide_worker',
             'tone_field' => 'hidden',
-            'tone_true' => 'warning',
-            'tone_false' => 'success',
+            'tone_true' => 'success',
+            'tone_false' => 'warning',
         ],
         [
             'key' => 'toggle_active',
