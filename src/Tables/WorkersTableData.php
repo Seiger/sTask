@@ -92,6 +92,14 @@ class WorkersTableData
         }
 
         $schedule = (array)(data_get($worker->settings ?? [], 'schedule', []));
+        $scheduleType = (string)($schedule['type'] ?? 'manual');
+        $scheduleFrequency = $scheduleType === 'regular' && !empty($schedule['interval'])
+            ? (string)$schedule['interval']
+            : (string)($schedule['frequency'] ?? 'hourly');
+        $scheduleTime = (string)($schedule['time'] ?? '');
+        $scheduleHourlyMinute = str_starts_with($scheduleTime, '*:')
+            ? substr($scheduleTime, 2)
+            : '';
         $settingsPayload = $worker->settings ?? [];
         unset($settingsPayload['schedule']);
 
@@ -103,13 +111,13 @@ class WorkersTableData
             'hidden' => (int)$worker->hidden > 0,
             'position' => (int)$worker->position,
             'schedule_enabled' => (bool)($schedule['enabled'] ?? false),
-            'schedule_type' => (string)($schedule['type'] ?? 'manual'),
+            'schedule_type' => $scheduleType,
             'schedule_datetime' => (string)($schedule['datetime'] ?? ''),
-            'schedule_frequency' => (string)($schedule['frequency'] ?? 'hourly'),
-            'schedule_time' => (string)($schedule['time'] ?? ''),
+            'schedule_frequency' => $scheduleFrequency,
+            'schedule_hourly_minute' => $scheduleHourlyMinute,
+            'schedule_time' => $scheduleFrequency === 'hourly' ? '' : $scheduleTime,
             'schedule_start_time' => (string)($schedule['start_time'] ?? ''),
             'schedule_end_time' => (string)($schedule['end_time'] ?? ''),
-            'schedule_interval' => (string)($schedule['interval'] ?? 'hourly'),
             'settings_payload' => json_encode($settingsPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
             'class' => (string)$worker->class,
             'description' => $worker->description,
@@ -157,21 +165,51 @@ class WorkersTableData
         }
 
         $settings = $customSettings;
+        $scheduleType = $this->allowedValue((string)($data['schedule_type'] ?? 'manual'), ['manual', 'once', 'periodic', 'regular'], 'manual');
+        $scheduleFrequency = $this->allowedValue(
+            (string)($data['schedule_frequency'] ?? 'hourly'),
+            $scheduleType === 'regular'
+                ? ['every_5min', 'every_15min', 'every_30min', 'hourly']
+                : ['minutely', 'every_5min', 'every_15min', 'every_30min', 'hourly', 'daily', 'weekly', 'monthly'],
+            'hourly'
+        );
         $settings['schedule'] = [
             'enabled' => (bool)($data['schedule_enabled'] ?? false),
-            'type' => $this->allowedValue((string)($data['schedule_type'] ?? 'manual'), ['manual', 'once', 'periodic', 'regular'], 'manual'),
+            'type' => $scheduleType,
             'datetime' => trim((string)($data['schedule_datetime'] ?? '')),
-            'frequency' => $this->allowedValue((string)($data['schedule_frequency'] ?? 'hourly'), ['hourly', 'daily', 'weekly'], 'hourly'),
-            'time' => trim((string)($data['schedule_time'] ?? '')),
+            'frequency' => $scheduleFrequency,
+            'time' => $scheduleType === 'periodic' && $scheduleFrequency === 'hourly'
+                ? '*:' . str_pad((string)max(0, min(59, (int)($data['schedule_hourly_minute'] ?? 0))), 2, '0', STR_PAD_LEFT)
+                : trim((string)($data['schedule_time'] ?? '')),
             'start_time' => trim((string)($data['schedule_start_time'] ?? '')),
             'end_time' => trim((string)($data['schedule_end_time'] ?? '')),
-            'interval' => $this->allowedValue((string)($data['schedule_interval'] ?? 'hourly'), ['every_5min', 'every_15min', 'every_30min', 'hourly'], 'hourly'),
         ];
 
         $worker->update(['settings' => $settings]);
         app(WorkerService::class)->clearCache((string)$worker->identifier);
 
         return (int)$worker->id;
+    }
+
+    public function scheduleFrequencyOptions(array $field, array $data, ?int $id = null, string $mode = 'edit'): array
+    {
+        return ((string)($data['schedule_type'] ?? 'manual')) === 'regular'
+            ? [
+                ['value' => 'every_5min', 'label' => 'sTask::global.interval_5min'],
+                ['value' => 'every_15min', 'label' => 'sTask::global.interval_15min'],
+                ['value' => 'every_30min', 'label' => 'sTask::global.interval_30min'],
+                ['value' => 'hourly', 'label' => 'sTask::global.interval_hourly'],
+            ]
+            : [
+                ['value' => 'minutely', 'label' => 'sTask::global.frequency_minutely'],
+                ['value' => 'every_5min', 'label' => 'sTask::global.interval_5min'],
+                ['value' => 'every_15min', 'label' => 'sTask::global.interval_15min'],
+                ['value' => 'every_30min', 'label' => 'sTask::global.interval_30min'],
+                ['value' => 'hourly', 'label' => 'sTask::global.frequency_hourly'],
+                ['value' => 'daily', 'label' => 'sTask::global.frequency_daily'],
+                ['value' => 'weekly', 'label' => 'sTask::global.frequency_weekly'],
+                ['value' => 'monthly', 'label' => 'sTask::global.frequency_monthly'],
+            ];
     }
 
     public function runWorker(int $id, array $action = []): ?int
@@ -303,6 +341,8 @@ class WorkersTableData
     protected function row(sWorker $worker, ?sTaskModel $lastTask): array
     {
         $classExists = $worker->class_exists;
+        $schedule = (array)data_get($worker->settings ?? [], 'schedule', []);
+
         return [
             'id' => (int)$worker->id,
             'wire_key' => 'stask-worker-' . $worker->id,
@@ -312,6 +352,7 @@ class WorkersTableData
             'class' => (string)$worker->class,
             'description' => $worker->description,
             'description_excerpt' => str($worker->description ?: __('sTask::global.worker_description'))->limit(96)->toString(),
+            'schedule_label' => $this->scheduleLabel($schedule),
             'active' => (bool)$worker->active,
             'active_badge' => [
                 'label' => $worker->active ? __('sTask::global.active') : __('sTask::global.inactive'),
@@ -335,6 +376,58 @@ class WorkersTableData
             'last_run_at_label' => $lastTask?->created_at?->format('Y-m-d H:i') ?? '',
             'updated_at_label' => $worker->updated_at?->format('Y-m-d H:i') ?? '',
         ];
+    }
+
+    protected function scheduleLabel(array $schedule): string
+    {
+        if (empty($schedule['enabled'])) {
+            return '';
+        }
+
+        $type = (string)($schedule['type'] ?? 'manual');
+
+        if ($type === 'once') {
+            $datetime = trim((string)($schedule['datetime'] ?? ''));
+
+            return $datetime !== '' ? __('sTask::global.schedule_once_label') . ' ' . $datetime : '';
+        }
+
+        if ($type === 'regular') {
+            $frequency = (string)($schedule['frequency'] ?? $schedule['interval'] ?? 'hourly');
+            $label = $this->scheduleFrequencyLabel($frequency);
+            $start = trim((string)($schedule['start_time'] ?? ''));
+            $end = trim((string)($schedule['end_time'] ?? ''));
+
+            return $start !== '' && $end !== ''
+                ? $label . ' ' . $start . '-' . $end
+                : $label;
+        }
+
+        if ($type !== 'periodic') {
+            return '';
+        }
+
+        $frequency = (string)($schedule['frequency'] ?? 'hourly');
+        $label = $this->scheduleFrequencyLabel($frequency);
+        $time = trim((string)($schedule['time'] ?? ''));
+
+        return $time !== '' && !in_array($frequency, ['minutely', 'every_5min', 'every_15min', 'every_30min'], true)
+            ? $label . ' ' . __('sTask::global.schedule_at') . ' ' . $time
+            : $label;
+    }
+
+    protected function scheduleFrequencyLabel(string $frequency): string
+    {
+        return match ($frequency) {
+            'minutely' => __('sTask::global.frequency_minutely'),
+            'every_5min' => __('sTask::global.interval_5min'),
+            'every_15min' => __('sTask::global.interval_15min'),
+            'every_30min' => __('sTask::global.interval_30min'),
+            'daily' => __('sTask::global.frequency_daily'),
+            'weekly' => __('sTask::global.frequency_weekly'),
+            'monthly' => __('sTask::global.frequency_monthly'),
+            default => __('sTask::global.frequency_hourly'),
+        };
     }
 
     protected function lastTasksFor(array $identifiers): Collection

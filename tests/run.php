@@ -348,10 +348,20 @@ $notContains($workersTableConfig, "'state' => 'active',\n            'type' => '
 $notContains($workersTableConfig, "'default' => 'all'", 'Workers table filters must not use static all select defaults.');
 $contains($workersTableConfig, "'key' => 'worker_title'", 'Workers table config must include worker title column.');
 $contains($workersTableConfig, "'key' => 'description_excerpt'", 'Workers table config must include description column.');
+$contains($workersTableConfig, "'key' => 'schedule_label'", 'Workers table config must include schedule display column.');
 $contains($workersTableConfig, "'key' => 'last_action_label'", 'Workers table config must include last action column.');
 $contains($workersTableConfig, "'key' => 'last_run_at_label'", 'Workers table config must include last run column.');
 $contains($workersTableConfig, "sTask::global.default_position", 'Workers edit modal must label position as default position.');
 $contains($workersTableConfig, "sTask::global.additional_settings", 'Workers edit modal must expose additional settings.');
+$contains($workersTableConfig, "'visible_if_all' => [", 'Workers edit modal must support schedule fields that depend on multiple conditions.');
+$contains($workersTableConfig, "'visible_if_any' => [", 'Workers edit modal must support schedule fields that depend on alternative schedule types.');
+$contains($workersTableConfig, "'options_provider' => 'scheduleFrequencyOptions'", 'Workers edit modal must reuse one frequency field for periodic and regular schedules.');
+$contains($workersTableConfig, "'name' => 'schedule_hourly_minute'", 'Workers hourly periodic schedule must render a dedicated minute field.');
+$contains($workersTableConfig, "'addon_prefix' => '*:'", 'Workers hourly periodic minute field must render the cron-like hour add-on.');
+$contains($workersTableConfig, "['field' => 'schedule_type', 'value' => 'once']", 'Workers once schedule must show only one-time datetime fields.');
+$contains($workersTableConfig, "['field' => 'schedule_type', 'value' => 'periodic']", 'Workers periodic schedule must show periodic frequency/time fields.');
+$contains($workersTableConfig, "['field' => 'schedule_type', 'value' => 'regular']", 'Workers regular schedule must show bounded frequency fields.');
+$notContains($workersTableConfig, "'name' => 'schedule_interval'", 'Workers edit modal must not render a separate interval field.');
 $contains($workersTableConfig, "'icon' => 'player-play'", 'Workers run action must use the player-play icon.');
 $appearsBefore($workersTableConfig, "'key' => 'identifier'", "'key' => 'worker_title'", 'Workers table identifier column must be first.');
 $appearsBefore($workersTableConfig, "'key' => 'run'", "'key' => 'edit'", 'Workers row action block must put run before edit.');
@@ -363,8 +373,8 @@ $notContains($workersTableConfig, "'key' => 'position', 'type' => 'text'", 'Work
 $notContains($workersTableConfig, "'key' => 'updated_at_label'", 'Workers table must replace updated column with last run.');
 $contains($workersTableConfig, "'key' => 'toggle_hidden'", 'Workers row actions must expose visibility toggle.');
 $contains($workersTableConfig, "'provider' => 'toggleVisibility'", 'Workers visibility action must call the provider through runRowAction.');
-$contains($workersTableConfig, "'icon_true' => 'eye-off'", 'Workers visibility action must show hidden state icon.');
-$contains($workersTableConfig, "'icon_false' => 'eye'", 'Workers visibility action must show visible state icon.');
+$contains($workersTableConfig, "'icon_true' => 'eye'", 'Workers visibility action must show the reveal icon for hidden workers.');
+$contains($workersTableConfig, "'icon_false' => 'eye-off'", 'Workers visibility action must show the hide icon for visible workers.');
 $contains($workersTableConfig, "'modal' => [", 'Workers table config must enable the EvoUI edit modal.');
 $contains($workersTableConfig, "'row_dblclick' => true", 'Workers table rows must open the worker edit modal on double-click.');
 $contains($workersTableConfig, "'method' => 'openEditModal'", 'Workers table config must use standard EvoUI edit action.');
@@ -391,6 +401,8 @@ $contains($workersTableData, "return ['disabled' => true];", 'WorkersTableData m
 $contains($workersTableData, 'settings_payload', 'WorkersTableData must expose additional settings payload.');
 $contains($workersTableData, 'decodeSettingsPayload', 'WorkersTableData must decode additional settings payload.');
 $contains($workersTableData, "Arr::except", 'WorkersTableData must keep schedule out of the additional settings payload.');
+$contains($workersTableData, "'minutely', 'every_5min', 'every_15min', 'every_30min', 'hourly', 'daily', 'weekly', 'monthly'", 'Workers periodic schedule must allow minute, hourly, daily, weekly and monthly frequencies.');
+$contains($workersTableData, "'value' => 'monthly'", 'Workers periodic schedule frequency options must include monthly.');
 $contains($workersTableData, 'public function toggleSelectedActive(array $action = [], ?int $id = null): ?int', 'WorkersTableData must expose toolbar active toggle action.');
 $contains($workersTableData, 'public function refreshWorkerRegistry(array $action = [], ?int $id = null): ?int', 'WorkersTableData must expose manual worker registry refresh action.');
 $contains($workersTableData, 'WorkerDiscovery::class', 'WorkersTableData registry refresh must reuse WorkerDiscovery.');
@@ -409,6 +421,8 @@ $contains($workersTableData, 'launchTaskWorker', 'WorkersTableData run action mu
 $contains($workersTableData, 'lastTasksFor', 'WorkersTableData must expose last task status data.');
 $contains($workersTableData, 'last_action_label', 'WorkersTableData must expose last action data.');
 $contains($workersTableData, 'last_run_at_label', 'WorkersTableData must expose last run timestamp data.');
+$contains($workersTableData, 'schedule_label', 'WorkersTableData must expose schedule display text.');
+$contains($workersTableData, 'protected function scheduleLabel', 'WorkersTableData must format schedule display text.');
 $contains($workersTableData, 'statusColor', 'WorkersTableData must map last task statuses to badge colors.');
 
 $routes = $read('src/Http/routes.php');

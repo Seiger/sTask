@@ -36,14 +36,20 @@
                     $frequency = $schedule['frequency'] ?? 'hourly';
                     $time = $schedule['time'] ?? '00:00';
                     $frequencyLabels = [
+                        'minutely' => __('sTask::global.frequency_minutely'),
+                        'every_5min' => __('sTask::global.interval_5min'),
+                        'every_15min' => __('sTask::global.interval_15min'),
+                        'every_30min' => __('sTask::global.interval_30min'),
                         'hourly' => __('sTask::global.frequency_hourly'),
                         'daily' => __('sTask::global.frequency_daily'),
                         'weekly' => __('sTask::global.frequency_weekly'),
+                        'monthly' => __('sTask::global.frequency_monthly'),
                     ];
                     $frequencyLabel = $frequencyLabels[$frequency] ?? ucfirst($frequency);
 
                     // Format time display
                     $timeDisplay = $time;
+                    $showTime = !in_array($frequency, ['minutely', 'every_5min', 'every_15min', 'every_30min'], true);
 
                     // Add days for weekly
                     if ($frequency === 'weekly' && !empty($schedule['days'])) {
@@ -64,7 +70,7 @@
                     }
                 @endphp
                 <span class="badge badge-info">
-                    <i class="fas fa-clock"></i> {{$frequencyLabel}} о {{$timeDisplay}}
+                    <i class="fas fa-clock"></i> {{$showTime ? $frequencyLabel . ' о ' . $timeDisplay : $frequencyLabel}}
                 </span>
             @elseif($schedule['type'] == 'regular')
                 @php
@@ -76,7 +82,8 @@
                     ];
                 @endphp
                 <span class="badge badge-info">
-                    <i class="fas fa-redo"></i> {{$intervalLabels[$schedule['interval'] ?? 'hourly'] ?? ucfirst($schedule['interval'] ?? 'hourly')}}: {{$schedule['start_time']}} - {{$schedule['end_time']}}
+                    @php($frequency = $schedule['frequency'] ?? $schedule['interval'] ?? 'hourly')
+                    <i class="fas fa-redo"></i> {{$intervalLabels[$frequency] ?? ucfirst($frequency)}}: {{$schedule['start_time']}} - {{$schedule['end_time']}}
                 </span>
             @endif
         @else
