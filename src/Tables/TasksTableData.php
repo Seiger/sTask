@@ -73,6 +73,36 @@ class TasksTableData
         return app(LogsTableData::class)->modalTitle($data, $id, $mode);
     }
 
+    /**
+     * Mark an active task as failed by explicit operator request.
+     *
+     * This is an emergency administrative release for tasks that are stuck in
+     * queued, preparing, or running states. It does not attempt to terminate an
+     * already running OS process; it only closes the sTask database record so the
+     * queue can continue and the operator has an auditable manual stop marker.
+     *
+     * @param int $id Task identifier selected in the manager table
+     * @param array<string,mixed> $action Row action configuration payload
+     * @return bool True when the task was changed, false when it was missing or already final
+     */
+    public function emergencyStopTask(int $id, array $action = []): bool
+    {
+        $task = sTaskModel::query()->find($id);
+
+        if (!$task || !in_array((int)$task->status, sTaskModel::activeStatuses(), true)) {
+            return false;
+        }
+
+        $task->update([
+            'status' => sTaskModel::TASK_STATUS_FAILED,
+            'progress' => max(0, min(100, (int)$task->progress)),
+            'message' => __('sTask::global.task_emergency_stopped'),
+            'finished_at' => now(),
+        ]);
+
+        return true;
+    }
+
     protected function query(): Builder
     {
         $query = sTaskModel::query()->with(['worker', 'user']);
@@ -220,6 +250,7 @@ class TasksTableData
             'finished_at_label' => $task->finished_at?->format('Y-m-d H:i') ?? '',
             'updated_at_label' => $task->updated_at?->format('Y-m-d H:i') ?? '',
             'detail_url' => route('sTask.task.show', $task->id),
+            'emergency_stop_disabled' => !in_array((int)$task->status, sTaskModel::activeStatuses(), true),
         ];
     }
 

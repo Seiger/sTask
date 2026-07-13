@@ -14,5 +14,7 @@ $labels['cache_entries'] = 'Cache Eintraege';
 $labels['worker_cache'] = 'Worker Cache';
 $labels['clear_cache'] = 'Cache leeren';
 $labels['value'] = 'Wert';
+$labels['emergency_stop_task'] = 'Aufgabe notfallmäßig stoppen';
+$labels['task_emergency_stopped'] = 'Aufgabe wurde manuell notfallmäßig gestoppt.';
 
 return $labels;

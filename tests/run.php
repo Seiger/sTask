@@ -272,6 +272,9 @@ $contains($tasksTableConfig, "'action_argument' => true", 'Tasks table details m
 $contains($tasksTableConfig, '$logDetailsModal', 'Tasks table detail modal must reuse the read-only logs detail modal.');
 $contains($tasksTableConfig, "'modal' => \$logDetailsModal", 'Tasks table detail action must mount the shared logs modal payload.');
 $contains($tasksTableConfig, "'key' => 'details'", 'Tasks table config must include details row action.');
+$contains($tasksTableConfig, "'key' => 'emergency_stop'", 'Tasks table config must include an emergency stop row action.');
+$contains($tasksTableConfig, "'provider' => 'emergencyStopTask'", 'Tasks emergency stop action must call the provider method.');
+$contains($tasksTableConfig, "'disabled_field' => 'emergency_stop_disabled'", 'Tasks emergency stop action must be disabled for final tasks.');
 
 $tasksTableData = $read('src/Tables/TasksTableData.php');
 $contains($tasksTableData, 'class TasksTableData', 'TasksTableData provider must exist.');
@@ -290,6 +293,9 @@ $contains($tasksTableData, "where('created_at', '>='", 'TasksTableData must appl
 $contains($tasksTableData, "where('created_at', '<='", 'TasksTableData must apply date range to bound.');
 $contains($tasksTableData, 'LogsTableData::class', 'TasksTableData detail modal must reuse LogsTableData payloads.');
 $contains($tasksTableData, 'public function modalData(int $id): array', 'TasksTableData must expose modal data for the shared detail modal.');
+$contains($tasksTableData, 'public function emergencyStopTask(int $id, array $action = []): bool', 'TasksTableData must expose emergency stop row action.');
+$contains($tasksTableData, 'sTaskModel::activeStatuses()', 'TasksTableData emergency stop must only affect active tasks.');
+$contains($tasksTableData, "__('sTask::global.task_emergency_stopped')", 'TasksTableData emergency stop must leave an auditable message.');
 $contains($tasksTableData, 'priorityFilterValue', 'TasksTableData must map numeric multi-select priority ids.');
 $contains($tasksTableData, "route('sTask.task.show'", 'TasksTableData rows must link to the existing task detail route.');
 $contains($tasksTableData, 'statusColor', 'TasksTableData must map task statuses to badge colors.');

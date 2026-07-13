@@ -14,5 +14,7 @@ $labels['cache_entries'] = 'Wpisy cache';
 $labels['worker_cache'] = 'Cache workerow';
 $labels['clear_cache'] = 'Wyczysc cache';
 $labels['value'] = 'Wartosc';
+$labels['emergency_stop_task'] = 'Awaryjnie zatrzymaj zadanie';
+$labels['task_emergency_stopped'] = 'Zadanie zostało awaryjnie zatrzymane ręcznie.';
 
 return $labels;

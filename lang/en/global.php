@@ -58,6 +58,8 @@
     'created' => 'Created',
     'actions' => 'Actions',
     'details' => 'Details',
+    'emergency_stop_task' => 'Emergency stop task',
+    'task_emergency_stopped' => 'Task was emergency-stopped manually.',
     'task_details' => 'Task details',
     'back_to_dashboard' => 'Back to dashboard',
     'task_log' => 'Task log',

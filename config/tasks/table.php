@@ -5,7 +5,7 @@ $logDetailsModal = (require __DIR__ . '/../logs/table.php')['row_actions'][0]['m
 return [
     'key' => 'stask.tasks',
     'provider' => \Seiger\sTask\Tables\TasksTableData::class,
-    'wire_target' => 'search,perPage,applyMultiFilter,applyDateRangeFilter,setSort,switchView,openActionModal',
+    'wire_target' => 'search,perPage,applyMultiFilter,applyDateRangeFilter,setSort,switchView,openActionModal,runRowAction',
     'per_page' => 30,
     'per_page_options' => [15, 30, 50, 100, 200],
     'views' => ['table', 'list'],
@@ -105,6 +105,18 @@ return [
             'label' => 'sTask::global.details',
             'tone' => 'primary',
             'modal' => $logDetailsModal,
+        ],
+        [
+            'key' => 'emergency_stop',
+            'type' => 'wire',
+            'method' => 'runRowAction',
+            'provider' => 'emergencyStopTask',
+            'argument' => 'id',
+            'action_argument' => true,
+            'disabled_field' => 'emergency_stop_disabled',
+            'icon' => 'octagon-x',
+            'label' => 'sTask::global.emergency_stop_task',
+            'tone' => 'danger',
         ],
     ],
 ];

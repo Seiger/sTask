@@ -220,8 +220,16 @@ class TaskProgress
         // Build line
         $line = implode('|', [$status, $progress, $processed, $total, $eta, $message]);
 
-        // Append to log file (FILE_APPEND is atomic on most systems)
-        file_put_contents($file, $line . "\n", FILE_APPEND);
+        // Append to log file (FILE_APPEND is atomic on most systems).
+        // Progress snapshots are helpful for UI refreshes, but they must not
+        // fail the business task when the storage directory has temporary
+        // permission or ownership issues.
+        $written = @file_put_contents($file, $line . "\n", FILE_APPEND);
+
+        if ($written === false) {
+            return;
+        }
+
         @chmod($file, 0664);
     }
 }

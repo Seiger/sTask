@@ -58,6 +58,8 @@
     'created' => 'Створено',
     'actions' => 'Дії',
     'details' => 'Деталі',
+    'emergency_stop_task' => 'Аварійно завершити задачу',
+    'task_emergency_stopped' => 'Задачу аварійно завершено вручну.',
     'task_details' => 'Деталі завдання',
     'back_to_dashboard' => 'Назад до панелі',
     'task_log' => 'Лог завдання',

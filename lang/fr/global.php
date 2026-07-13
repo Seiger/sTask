@@ -58,6 +58,8 @@
     'created' => 'Créée',
     'actions' => 'Actions',
     'details' => 'Détails',
+    'emergency_stop_task' => 'Arrêt d’urgence de la tâche',
+    'task_emergency_stopped' => 'La tâche a été arrêtée manuellement en urgence.',
     'task_details' => 'Détails de la tâche',
     'back_to_dashboard' => 'Retour au tableau de bord',
     'task_log' => 'Journaux de tâches',
