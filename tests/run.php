@@ -366,6 +366,8 @@ $logsTableConfig = $read('config/logs/table.php');
 $contains($logsTableConfig, "'key' => 'stask.logs'", 'Logs table config must use the stask.logs preset key.');
 $contains($logsTableConfig, "\\Seiger\\sTask\\Tables\\LogsTableData::class", 'Logs table config must use the sTask logs provider.');
 $contains($logsTableConfig, "'state' => 'worker_id'", 'Logs table config must include worker filter.');
+$contains($logsTableConfig, "'state' => 'action'", 'Logs table config must include action filter.');
+$contains($logsTableConfig, "'icon' => 'bolt'", 'Logs action filter must use the thematic execution icon.');
 $contains($logsTableConfig, "'state' => 'status'", 'Logs table config must include status filter.');
 $contains($logsTableConfig, "'type' => 'date-range'", 'Logs table config must include created date-range filter.');
 $notContains($logsTableConfig, "'key' => 'priority_badge'", 'Logs table must hide the priority column.');
@@ -398,6 +400,8 @@ $contains($logsTableData, 'public function filterGroups(): array', 'LogsTableDat
 $contains($logsTableData, 'public function modalData(int $id): array', 'LogsTableData must expose task detail modal data.');
 $contains($logsTableData, "sTaskModel::query()->with(['worker', 'user'])", 'LogsTableData must query real task rows with worker and user relations.');
 $contains($logsTableData, "whereIn('identifier'", 'LogsTableData must apply worker multi-select filter through identifiers.');
+$contains($logsTableData, "whereIn('action'", 'LogsTableData must apply selected action filters.');
+$contains($logsTableData, 'protected function actionOptions(): array', 'LogsTableData must expose distinct action filter options.');
 $contains($logsTableData, "whereIn('status'", 'LogsTableData must apply multi-selected statuses.');
 $contains($logsTableData, "where('created_at', '>='", 'LogsTableData must apply date range from bound.');
 $contains($logsTableData, "where('created_at', '<='", 'LogsTableData must apply date range to bound.');
