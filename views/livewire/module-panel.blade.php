@@ -18,7 +18,7 @@
                                         <th>@lang('sTask::global.action')</th>
                                         <th>@lang('sTask::global.status')</th>
                                         <th>@lang('sTask::global.progress')</th>
-                                        <th>@lang('sTask::global.created')</th>
+                                        <th>@lang('sTask::global.start_at')</th>
                                         <th>@lang('sTask::global.actions')</th>
                                     </tr>
                                 </thead>
@@ -38,7 +38,7 @@
                                             <td>{{ $task['action'] }}</td>
                                             <td><x-evo::badge :label="$task['status_label']" :color="$task['status_color']" /></td>
                                             <td data-stask-progress-cell>{{ $task['progress'] }}%</td>
-                                            <td>{{ $task['created_at'] }}</td>
+                                            <td>{{ $task['start_at'] }}</td>
                                             <td class="evo-ui-row-actions-cell">
                                                 <div class="evo-ui-row-actions">
                                                     <button

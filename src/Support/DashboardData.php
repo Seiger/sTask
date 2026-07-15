@@ -127,6 +127,7 @@ class DashboardData
             'is_active' => in_array((int)$task->status, sTaskModel::activeStatuses(), true),
             'progress' => max(0, min(100, (int)$task->progress)),
             'created_at' => $task->created_at?->format('Y-m-d H:i') ?? '',
+            'start_at' => $task->start_at?->format('Y-m-d H:i') ?? '',
             'message' => trim((string)($task->message ?? '')),
             'detail_url' => route('sTask.task.show', $task->id),
         ];

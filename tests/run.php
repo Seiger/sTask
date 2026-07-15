@@ -187,6 +187,7 @@ $contains($dashboardData, 'public function cards(): array', 'DashboardData must 
 $contains($dashboardData, 'public function recentTasks', 'DashboardData must expose recent task rows.');
 $contains($dashboardData, 'public function recentErrors', 'DashboardData must expose recent failed task rows.');
 $contains($dashboardData, "'is_active' => in_array", 'DashboardData must identify active task rows for live progress styling.');
+$contains($dashboardData, "'start_at' => \$task->start_at", 'DashboardData must expose the execution start for recent task rows.');
 $contains($dashboardData, 'statusColor', 'DashboardData must map status tones/colors.');
 $contains($dashboardData, 'performanceCards', 'DashboardData must expose performance cards.');
 $contains($dashboardData, 'performanceAlerts', 'DashboardData must expose performance alerts.');
@@ -212,6 +213,8 @@ $contains($modulePanelView, 'data-stask-live-dashboard', 'Dashboard must expose 
 $contains($modulePanelView, 'data-stask-progress-url', 'Active rows must expose their filesystem-backed progress endpoint.');
 $contains($modulePanelView, "'include_log' => 0", 'Dashboard progress requests must skip unused log history.');
 $contains($modulePanelView, 'data-stask-progress-cell', 'Dashboard rows must expose the progress value for direct updates.');
+$contains($modulePanelView, "<th>@lang('sTask::global.start_at')</th>", 'Dashboard recent tasks must label the execution start column.');
+$contains($modulePanelView, "<td>{{ \$task['start_at'] }}</td>", 'Dashboard recent tasks must display the execution start value.');
 $contains($modulePanelView, 'stask-dashboard-task-row--active', 'Dashboard must mark active rows for live progress styling.');
 $contains($modulePanelView, '--stask-task-progress:', 'Dashboard must expose each task progress value to the row border.');
 $contains($modulePanelView, 'wire:click.stop="openTaskDetails', 'Dashboard recent task actions must open task details without navigating.');
