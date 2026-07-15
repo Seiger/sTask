@@ -213,10 +213,14 @@ class TasksTableData
         return $query->orderBy($sort, $direction)->orderBy('id', 'desc');
     }
 
+    /**
+     * Build a table row without truncating live task messages on the server.
+     */
     protected function row(sTaskModel $task): array
     {
         $status = sTaskModel::statusText((int)$task->status);
         $priority = (string)($task->priority ?: 'normal');
+        $message = trim((string)$task->message);
 
         return [
             'id' => (int)$task->id,
@@ -245,7 +249,7 @@ class TasksTableData
             'progress' => max(0, min(100, (int)$task->progress)),
             'progress_label' => max(0, min(100, (int)$task->progress)) . '%',
             'attempts_label' => (int)$task->attempts . ' / ' . (int)$task->max_attempts,
-            'message_excerpt' => str($task->message ?: __('sTask::global.raw_log_empty'))->limit(80)->toString(),
+            'message_text' => $message !== '' ? $message : __('sTask::global.raw_log_empty'),
             'started_by' => (string)($task->user->username ?? 'system'),
             'created_at_label' => $task->created_at?->format('Y-m-d H:i') ?? '',
             'start_at_label' => $task->start_at?->format('Y-m-d H:i') ?? '',

@@ -233,6 +233,8 @@ $notContains($modulePanelView, '<script', 'Module panel must not add local scrip
 $moduleCss = $read('css/module.css');
 $contains($moduleCss, '.stask-task-progress-row--active::after', 'Module CSS must render active task progress on the row edge.');
 $contains($moduleCss, 'width: var(--stask-task-progress)', 'Module CSS must size the live row edge from task progress.');
+$contains($moduleCss, 'width: clamp(28rem, 42vw, 72rem)', 'Task messages must use the available viewport width responsively.');
+$contains($moduleCss, '[data-evo-column-key="message_text"]', 'Compact task rows must expose a responsive message line.');
 $contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
 
 $moduleJs = $read('js/module.js');
@@ -242,6 +244,9 @@ $contains($moduleJs, 'row.offsetParent === null', 'Module watcher must pause req
 $contains($moduleJs, 'delay * 1.8', 'Module watcher must back off exponentially when progress is unchanged.');
 $contains($moduleJs, 'TERMINAL_STATUSES.has', 'Module watcher must stop after terminal task status.');
 $contains($moduleJs, "window.Livewire.find(componentId)?.\$refresh()", 'Module watcher must perform only one final surface refresh.');
+$contains($moduleJs, '[data-evo-column-key="message_text"]', 'Module watcher must update the visible task message.');
+$contains($moduleJs, 'renderInlineMarkdown(snapshot.message)', 'Live task messages must preserve the supported inline Markdown styling.');
+$contains($moduleJs, "replaceAll('<', '&lt;')", 'Live task message Markdown must escape untrusted HTML first.');
 $notContains($moduleJs, 'setInterval', 'Module watcher must schedule without overlapping interval requests.');
 
 $serviceProvider = $read('src/sTaskServiceProvider.php');
@@ -306,7 +311,9 @@ $contains($tasksTableConfig, "'key' => 'status_badge'", 'Tasks table config must
 $notContains($tasksTableConfig, "'key' => 'priority_badge'", 'Tasks table must hide the priority column.');
 $notContains($tasksTableConfig, "'key' => 'attempts_label'", 'Tasks table must hide the attempts column.');
 $contains($tasksTableConfig, "'key' => 'started_by'", 'Tasks table config must include started-by column.');
-$contains($tasksTableConfig, "'key' => 'message_excerpt'", 'Tasks table config must include message column.');
+$contains($tasksTableConfig, "'key' => 'message_text'", 'Tasks table config must include the full message column.');
+$contains($tasksTableConfig, "'cell_class' => 'stask-task-message-cell'", 'Tasks table message column must expose its responsive CSS hook.');
+$contains($tasksTableConfig, "'meta' => ['action', 'status_badge', 'progress_label', 'message_text']", 'Tasks compact list must include the live message.');
 $contains($tasksTableConfig, "'type' => 'markdown'", 'Tasks table message column must render inline Markdown.');
 $notContains($tasksTableConfig, "'key' => 'created_at_label'", 'Tasks table must hide the created column.');
 $notContains($tasksTableConfig, "'key' => 'updated_at_label'", 'Tasks table must hide the updated column.');
@@ -323,6 +330,8 @@ $contains($tasksTableConfig, "'icon' => 'player-eject'", 'Tasks emergency stop a
 
 $tasksTableData = $read('src/Tables/TasksTableData.php');
 $contains($tasksTableData, 'class TasksTableData', 'TasksTableData provider must exist.');
+$notContains($tasksTableData, '->limit(80)', 'Tasks table data must not truncate messages on the server.');
+$contains($tasksTableData, "'message_text' =>", 'Tasks table data must expose the full message text.');
 $contains($tasksTableData, 'public function total(): int', 'TasksTableData must expose total().');
 $contains($tasksTableData, 'public function rows(int $page, int $perPage): array', 'TasksTableData must expose rows().');
 $contains($tasksTableData, 'LiveProgressRow::attributes($task)', 'Tasks table rows must expose live progress attributes.');

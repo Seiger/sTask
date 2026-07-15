@@ -18,6 +18,48 @@
     transition: width 700ms ease-out;
 }
 
+.evo-ui .stask-task-message-cell {
+    width: clamp(28rem, 42vw, 72rem);
+    max-width: clamp(28rem, 42vw, 72rem);
+}
+
+.evo-ui .stask-task-message-cell > span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evo-ui .evo-ui-list-item [data-evo-column-key="message_text"] {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.evo-ui .evo-ui-list-item [data-evo-column-key="message_text"] dd {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.evo-ui .evo-ui-list-item [data-evo-column-key="message_text"] dd > span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evo-ui .evo-ui-list-item--compact .evo-ui-list-item__body {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.evo-ui .evo-ui-list-item--compact .evo-ui-list-item__meta {
+    justify-content: flex-start;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .evo-ui .stask-task-progress-row--active::after {
         transition: none;

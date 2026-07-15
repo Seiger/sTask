@@ -6,6 +6,25 @@
     const HIDDEN_DELAY = 5000;
     const TERMINAL_STATUSES = new Set(['finished', 'failed', 'completed']);
 
+    /** Escape untrusted progress messages before applying inline Markdown. */
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    /** Render the small, safe inline Markdown subset used by task messages. */
+    function renderInlineMarkdown(value) {
+        return escapeHtml(value)
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/~~([^~]+)~~/g, '<s>$1</s>')
+            .replace(/_([^_]+)_/g, '<em>$1</em>');
+    }
+
     /**
      * Refresh the owning Livewire surface once after a watched task becomes terminal.
      *
@@ -31,10 +50,18 @@
     function applySnapshot(row, snapshot) {
         const progress = Math.max(0, Math.min(100, Number(snapshot.progress) || 0));
         const progressCell = row.querySelector('[data-stask-progress-cell], .stask-task-progress-cell');
+        const messageField = row.querySelector('[data-evo-column-key="message_text"]');
+        const messageTarget = messageField?.querySelector('dd > span')
+            || messageField?.querySelector(':scope > span');
 
         row.style.setProperty('--stask-task-progress', `${progress}%`);
         if (progressCell) {
             progressCell.textContent = `${progress}%`;
+        }
+
+        if (messageTarget && typeof snapshot.message === 'string') {
+            messageTarget.innerHTML = renderInlineMarkdown(snapshot.message);
+            messageField.title = snapshot.message.replace(/\s+/g, ' ').trim();
         }
     }
 
