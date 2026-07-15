@@ -435,6 +435,7 @@ $contains($workersTableConfig, "'key' => 'worker_title'", 'Workers table config 
 $contains($workersTableConfig, "'key' => 'description_excerpt'", 'Workers table config must include description column.');
 $contains($workersTableConfig, "'key' => 'schedule_label'", 'Workers table config must include schedule display column.');
 $contains($workersTableConfig, "'key' => 'last_action_label'", 'Workers table config must include last action column.');
+$contains($workersTableConfig, "'key' => 'tasks_count_label'", 'Workers table must render the compact task count label.');
 $contains($workersTableConfig, "'key' => 'last_run_at_label'", 'Workers table config must include last run column.');
 $contains($workersTableConfig, "sTask::global.default_position", 'Workers edit modal must label position as default position.');
 $contains($workersTableConfig, "sTask::global.additional_settings", 'Workers edit modal must expose additional settings.');
@@ -507,6 +508,7 @@ $contains($workersTableData, "'manual' => true", 'WorkersTableData run action mu
 $contains($workersTableData, 'launchTaskWorker', 'WorkersTableData run action must trigger the existing worker processor path.');
 $contains($workersTableData, 'lastTasksFor', 'WorkersTableData must expose last task status data.');
 $contains($workersTableData, 'last_action_label', 'WorkersTableData must expose last action data.');
+$contains($workersTableData, 'niceCount((int)$worker->tasks_count)', 'WorkersTableData must format task counts through the shared niceCount helper.');
 $contains($workersTableData, 'last_run_at_label', 'WorkersTableData must expose last run timestamp data.');
 $contains($workersTableData, 'schedule_label', 'WorkersTableData must expose schedule display text.');
 $contains($workersTableData, 'protected function scheduleLabel', 'WorkersTableData must format schedule display text.');

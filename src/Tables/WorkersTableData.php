@@ -384,6 +384,7 @@ class WorkersTableData
                 'color' => (int)$worker->hidden > 0 ? '#D97706' : '#16A34A',
             ],
             'tasks_count' => (int)$worker->tasks_count,
+            'tasks_count_label' => niceCount((int)$worker->tasks_count),
             'can_run' => $this->canRun($worker),
             'run_disabled' => !$this->canRun($worker),
             'last_action_label' => $lastTask?->action ?? '',
