@@ -149,6 +149,7 @@ $contains($shell, 'EvoUI\\Support\\ManagerContext', 'EvoUI shell must use Manage
 $contains($shell, "@include('evo::partials.assets')", 'EvoUI shell must load EvoUI local assets.');
 $contains($shell, 'data-evo-ui-root', 'EvoUI shell must expose data-evo-ui-root.');
 $contains($shell, '<livewire:stask.module-panel', 'EvoUI shell must mount the sTask module panel.');
+$contains($shell, 'stask-module.css', 'EvoUI shell must load the package module stylesheet.');
 $notContains($shell, 'stask.min.css', 'EvoUI shell must not load old sTask CSS.');
 $notContains($shell, 'stask.js', 'EvoUI shell must not load old sTask JS.');
 $notContains($shell, 'cdn.jsdelivr', 'EvoUI shell must not load jsdelivr assets.');
@@ -175,6 +176,7 @@ $contains($modulePanel, 'LogsTableData::class', 'Dashboard task detail modal mus
 $contains($modulePanel, 'closeModal()', 'Dashboard task detail modal must expose the shared EvoUI close method.');
 $contains($modulePanel, 'clearWorkerCache()', 'sTask ModulePanel must expose cache clear action.');
 $contains($modulePanel, 'sTaskFacade::clearWorkerCache()', 'sTask ModulePanel must call the real cache clear service.');
+$contains($modulePanel, 'refreshDashboard(): void', 'sTask ModulePanel must expose a lightweight dashboard refresh action.');
 
 $dashboardData = $read('src/Support/DashboardData.php');
 $contains($dashboardData, 'class DashboardData', 'DashboardData support class must exist.');
@@ -183,6 +185,7 @@ $contains($dashboardData, 'sTaskModel::with', 'DashboardData must read recent ta
 $contains($dashboardData, 'public function cards(): array', 'DashboardData must expose dashboard card data.');
 $contains($dashboardData, 'public function recentTasks', 'DashboardData must expose recent task rows.');
 $contains($dashboardData, 'public function recentErrors', 'DashboardData must expose recent failed task rows.');
+$contains($dashboardData, "'is_active' => in_array", 'DashboardData must identify active task rows for live progress styling.');
 $contains($dashboardData, 'statusColor', 'DashboardData must map status tones/colors.');
 $contains($dashboardData, 'performanceCards', 'DashboardData must expose performance cards.');
 $contains($dashboardData, 'performanceAlerts', 'DashboardData must expose performance alerts.');
@@ -203,6 +206,9 @@ $contains($modulePanelView, "'tab' => 'workers'", 'Workers table must opt in to 
 $contains($modulePanelView, "'tab' => 'logs'", 'Logs table must opt in to shared module-tab refresh events.');
 $contains($modulePanelView, '@if($recentErrorRows->isNotEmpty())', 'Dashboard tab must hide recent error logs when there are no errors.');
 $contains($modulePanelView, 'wire:dblclick="openTaskDetails', 'Dashboard recent task rows must open task details on double-click.');
+$contains($modulePanelView, 'wire:poll.1s.visible="refreshDashboard"', 'Dashboard must poll only while its content is visible.');
+$contains($modulePanelView, 'stask-dashboard-task-row--active', 'Dashboard must mark active rows for live progress styling.');
+$contains($modulePanelView, '--stask-task-progress:', 'Dashboard must expose each task progress value to the row border.');
 $contains($modulePanelView, 'wire:click.stop="openTaskDetails', 'Dashboard recent task actions must open task details without navigating.');
 $contains($modulePanelView, '<x-evo::icon name="eye"', 'Dashboard details action must use an eye icon instead of text-only links.');
 $contains($modulePanelView, '<x-evo::modal', 'Dashboard task details must open in an EvoUI modal.');
@@ -215,6 +221,17 @@ $contains($modulePanelView, 'wire:click="clearWorkerCache"', 'Performance tab mu
 $notContains($modulePanelView, 'stask-evo-ui-010', 'Performance tab must not keep the implementation placeholder.');
 $notContains($modulePanelView, '<style', 'Module panel must not add local style blocks.');
 $notContains($modulePanelView, '<script', 'Module panel must not add local script blocks.');
+
+$moduleCss = $read('css/module.css');
+$contains($moduleCss, '.stask-dashboard-task-row--active::after', 'Module CSS must render active task progress on the row edge.');
+$contains($moduleCss, 'width: var(--stask-task-progress)', 'Module CSS must size the live row edge from task progress.');
+$contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
+
+$serviceProvider = $read('src/sTaskServiceProvider.php');
+$contains($serviceProvider, "'/css/module.css'", 'Provider must publish the EvoUI module stylesheet.');
+
+$publishAssets = $read('src/Console/PublishAssets.php');
+$contains($publishAssets, "public_path('assets/site/stask-module.css')", 'Asset publisher must prune the module stylesheet before republishing.');
 
 $taskRunnerDescriptor = $read('src/Support/TaskRunnerDescriptor.php');
 $contains($taskRunnerDescriptor, 'class TaskRunnerDescriptor', 'sTask must expose a declarative task-runner descriptor.');

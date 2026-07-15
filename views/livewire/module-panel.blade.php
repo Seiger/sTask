@@ -1,5 +1,5 @@
 <x-evo::module-tab-shell :tabs="$tabs" model="activeTab">
-    <div x-show="activeTab === 'dashboard'" x-cloak>
+    <div x-show="activeTab === 'dashboard'" x-cloak wire:poll.1s.visible="refreshDashboard">
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
@@ -24,7 +24,12 @@
                                 </thead>
                                 <tbody>
                                     @foreach($recentTaskRows as $task)
-                                        <tr wire:key="stask-dashboard-task-{{ $task['id'] }}" wire:dblclick="openTaskDetails({{ (int)$task['id'] }})">
+                                        <tr
+                                            class="stask-dashboard-task-row{{ $task['is_active'] ? ' stask-dashboard-task-row--active' : '' }}"
+                                            style="--stask-task-progress: {{ $task['progress'] }}%;"
+                                            wire:key="stask-dashboard-task-{{ $task['id'] }}"
+                                            wire:dblclick="openTaskDetails({{ (int)$task['id'] }})"
+                                        >
                                             <td>#{{ $task['id'] }}</td>
                                             <td>{{ $task['worker_title'] }}</td>
                                             <td>{{ $task['action'] }}</td>

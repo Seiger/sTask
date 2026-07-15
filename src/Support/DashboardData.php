@@ -4,6 +4,11 @@ use Illuminate\Support\Collection;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
 
+/**
+ * Build presentation-ready data for the sTask dashboard and performance tabs.
+ *
+ * @since 2.0.0
+ */
 class DashboardData
 {
     public function stats(): array
@@ -101,6 +106,12 @@ class DashboardData
         ];
     }
 
+    /**
+     * Convert a task model into dashboard row data, including live-state hints.
+     *
+     * @param sTaskModel $task Persisted task with its worker and user relations
+     * @return array<string, mixed>
+     */
     protected function taskRow(sTaskModel $task): array
     {
         $status = sTaskModel::statusText((int)$task->status);
@@ -113,6 +124,7 @@ class DashboardData
             'status' => (int)$task->status,
             'status_label' => __('sTask::global.' . $status),
             'status_color' => $this->statusColor((int)$task->status),
+            'is_active' => in_array((int)$task->status, sTaskModel::activeStatuses(), true),
             'progress' => max(0, min(100, (int)$task->progress)),
             'created_at' => $task->created_at?->format('Y-m-d H:i') ?? '',
             'message' => trim((string)($task->message ?? '')),
