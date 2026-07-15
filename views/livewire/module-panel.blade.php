@@ -174,7 +174,7 @@
     <div x-show="activeTab === 'tasks'" x-cloak>
         <livewire:evo-ui.module-table
             preset="stask.tasks"
-            :context="['module' => 'stask']"
+            :context="['module' => 'stask', 'tab' => 'tasks']"
             wire:key="stask-tasks-table"
         />
     </div>
@@ -182,7 +182,7 @@
     <div x-show="activeTab === 'workers'" x-cloak>
         <livewire:evo-ui.module-table
             preset="stask.workers"
-            :context="['module' => 'stask']"
+            :context="['module' => 'stask', 'tab' => 'workers']"
             wire:key="stask-workers-table"
         />
     </div>
@@ -190,7 +190,7 @@
     <div x-show="activeTab === 'logs'" x-cloak>
         <livewire:evo-ui.module-table
             preset="stask.logs"
-            :context="['module' => 'stask']"
+            :context="['module' => 'stask', 'tab' => 'logs']"
             wire:key="stask-logs-table"
         />
     </div>

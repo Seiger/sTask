@@ -198,6 +198,9 @@ $contains($modulePanelView, '<livewire:evo-ui.module-table', 'Tasks tab must use
 $contains($modulePanelView, 'preset="stask.tasks"', 'Tasks tab must render the sTask tasks table preset.');
 $contains($modulePanelView, 'preset="stask.workers"', 'Workers tab must render the sTask workers table preset.');
 $contains($modulePanelView, 'preset="stask.logs"', 'Logs tab must render the sTask logs table preset.');
+$contains($modulePanelView, "'tab' => 'tasks'", 'Tasks table must opt in to shared module-tab refresh events.');
+$contains($modulePanelView, "'tab' => 'workers'", 'Workers table must opt in to shared module-tab refresh events.');
+$contains($modulePanelView, "'tab' => 'logs'", 'Logs table must opt in to shared module-tab refresh events.');
 $contains($modulePanelView, '@if($recentErrorRows->isNotEmpty())', 'Dashboard tab must hide recent error logs when there are no errors.');
 $contains($modulePanelView, 'wire:dblclick="openTaskDetails', 'Dashboard recent task rows must open task details on double-click.');
 $contains($modulePanelView, 'wire:click.stop="openTaskDetails', 'Dashboard recent task actions must open task details without navigating.');
