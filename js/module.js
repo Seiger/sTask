@@ -7,12 +7,12 @@
     const TERMINAL_STATUSES = new Set(['finished', 'failed', 'completed']);
 
     /**
-     * Refresh the Livewire dashboard once after a watched task reaches a terminal state.
+     * Refresh the owning Livewire surface once after a watched task becomes terminal.
      *
-     * @param {HTMLElement} row Active dashboard task row
+     * @param {HTMLElement} row Active task-backed row
      * @returns {void}
      */
-    function refreshDashboard(row) {
+    function refreshSurface(row) {
         const componentRoot = row.closest('[wire\\:id]');
         const componentId = componentRoot?.getAttribute('wire:id');
 
@@ -24,13 +24,13 @@
     /**
      * Apply a progress snapshot to the row without re-rendering the dashboard.
      *
-     * @param {HTMLElement} row Active dashboard task row
+     * @param {HTMLElement} row Active task-backed row
      * @param {object} snapshot Progress endpoint response
      * @returns {void}
      */
     function applySnapshot(row, snapshot) {
         const progress = Math.max(0, Math.min(100, Number(snapshot.progress) || 0));
-        const progressCell = row.querySelector('[data-stask-progress-cell]');
+        const progressCell = row.querySelector('[data-stask-progress-cell], .stask-task-progress-cell');
 
         row.style.setProperty('--stask-task-progress', `${progress}%`);
         if (progressCell) {
@@ -45,7 +45,7 @@
      * requests, backs off exponentially while unchanged, pauses when hidden, and
      * stops immediately after a terminal status or repeated network failures.
      *
-     * @param {HTMLElement} row Active dashboard task row
+     * @param {HTMLElement} row Active task-backed row
      * @returns {void}
      */
     function watchRow(row) {
@@ -81,8 +81,7 @@
                 return;
             }
 
-            const dashboard = row.closest('[data-stask-live-dashboard]');
-            if (document.hidden || !dashboard || dashboard.offsetParent === null) {
+            if (document.hidden || row.offsetParent === null) {
                 schedule(HIDDEN_DELAY);
                 return;
             }
@@ -118,7 +117,7 @@
 
                 if (TERMINAL_STATUSES.has(snapshot.status)) {
                     stop();
-                    refreshDashboard(row);
+                    refreshSurface(row);
                     return;
                 }
 

@@ -215,7 +215,7 @@ $contains($modulePanelView, "'include_log' => 0", 'Dashboard progress requests m
 $contains($modulePanelView, 'data-stask-progress-cell', 'Dashboard rows must expose the progress value for direct updates.');
 $contains($modulePanelView, "<th>@lang('sTask::global.start_at')</th>", 'Dashboard recent tasks must label the execution start column.');
 $contains($modulePanelView, "<td>{{ \$task['start_at'] }}</td>", 'Dashboard recent tasks must display the execution start value.');
-$contains($modulePanelView, 'stask-dashboard-task-row--active', 'Dashboard must mark active rows for live progress styling.');
+$contains($modulePanelView, 'stask-task-progress-row--active', 'Dashboard must mark active rows for live progress styling.');
 $contains($modulePanelView, '--stask-task-progress:', 'Dashboard must expose each task progress value to the row border.');
 $contains($modulePanelView, 'wire:click.stop="openTaskDetails', 'Dashboard recent task actions must open task details without navigating.');
 $contains($modulePanelView, '<x-evo::icon name="eye"', 'Dashboard details action must use an eye icon instead of text-only links.');
@@ -231,17 +231,17 @@ $notContains($modulePanelView, '<style', 'Module panel must not add local style 
 $notContains($modulePanelView, '<script', 'Module panel must not add local script blocks.');
 
 $moduleCss = $read('css/module.css');
-$contains($moduleCss, '.stask-dashboard-task-row--active::after', 'Module CSS must render active task progress on the row edge.');
+$contains($moduleCss, '.stask-task-progress-row--active::after', 'Module CSS must render active task progress on the row edge.');
 $contains($moduleCss, 'width: var(--stask-task-progress)', 'Module CSS must size the live row edge from task progress.');
 $contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
 
 $moduleJs = $read('js/module.js');
 $contains($moduleJs, 'const MIN_DELAY = 1200', 'Module watcher must avoid aggressive sub-second polling.');
 $contains($moduleJs, 'const MAX_DELAY = 25000', 'Module watcher must cap adaptive backoff.');
-$contains($moduleJs, 'dashboard.offsetParent === null', 'Module watcher must pause requests while the dashboard is hidden.');
+$contains($moduleJs, 'row.offsetParent === null', 'Module watcher must pause requests while its table or dashboard tab is hidden.');
 $contains($moduleJs, 'delay * 1.8', 'Module watcher must back off exponentially when progress is unchanged.');
 $contains($moduleJs, 'TERMINAL_STATUSES.has', 'Module watcher must stop after terminal task status.');
-$contains($moduleJs, "window.Livewire.find(componentId)?.\$refresh()", 'Module watcher must perform only one final dashboard refresh.');
+$contains($moduleJs, "window.Livewire.find(componentId)?.\$refresh()", 'Module watcher must perform only one final surface refresh.');
 $notContains($moduleJs, 'setInterval', 'Module watcher must schedule without overlapping interval requests.');
 
 $serviceProvider = $read('src/sTaskServiceProvider.php');
@@ -325,6 +325,7 @@ $tasksTableData = $read('src/Tables/TasksTableData.php');
 $contains($tasksTableData, 'class TasksTableData', 'TasksTableData provider must exist.');
 $contains($tasksTableData, 'public function total(): int', 'TasksTableData must expose total().');
 $contains($tasksTableData, 'public function rows(int $page, int $perPage): array', 'TasksTableData must expose rows().');
+$contains($tasksTableData, 'LiveProgressRow::attributes($task)', 'Tasks table rows must expose live progress attributes.');
 $contains($tasksTableData, 'public function filterGroups(): array', 'TasksTableData must expose filterGroups().');
 $contains($tasksTableData, "sTaskModel::query()->with(['worker', 'user'])", 'TasksTableData must query real task rows with worker and user relations.');
 $contains($tasksTableData, "'label' => __('sTask::global.pending')", 'TasksTableData filter groups must return EvoUI label keys.');
@@ -378,6 +379,7 @@ $logsTableData = $read('src/Tables/LogsTableData.php');
 $contains($logsTableData, 'class LogsTableData', 'LogsTableData provider must exist.');
 $contains($logsTableData, 'public function total(): int', 'LogsTableData must expose total().');
 $contains($logsTableData, 'public function rows(int $page, int $perPage): array', 'LogsTableData must expose rows().');
+$contains($logsTableData, 'LiveProgressRow::attributes($task)', 'Logs table rows must expose live progress attributes.');
 $contains($logsTableData, 'public function filterGroups(): array', 'LogsTableData must expose filterGroups().');
 $contains($logsTableData, 'public function modalData(int $id): array', 'LogsTableData must expose task detail modal data.');
 $contains($logsTableData, "sTaskModel::query()->with(['worker', 'user'])", 'LogsTableData must query real task rows with worker and user relations.');
@@ -453,6 +455,8 @@ $workersTableData = $read('src/Tables/WorkersTableData.php');
 $contains($workersTableData, 'class WorkersTableData', 'WorkersTableData provider must exist.');
 $contains($workersTableData, 'public function total(): int', 'WorkersTableData must expose total().');
 $contains($workersTableData, 'public function rows(int $page, int $perPage): array', 'WorkersTableData must expose rows().');
+$contains($workersTableData, 'activeTasksFor', 'Workers table must resolve the active task for live progress.');
+$contains($workersTableData, 'LiveProgressRow::attributes($activeTask)', 'Worker rows must expose live progress attributes from their active task.');
 $contains($workersTableData, 'public function filterGroups(): array', 'WorkersTableData must expose filterGroups().');
 $contains($workersTableData, 'public function togglePublished(int $id): void', 'WorkersTableData must expose EvoUI togglePublished hook for active state.');
 $contains($workersTableData, 'public function toggleVisibility(int $id): void', 'WorkersTableData must expose EvoUI visibility toggle hook.');
@@ -526,6 +530,11 @@ $contains($taskWorker, "protected \$signature = 'stask:worker';", 'TaskWorker co
 
 $dashboardData = $read('src/Support/DashboardData.php');
 $contains($dashboardData, "'progress' => max(0, min(100, (int)\$task->progress))", 'Dashboard recent tasks must show stored task progress.');
+
+$liveProgressRow = $read('src/Support/LiveProgressRow.php');
+$contains($liveProgressRow, "'data-stask-progress-url'", 'Live progress rows must expose the task snapshot endpoint.');
+$contains($liveProgressRow, "'include_log' => 0", 'Live progress rows must skip unused log history.');
+$contains($liveProgressRow, "'style' => '--stask-task-progress:", 'Live progress rows must expose their initial border width.');
 
 $logsTableData = $read('src/Tables/LogsTableData.php');
 $contains($logsTableData, "\$progress = max(0, min(100, (int)\$task->progress));", 'Logs table must show stored task progress.');

@@ -72,7 +72,7 @@ return [
         ['key' => 'worker_identifier', 'type' => 'text', 'label' => 'sTask::global.identifier', 'sortable' => true, 'sort_field' => 'identifier'],
         ['key' => 'action', 'type' => 'text', 'label' => 'sTask::global.action', 'sortable' => true, 'sort_field' => 'action', 'meta_icon' => 'activity'],
         ['key' => 'status_badge', 'type' => 'badge', 'label' => 'sTask::global.status', 'sortable' => true, 'sort_field' => 'status'],
-        ['key' => 'progress_label', 'type' => 'text', 'label' => 'sTask::global.progress', 'sortable' => true, 'sort_field' => 'progress', 'meta_icon' => 'percentage'],
+        ['key' => 'progress_label', 'type' => 'text', 'label' => 'sTask::global.progress', 'cell_class' => 'stask-task-progress-cell', 'sortable' => true, 'sort_field' => 'progress', 'meta_icon' => 'percentage'],
         ['key' => 'started_by', 'type' => 'text', 'label' => 'sTask::global.started_by', 'sortable' => true, 'sort_field' => 'started_by', 'meta_icon' => 'user'],
         ['key' => 'message_excerpt', 'type' => 'markdown', 'label' => 'sTask::global.message'],
         ['key' => 'start_at_label', 'type' => 'text', 'label' => 'sTask::global.start_at', 'sortable' => true, 'sort_field' => 'start_at', 'default_direction' => 'desc', 'meta_icon' => 'player-play'],

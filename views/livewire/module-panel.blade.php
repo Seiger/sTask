@@ -25,7 +25,7 @@
                                 <tbody>
                                     @foreach($recentTaskRows as $task)
                                         <tr
-                                            class="stask-dashboard-task-row{{ $task['is_active'] ? ' stask-dashboard-task-row--active' : '' }}"
+                                            class="stask-task-progress-row{{ $task['is_active'] ? ' stask-task-progress-row--active' : '' }}"
                                             style="--stask-task-progress: {{ $task['progress'] }}%;"
                                             @if($task['is_active'])
                                                 data-stask-progress-url="{{ route('sTask.task.progress', ['id' => $task['id'], 'include_log' => 0]) }}"

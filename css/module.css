@@ -1,9 +1,9 @@
-.evo-ui .stask-dashboard-task-row {
+.evo-ui .stask-task-progress-row {
     --stask-task-progress: 0%;
     position: relative;
 }
 
-.evo-ui .stask-dashboard-task-row--active::after {
+.evo-ui .stask-task-progress-row--active::after {
     position: absolute;
     z-index: 1;
     bottom: -1px;
@@ -19,7 +19,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .evo-ui .stask-dashboard-task-row--active::after {
+    .evo-ui .stask-task-progress-row--active::after {
         transition: none;
     }
 }

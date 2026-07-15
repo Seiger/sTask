@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker as sWorker;
+use Seiger\sTask\Support\LiveProgressRow;
 
 class TasksTableData
 {
@@ -220,6 +221,7 @@ class TasksTableData
         return [
             'id' => (int)$task->id,
             'wire_key' => 'stask-task-' . $task->id,
+            'row_attributes' => LiveProgressRow::attributes($task),
             'id_label' => '#' . $task->id,
             'id_link' => [
                 'label' => '#' . $task->id,

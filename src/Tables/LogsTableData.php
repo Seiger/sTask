@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
+use Seiger\sTask\Support\LiveProgressRow;
 
 class LogsTableData
 {
@@ -172,6 +173,7 @@ class LogsTableData
 
         return [
             'id' => (int)$task->id,
+            'row_attributes' => LiveProgressRow::attributes($task),
             'id_label' => '#' . $task->id,
             'worker_identifier' => (string)$task->identifier,
             'worker_title' => (string)($task->worker->title ?? $task->identifier),
