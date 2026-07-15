@@ -226,6 +226,7 @@ $contains($modulePanelView, '<x-evo::modal', 'Dashboard task details must open i
 $notContains($modulePanelView, '<x-evo::card :label="__(\'sTask::global.recent_tasks\')"', 'Recent tasks must not be wrapped in an extra outer card.');
 $notContains($modulePanelView, '@lang(\'sTask::global.no_error_logs\')', 'Dashboard must not render an empty recent error block.');
 $contains($modulePanelView, ':cards="$performanceCards"', 'Performance tab must render real dashboard cards.');
+$contains($modulePanelView, 'class="stask-performance-tab"', 'Performance tab must expose a scoped layout hook.');
 $contains($modulePanelView, '$performanceAlerts', 'Performance tab must render performance alerts.');
 $contains($modulePanelView, '$cacheStats', 'Performance tab must render cache stats.');
 $contains($modulePanelView, 'wire:click="clearWorkerCache"', 'Performance tab must expose guarded cache clear action.');
@@ -241,6 +242,7 @@ $contains($moduleCss, '.stask-task-time-column', 'Task time headers must expose 
 $contains($moduleCss, 'width: 10rem', 'Task start and finish columns must use the same stable width.');
 $contains($moduleCss, 'width: 5.25rem', 'Tasks action column must fit its icon buttons without excess space.');
 $contains($moduleCss, '[data-evo-column-key="message_text"]', 'Compact task rows must expose a responsive message line.');
+$contains($moduleCss, '.stask-performance-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section', 'Performance sections must have scoped vertical separation.');
 $contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
 
 $moduleJs = $read('js/module.js');

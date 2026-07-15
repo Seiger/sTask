@@ -78,6 +78,10 @@
     justify-content: flex-start;
 }
 
+.evo-ui .stask-performance-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section {
+    margin-top: 1.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .evo-ui .stask-task-progress-row--active::after {
         transition: none;

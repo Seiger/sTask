@@ -203,7 +203,7 @@
         />
     </div>
 
-    <div x-show="activeTab === 'performance'" x-cloak>
+    <div class="stask-performance-tab" x-show="activeTab === 'performance'" x-cloak>
         <x-evo::dashboard :cards="$performanceCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
