@@ -1,5 +1,5 @@
 <x-evo::module-tab-shell :tabs="$tabs" model="activeTab">
-    <div x-show="activeTab === 'dashboard'" x-cloak wire:poll.1s.visible="refreshDashboard">
+    <div x-show="activeTab === 'dashboard'" x-cloak data-stask-live-dashboard>
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
@@ -27,6 +27,9 @@
                                         <tr
                                             class="stask-dashboard-task-row{{ $task['is_active'] ? ' stask-dashboard-task-row--active' : '' }}"
                                             style="--stask-task-progress: {{ $task['progress'] }}%;"
+                                            @if($task['is_active'])
+                                                data-stask-progress-url="{{ route('sTask.task.progress', ['id' => $task['id'], 'include_log' => 0]) }}"
+                                            @endif
                                             wire:key="stask-dashboard-task-{{ $task['id'] }}"
                                             wire:dblclick="openTaskDetails({{ (int)$task['id'] }})"
                                         >
@@ -34,7 +37,7 @@
                                             <td>{{ $task['worker_title'] }}</td>
                                             <td>{{ $task['action'] }}</td>
                                             <td><x-evo::badge :label="$task['status_label']" :color="$task['status_color']" /></td>
-                                            <td>{{ $task['progress'] }}%</td>
+                                            <td data-stask-progress-cell>{{ $task['progress'] }}%</td>
                                             <td>{{ $task['created_at'] }}</td>
                                             <td class="evo-ui-row-actions-cell">
                                                 <div class="evo-ui-row-actions">

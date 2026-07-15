@@ -8,8 +8,8 @@ use Seiger\sTask\Tables\LogsTableData;
 /**
  * Own the interactive sTask module tabs and their dashboard state.
  *
- * The visible dashboard can request a lightweight refresh without reloading the
- * manager frame or disturbing the keyed table components mounted on other tabs.
+ * Dashboard interactions stay scoped to the module content without reloading
+ * the manager frame or disturbing keyed tables mounted on the other tabs.
  *
  * @since 2.0.0
  */
@@ -57,20 +57,6 @@ class ModulePanel extends Component
     public function clearWorkerCache(): void
     {
         sTaskFacade::clearWorkerCache();
-    }
-
-    /**
-     * Refresh the visible dashboard from the latest persisted task state.
-     *
-     * Livewire invokes this method through a visibility-aware poll. The empty
-     * action intentionally triggers render(), which re-queries DashboardData.
-     *
-     * @return void
-     * @since 2.1.0
-     */
-    public function refreshDashboard(): void
-    {
-        // Rendering the component is the refresh operation.
     }
 
     public function render()

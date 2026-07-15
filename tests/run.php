@@ -150,6 +150,7 @@ $contains($shell, "@include('evo::partials.assets')", 'EvoUI shell must load Evo
 $contains($shell, 'data-evo-ui-root', 'EvoUI shell must expose data-evo-ui-root.');
 $contains($shell, '<livewire:stask.module-panel', 'EvoUI shell must mount the sTask module panel.');
 $contains($shell, 'stask-module.css', 'EvoUI shell must load the package module stylesheet.');
+$contains($shell, 'stask-module.js', 'EvoUI shell must load the package module watcher.');
 $notContains($shell, 'stask.min.css', 'EvoUI shell must not load old sTask CSS.');
 $notContains($shell, 'stask.js', 'EvoUI shell must not load old sTask JS.');
 $notContains($shell, 'cdn.jsdelivr', 'EvoUI shell must not load jsdelivr assets.');
@@ -176,7 +177,7 @@ $contains($modulePanel, 'LogsTableData::class', 'Dashboard task detail modal mus
 $contains($modulePanel, 'closeModal()', 'Dashboard task detail modal must expose the shared EvoUI close method.');
 $contains($modulePanel, 'clearWorkerCache()', 'sTask ModulePanel must expose cache clear action.');
 $contains($modulePanel, 'sTaskFacade::clearWorkerCache()', 'sTask ModulePanel must call the real cache clear service.');
-$contains($modulePanel, 'refreshDashboard(): void', 'sTask ModulePanel must expose a lightweight dashboard refresh action.');
+$notContains($modulePanel, 'refreshDashboard(): void', 'Dashboard progress must not poll by re-rendering the Livewire component.');
 
 $dashboardData = $read('src/Support/DashboardData.php');
 $contains($dashboardData, 'class DashboardData', 'DashboardData support class must exist.');
@@ -206,7 +207,11 @@ $contains($modulePanelView, "'tab' => 'workers'", 'Workers table must opt in to 
 $contains($modulePanelView, "'tab' => 'logs'", 'Logs table must opt in to shared module-tab refresh events.');
 $contains($modulePanelView, '@if($recentErrorRows->isNotEmpty())', 'Dashboard tab must hide recent error logs when there are no errors.');
 $contains($modulePanelView, 'wire:dblclick="openTaskDetails', 'Dashboard recent task rows must open task details on double-click.');
-$contains($modulePanelView, 'wire:poll.1s.visible="refreshDashboard"', 'Dashboard must poll only while its content is visible.');
+$notContains($modulePanelView, 'wire:poll', 'Dashboard must not continuously poll the full Livewire component.');
+$contains($modulePanelView, 'data-stask-live-dashboard', 'Dashboard must expose a visibility boundary for adaptive watchers.');
+$contains($modulePanelView, 'data-stask-progress-url', 'Active rows must expose their filesystem-backed progress endpoint.');
+$contains($modulePanelView, "'include_log' => 0", 'Dashboard progress requests must skip unused log history.');
+$contains($modulePanelView, 'data-stask-progress-cell', 'Dashboard rows must expose the progress value for direct updates.');
 $contains($modulePanelView, 'stask-dashboard-task-row--active', 'Dashboard must mark active rows for live progress styling.');
 $contains($modulePanelView, '--stask-task-progress:', 'Dashboard must expose each task progress value to the row border.');
 $contains($modulePanelView, 'wire:click.stop="openTaskDetails', 'Dashboard recent task actions must open task details without navigating.');
@@ -227,11 +232,25 @@ $contains($moduleCss, '.stask-dashboard-task-row--active::after', 'Module CSS mu
 $contains($moduleCss, 'width: var(--stask-task-progress)', 'Module CSS must size the live row edge from task progress.');
 $contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
 
+$moduleJs = $read('js/module.js');
+$contains($moduleJs, 'const MIN_DELAY = 1200', 'Module watcher must avoid aggressive sub-second polling.');
+$contains($moduleJs, 'const MAX_DELAY = 25000', 'Module watcher must cap adaptive backoff.');
+$contains($moduleJs, 'dashboard.offsetParent === null', 'Module watcher must pause requests while the dashboard is hidden.');
+$contains($moduleJs, 'delay * 1.8', 'Module watcher must back off exponentially when progress is unchanged.');
+$contains($moduleJs, 'TERMINAL_STATUSES.has', 'Module watcher must stop after terminal task status.');
+$contains($moduleJs, "window.Livewire.find(componentId)?.\$refresh()", 'Module watcher must perform only one final dashboard refresh.');
+$notContains($moduleJs, 'setInterval', 'Module watcher must schedule without overlapping interval requests.');
+
 $serviceProvider = $read('src/sTaskServiceProvider.php');
 $contains($serviceProvider, "'/css/module.css'", 'Provider must publish the EvoUI module stylesheet.');
+$contains($serviceProvider, "'/js/module.js'", 'Provider must publish the adaptive module watcher.');
 
 $publishAssets = $read('src/Console/PublishAssets.php');
 $contains($publishAssets, "public_path('assets/site/stask-module.css')", 'Asset publisher must prune the module stylesheet before republishing.');
+$contains($publishAssets, "public_path('assets/site/stask-module.js')", 'Asset publisher must prune the module watcher before republishing.');
+
+$actionController = $read('src/Controllers/sTaskActionController.php');
+$contains($actionController, "request()->boolean('include_log', true)", 'Progress endpoint must support lightweight snapshots without log history.');
 
 $taskRunnerDescriptor = $read('src/Support/TaskRunnerDescriptor.php');
 $contains($taskRunnerDescriptor, 'class TaskRunnerDescriptor', 'sTask must expose a declarative task-runner descriptor.');

@@ -146,7 +146,10 @@ class sTaskActionController extends BaseController
      * - Error state detection and reporting
      * - Comprehensive error handling and logging
      *
-     * Route: GET /stask/tasks/{id}/progress
+     * The optional include_log query flag can disable log history when a caller
+     * only needs the lightweight progress snapshot.
+     *
+     * Route: GET /stask/task/{id}/progress
      *
      * @param int $id The task ID to get progress for
      * @return JsonResponse JSON response with progress data or error information
@@ -180,9 +183,10 @@ class sTaskActionController extends BaseController
                 ], 404);
             }
 
-            // Read log messages (last 50 lines)
-            $logLines = TaskProgress::readLog($id, 50);
-            $data['log_lines'] = $logLines;
+            // Skip log history for lightweight progress-only dashboard watchers.
+            $data['log_lines'] = request()->boolean('include_log', true)
+                ? TaskProgress::readLog($id, 50)
+                : [];
 
             return response()->json(array_merge([
                 'success' => true,
