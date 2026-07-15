@@ -234,6 +234,9 @@ $moduleCss = $read('css/module.css');
 $contains($moduleCss, '.stask-task-progress-row--active::after', 'Module CSS must render active task progress on the row edge.');
 $contains($moduleCss, 'width: var(--stask-task-progress)', 'Module CSS must size the live row edge from task progress.');
 $contains($moduleCss, 'width: clamp(28rem, 42vw, 72rem)', 'Task messages must use the available viewport width responsively.');
+$contains($moduleCss, '.stask-task-time-column', 'Task time headers must expose a shared width rule.');
+$contains($moduleCss, 'width: 10rem', 'Task start and finish columns must use the same stable width.');
+$contains($moduleCss, 'width: 5.25rem', 'Tasks action column must fit its icon buttons without excess space.');
 $contains($moduleCss, '[data-evo-column-key="message_text"]', 'Compact task rows must expose a responsive message line.');
 $contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
 
@@ -313,6 +316,7 @@ $notContains($tasksTableConfig, "'key' => 'attempts_label'", 'Tasks table must h
 $contains($tasksTableConfig, "'key' => 'started_by'", 'Tasks table config must include started-by column.');
 $contains($tasksTableConfig, "'key' => 'message_text'", 'Tasks table config must include the full message column.');
 $contains($tasksTableConfig, "'cell_class' => 'stask-task-message-cell'", 'Tasks table message column must expose its responsive CSS hook.');
+$contains($tasksTableConfig, "'class' => 'stask-task-time-column', 'cell_class' => 'stask-task-time-cell'", 'Task start and finish columns must share header and cell sizing hooks.');
 $contains($tasksTableConfig, "'meta' => ['action', 'status_badge', 'progress_label', 'message_text']", 'Tasks compact list must include the live message.');
 $contains($tasksTableConfig, "'type' => 'markdown'", 'Tasks table message column must render inline Markdown.');
 $notContains($tasksTableConfig, "'key' => 'created_at_label'", 'Tasks table must hide the created column.');

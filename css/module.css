@@ -31,6 +31,24 @@
     white-space: nowrap;
 }
 
+.evo-ui .stask-task-time-column,
+.evo-ui .stask-task-time-cell {
+    width: 10rem;
+    min-width: 10rem;
+    max-width: 10rem;
+}
+
+.evo-ui .stask-task-time-cell {
+    white-space: nowrap;
+}
+
+.evo-ui .evo-ui-table--module:has(.stask-task-message-cell) .evo-ui-table__actions,
+.evo-ui .evo-ui-table--module:has(.stask-task-message-cell) .evo-ui-row-actions-cell {
+    width: 5.25rem;
+    min-width: 5.25rem;
+    max-width: 5.25rem;
+}
+
 .evo-ui .evo-ui-list-item [data-evo-column-key="message_text"] {
     flex: 1 1 100%;
     width: 100%;
