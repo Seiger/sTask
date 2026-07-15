@@ -78,8 +78,6 @@
                 <tr><th>@lang('sTask::global.finished_at')</th><td>{{ $task->finished_at?->format('Y-m-d H:i:s') ?: '-' }}</td></tr>
                 <tr><th>@lang('sTask::global.updated')</th><td>{{ $task->updated_at?->format('Y-m-d H:i:s') ?: '-' }}</td></tr>
                 <tr><th>@lang('sTask::global.started_by')</th><td>{{ $task->user->username ?? 'system' }}</td></tr>
-                <tr><th>@lang('sTask::global.priority')</th><td>{{ __('sTask::global.priority_' . ($task->priority ?: 'normal')) }}</td></tr>
-                <tr><th>@lang('sTask::global.attempts')</th><td>{{ (int)$task->attempts }} / {{ (int)$task->max_attempts }}</td></tr>
                 <tr><th>@lang('sTask::global.worker_info')</th><td>{{ $task->worker->class ?? '-' }}</td></tr>
             </tbody>
         </table>

@@ -245,7 +245,7 @@ $notContains($artisanWorker, 'artisanWorkerWidget', 'Artisan worker must not ren
 $tasksTableConfig = $read('config/tasks/table.php');
 $contains($tasksTableConfig, "'key' => 'stask.tasks'", 'Tasks table config must use the stask.tasks preset key.');
 $contains($tasksTableConfig, "\\Seiger\\sTask\\Tables\\TasksTableData::class", 'Tasks table config must use the sTask table provider.');
-$contains($tasksTableConfig, "'default_sort' => 'created_at_label'", 'Tasks table config default sort must reference a sortable column key.');
+$contains($tasksTableConfig, "'default_sort' => 'id_label'", 'Tasks table config default sort must reference the visible ID column.');
 $contains($tasksTableConfig, 'sTask::global.search_tasks', 'Tasks table config must expose a localized search placeholder.');
 $contains($tasksTableConfig, "'state' => 'worker_id'", 'Tasks table config must include a worker filter.');
 $contains($tasksTableConfig, "'state' => 'action'", 'Tasks table config must include an action filter.');
@@ -261,11 +261,13 @@ $contains($tasksTableConfig, "'key' => 'id_label'", 'Tasks table config must inc
 $contains($tasksTableConfig, "'key' => 'worker_title'", 'Tasks table config must include worker column.');
 $contains($tasksTableConfig, "'key' => 'worker_identifier'", 'Tasks table config must include worker identifier column.');
 $contains($tasksTableConfig, "'key' => 'status_badge'", 'Tasks table config must include status badge column.');
-$contains($tasksTableConfig, "'key' => 'priority_badge'", 'Tasks table config must include priority badge column.');
-$contains($tasksTableConfig, "'key' => 'attempts_label'", 'Tasks table config must include attempts column.');
+$notContains($tasksTableConfig, "'key' => 'priority_badge'", 'Tasks table must hide the priority column.');
+$notContains($tasksTableConfig, "'key' => 'attempts_label'", 'Tasks table must hide the attempts column.');
 $contains($tasksTableConfig, "'key' => 'started_by'", 'Tasks table config must include started-by column.');
 $contains($tasksTableConfig, "'key' => 'message_excerpt'", 'Tasks table config must include message column.');
-$contains($tasksTableConfig, "'key' => 'updated_at_label'", 'Tasks table config must include updated column.');
+$contains($tasksTableConfig, "'type' => 'markdown'", 'Tasks table message column must render inline Markdown.');
+$notContains($tasksTableConfig, "'key' => 'created_at_label'", 'Tasks table must hide the created column.');
+$notContains($tasksTableConfig, "'key' => 'updated_at_label'", 'Tasks table must hide the updated column.');
 $contains($tasksTableConfig, "'row_dblclick_action' => 'details'", 'Tasks table rows must open the details action modal on double-click.');
 $contains($tasksTableConfig, "'method' => 'openActionModal'", 'Tasks table details must open an EvoUI action modal.');
 $contains($tasksTableConfig, "'action_argument' => true", 'Tasks table details must pass action key and task id.');
@@ -275,6 +277,7 @@ $contains($tasksTableConfig, "'key' => 'details'", 'Tasks table config must incl
 $contains($tasksTableConfig, "'key' => 'emergency_stop'", 'Tasks table config must include an emergency stop row action.');
 $contains($tasksTableConfig, "'provider' => 'emergencyStopTask'", 'Tasks emergency stop action must call the provider method.');
 $contains($tasksTableConfig, "'disabled_field' => 'emergency_stop_disabled'", 'Tasks emergency stop action must be disabled for final tasks.');
+$contains($tasksTableConfig, "'icon' => 'player-eject'", 'Tasks emergency stop action must use the player-eject icon.');
 
 $tasksTableData = $read('src/Tables/TasksTableData.php');
 $contains($tasksTableData, 'class TasksTableData', 'TasksTableData provider must exist.');
@@ -308,12 +311,26 @@ $contains($logsTableConfig, "\\Seiger\\sTask\\Tables\\LogsTableData::class", 'Lo
 $contains($logsTableConfig, "'state' => 'worker_id'", 'Logs table config must include worker filter.');
 $contains($logsTableConfig, "'state' => 'status'", 'Logs table config must include status filter.');
 $contains($logsTableConfig, "'type' => 'date-range'", 'Logs table config must include created date-range filter.');
+$notContains($logsTableConfig, "'key' => 'priority_badge'", 'Logs table must hide the priority column.');
+$notContains($logsTableConfig, "'key' => 'attempts_label'", 'Logs table must hide the attempts column.');
+$contains($logsTableConfig, "'key' => 'start_at_label'", 'Logs table must include the execution start column.');
+$contains($logsTableConfig, "'key' => 'updated_at_label'", 'Logs table must include the updated column.');
+$notContains($logsTableConfig, "'name' => 'priority_badge'", 'Task detail modal must hide priority.');
+$notContains($logsTableConfig, "'name' => 'attempts_label'", 'Task detail modal must hide attempts.');
 $contains($logsTableConfig, "'row_dblclick_action' => 'details'", 'Logs table rows must open the details action modal on double-click.');
 $contains($logsTableConfig, "'method' => 'openActionModal'", 'Logs table details must open an EvoUI action modal.');
 $contains($logsTableConfig, "'action_argument' => true", 'Logs table action modal must pass action key and task id.');
 $contains($logsTableConfig, "'readonly' => true", 'Logs table detail modal must be read-only.');
 $contains($logsTableConfig, "'submit' => false", 'Logs table detail modal must hide submit.');
 $contains($logsTableConfig, "'type' => 'code'", 'Logs table detail modal must render log/meta/result code fields.');
+
+$modulePanelView = $read('views/livewire/module-panel.blade.php');
+$notContains($modulePanelView, "sTask::global.priority", 'Dashboard task modal must hide priority.');
+$notContains($modulePanelView, "sTask::global.attempts", 'Dashboard task modal must hide attempts.');
+
+$legacyTaskDetailView = $read('views/module/task-detail.blade.php');
+$notContains($legacyTaskDetailView, "sTask::global.priority", 'Legacy task detail must hide priority.');
+$notContains($legacyTaskDetailView, "sTask::global.attempts", 'Legacy task detail must hide attempts.');
 
 $logsTableData = $read('src/Tables/LogsTableData.php');
 $contains($logsTableData, 'class LogsTableData', 'LogsTableData provider must exist.');
