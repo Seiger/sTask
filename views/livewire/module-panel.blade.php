@@ -134,14 +134,6 @@
                         <span>{{ $detailModalData['progress_label'] ?? '' }}</span>
                     </div>
                     <div class="evo-ui-static-field">
-                        <strong>@lang('sTask::global.priority')</strong>
-                        <x-evo::badge :value="$detailModalData['priority_badge'] ?? []" />
-                    </div>
-                    <div class="evo-ui-static-field">
-                        <strong>@lang('sTask::global.attempts')</strong>
-                        <span>{{ $detailModalData['attempts_label'] ?? '' }}</span>
-                    </div>
-                    <div class="evo-ui-static-field">
                         <strong>@lang('sTask::global.created')</strong>
                         <span>{{ $detailModalData['created_at_label'] ?? '' }}</span>
                     </div>
