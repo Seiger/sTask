@@ -225,9 +225,9 @@
                                 <tbody>
                                     @foreach($performanceAlerts as $alert)
                                         <tr>
-                                            <td>{{ $alert['severity'] ?? 'info' }}</td>
+                                            <td>{{ $alert['severity_label'] ?? '' }}</td>
                                             <td>{{ $alert['message'] ?? '' }}</td>
-                                            <td>{{ $alert['value'] ?? '' }}</td>
+                                            <td>{{ $alert['value_label'] ?? '' }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -244,10 +244,10 @@
                         <h3>@lang('sTask::global.worker_cache')</h3>
                     </div>
                     <div class="evo-ui-modal__grid">
-                        @foreach($cacheStats as $key => $value)
+                        @foreach($cacheStats as $stat)
                             <div class="evo-ui-static-field">
-                                <strong>{{ str_replace('_', ' ', (string)$key) }}</strong>
-                                <span>{{ is_scalar($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</span>
+                                <strong>{{ $stat['label'] ?? '' }}</strong>
+                                <span>{{ $stat['value'] ?? '' }}</span>
                             </div>
                         @endforeach
                     </div>

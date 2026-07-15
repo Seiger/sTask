@@ -192,6 +192,9 @@ $contains($dashboardData, 'statusColor', 'DashboardData must map status tones/co
 $contains($dashboardData, 'performanceCards', 'DashboardData must expose performance cards.');
 $contains($dashboardData, 'performanceAlerts', 'DashboardData must expose performance alerts.');
 $contains($dashboardData, 'cacheStats', 'DashboardData must expose cache stats.');
+$contains($dashboardData, "'high_memory_usage' => niceSize((float)\$value)", 'Performance memory alerts must use the shared niceSize helper.');
+$contains($dashboardData, "'memory_usage' => niceSize((float)\$value)", 'Worker cache memory usage must use the shared niceSize helper.');
+$contains($dashboardData, "'severity_label'", 'DashboardData must localize performance alert severities.');
 $contains($dashboardData, 'sTaskFacade::getPerformanceMetrics', 'DashboardData performance cards must use real metrics.');
 $contains($dashboardData, 'sTaskFacade::getCacheStats', 'DashboardData performance cards must use real cache stats.');
 
@@ -597,6 +600,16 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         'edit_worker',
         'permissions_group',
         'permission_access',
+        'alert_severity_warning',
+        'performance_alert_low_success_rate',
+        'performance_alert_high_execution_time',
+        'performance_alert_high_memory_usage',
+        'cache_stat_hits',
+        'cache_stat_misses',
+        'cache_stat_evictions',
+        'cache_stat_hit_rate',
+        'cache_stat_cache_size',
+        'cache_stat_memory_usage',
     ] as $key) {
         $assert(array_key_exists($key, $labels), "{$locale} lang must define {$key}.");
     }

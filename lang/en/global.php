@@ -20,6 +20,18 @@
     'worker_cache' => 'Worker cache',
     'clear_cache' => 'Clear cache',
     'value' => 'Value',
+    'alert_severity_info' => 'Info',
+    'alert_severity_warning' => 'Warning',
+    'alert_severity_error' => 'Error',
+    'performance_alert_low_success_rate' => 'Task success rate is below threshold: :value',
+    'performance_alert_high_execution_time' => 'Average task execution time exceeds threshold: :value',
+    'performance_alert_high_memory_usage' => 'Average memory usage exceeds threshold: :value',
+    'cache_stat_hits' => 'Hits',
+    'cache_stat_misses' => 'Misses',
+    'cache_stat_evictions' => 'Evictions',
+    'cache_stat_hit_rate' => 'Hit rate',
+    'cache_stat_cache_size' => 'Cache size',
+    'cache_stat_memory_usage' => 'Memory usage',
 
     // Dashboard
     'pending_tasks' => 'Pending Tasks',

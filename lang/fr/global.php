@@ -20,6 +20,18 @@
     'worker_cache' => 'Cache workers',
     'clear_cache' => 'Vider le cache',
     'value' => 'Valeur',
+    'alert_severity_info' => 'Information',
+    'alert_severity_warning' => 'Avertissement',
+    'alert_severity_error' => 'Erreur',
+    'performance_alert_low_success_rate' => 'Le taux de réussite des tâches est inférieur au seuil : :value',
+    'performance_alert_high_execution_time' => 'La durée moyenne d’exécution dépasse le seuil : :value',
+    'performance_alert_high_memory_usage' => 'L’utilisation moyenne de la mémoire dépasse le seuil : :value',
+    'cache_stat_hits' => 'Succès',
+    'cache_stat_misses' => 'Échecs',
+    'cache_stat_evictions' => 'Évictions',
+    'cache_stat_hit_rate' => 'Taux de succès',
+    'cache_stat_cache_size' => 'Taille du cache',
+    'cache_stat_memory_usage' => 'Utilisation mémoire',
 
     // Dashboard
     'pending_tasks' => 'Tâches en attente',
