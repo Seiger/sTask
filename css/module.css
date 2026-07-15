@@ -52,11 +52,11 @@
     white-space: nowrap;
 }
 
-.evo-ui .evo-ui-list-item--compact .evo-ui-list-item__body {
+.evo-ui .evo-ui-list-item--compact:has([data-evo-column-key="message_text"]) .evo-ui-list-item__body {
     grid-template-columns: minmax(0, 1fr);
 }
 
-.evo-ui .evo-ui-list-item--compact .evo-ui-list-item__meta {
+.evo-ui .evo-ui-list-item--compact:has([data-evo-column-key="message_text"]) .evo-ui-list-item__meta {
     justify-content: flex-start;
 }
 
