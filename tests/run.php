@@ -201,6 +201,9 @@ $contains($dashboardData, 'sTaskFacade::getCacheStats', 'DashboardData performan
 $modulePanelView = $read('views/livewire/module-panel.blade.php');
 $contains($modulePanelView, '<x-evo::module-tab-shell', 'Module panel view must use the shared EvoUI module tab shell.');
 $contains($modulePanelView, '<x-evo::dashboard', 'Dashboard tab must use the shared EvoUI dashboard primitive.');
+$contains($modulePanelView, 'class="stask-dashboard-tab"', 'Dashboard tab must expose a scoped layout hook.');
+$contains($modulePanelView, 'stask-dashboard-section--tasks', 'Recent tasks section must expose its semantic icon tone hook.');
+$contains($modulePanelView, 'stask-dashboard-section--errors', 'Recent errors section must expose its semantic icon tone hook.');
 $contains($modulePanelView, ':cards=', 'Dashboard tab must feed shared dashboard cards.');
 $contains($modulePanelView, '<livewire:evo-ui.module-table', 'Tasks tab must use the shared EvoUI module table.');
 $contains($modulePanelView, 'preset="stask.tasks"', 'Tasks tab must render the sTask tasks table preset.');
@@ -243,6 +246,9 @@ $contains($moduleCss, 'width: 10rem', 'Task start and finish columns must use th
 $contains($moduleCss, 'width: 5.25rem', 'Tasks action column must fit its icon buttons without excess space.');
 $contains($moduleCss, '[data-evo-column-key="message_text"]', 'Compact task rows must expose a responsive message line.');
 $contains($moduleCss, '.stask-performance-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section', 'Performance sections must have scoped vertical separation.');
+$contains($moduleCss, '.stask-dashboard-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section', 'Dashboard sections must have scoped vertical separation.');
+$contains($moduleCss, '.stask-dashboard-section--tasks > .evo-ui-card__header svg', 'Recent tasks icon must have a semantic info color.');
+$contains($moduleCss, '.stask-dashboard-section--errors > .evo-ui-card__header svg', 'Recent errors icon must have a semantic danger color.');
 $contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
 
 $moduleJs = $read('js/module.js');

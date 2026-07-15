@@ -1,8 +1,8 @@
 <x-evo::module-tab-shell :tabs="$tabs" model="activeTab">
-    <div x-show="activeTab === 'dashboard'" x-cloak data-stask-live-dashboard>
+    <div class="stask-dashboard-tab" x-show="activeTab === 'dashboard'" x-cloak data-stask-live-dashboard>
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>
-                <section class="evo-ui-dashboard-section">
+                <section class="evo-ui-dashboard-section stask-dashboard-section--tasks">
                     <div class="evo-ui-card__header">
                         <x-evo::icon name="activity" />
                         <h3>@lang('sTask::global.recent_tasks')</h3>
@@ -64,7 +64,7 @@
                 </section>
 
                 @if($recentErrorRows->isNotEmpty())
-                    <section class="evo-ui-dashboard-section">
+                    <section class="evo-ui-dashboard-section stask-dashboard-section--errors">
                         <div class="evo-ui-card__header">
                             <x-evo::icon name="circle-x" />
                             <h3>@lang('sTask::global.recent_error_logs')</h3>

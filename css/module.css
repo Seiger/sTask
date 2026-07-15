@@ -82,6 +82,18 @@
     margin-top: 1.5rem;
 }
 
+.evo-ui .stask-dashboard-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section {
+    margin-top: 1.5rem;
+}
+
+.evo-ui .stask-dashboard-section--tasks > .evo-ui-card__header svg {
+    color: var(--evo-ui-info, #0284c7);
+}
+
+.evo-ui .stask-dashboard-section--errors > .evo-ui-card__header svg {
+    color: var(--evo-ui-danger, #dc2626);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .evo-ui .stask-task-progress-row--active::after {
         transition: none;
