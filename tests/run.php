@@ -299,9 +299,10 @@ $contains($tasksTableConfig, "'default_sort' => 'id_label'", 'Tasks table config
 $contains($tasksTableConfig, 'sTask::global.search_tasks', 'Tasks table config must expose a localized search placeholder.');
 $contains($tasksTableConfig, "'state' => 'worker_id'", 'Tasks table config must include a worker filter.');
 $contains($tasksTableConfig, "'state' => 'action'", 'Tasks table config must include an action filter.');
+$contains($tasksTableConfig, "'icon' => 'bolt'", 'Tasks table action filter must use a thematic execution icon.');
 $contains($tasksTableConfig, "'state' => 'status'", 'Tasks table config must include a status filter.');
-$contains($tasksTableConfig, "'state' => 'priority'", 'Tasks table config must include a priority filter.');
-$contains($tasksTableConfig, "'state' => 'attempts'", 'Tasks table config must include an attempts filter.');
+$notContains($tasksTableConfig, "'state' => 'priority'", 'Tasks table filters must hide priority.');
+$notContains($tasksTableConfig, "'state' => 'attempts'", 'Tasks table filters must hide attempts.');
 $contains($tasksTableConfig, "'state' => 'created_at'", 'Tasks table config must include a created date filter.');
 $contains($tasksTableConfig, "'type' => 'date-range'", 'Tasks table config must include a created date-range filter.');
 $contains($tasksTableConfig, "'type' => 'multi-select'", 'Tasks table filters must use standard EvoUI multi-select filters.');
