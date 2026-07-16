@@ -1,8 +1,8 @@
 <x-evo::module-tab-shell :tabs="$tabs" model="activeTab">
-    <div x-show="activeTab === 'dashboard'" x-cloak>
+    <div class="stask-dashboard-tab" x-show="activeTab === 'dashboard'" x-cloak data-stask-live-dashboard>
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>
-                <section class="evo-ui-dashboard-section">
+                <section class="evo-ui-dashboard-section stask-dashboard-section--tasks">
                     <div class="evo-ui-card__header">
                         <x-evo::icon name="activity" />
                         <h3>@lang('sTask::global.recent_tasks')</h3>
@@ -18,19 +18,27 @@
                                         <th>@lang('sTask::global.action')</th>
                                         <th>@lang('sTask::global.status')</th>
                                         <th>@lang('sTask::global.progress')</th>
-                                        <th>@lang('sTask::global.created')</th>
+                                        <th>@lang('sTask::global.start_at')</th>
                                         <th>@lang('sTask::global.actions')</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($recentTaskRows as $task)
-                                        <tr wire:key="stask-dashboard-task-{{ $task['id'] }}" wire:dblclick="openTaskDetails({{ (int)$task['id'] }})">
+                                        <tr
+                                            class="stask-task-progress-row{{ $task['is_active'] ? ' stask-task-progress-row--active' : '' }}"
+                                            style="--stask-task-progress: {{ $task['progress'] }}%;"
+                                            @if($task['is_active'])
+                                                data-stask-progress-url="{{ route('sTask.task.progress', ['id' => $task['id'], 'include_log' => 0]) }}"
+                                            @endif
+                                            wire:key="stask-dashboard-task-{{ $task['id'] }}"
+                                            wire:dblclick="openTaskDetails({{ (int)$task['id'] }})"
+                                        >
                                             <td>#{{ $task['id'] }}</td>
                                             <td>{{ $task['worker_title'] }}</td>
                                             <td>{{ $task['action'] }}</td>
                                             <td><x-evo::badge :label="$task['status_label']" :color="$task['status_color']" /></td>
-                                            <td>{{ $task['progress'] }}%</td>
-                                            <td>{{ $task['created_at'] }}</td>
+                                            <td data-stask-progress-cell>{{ $task['progress'] }}%</td>
+                                            <td>{{ $task['start_at'] }}</td>
                                             <td class="evo-ui-row-actions-cell">
                                                 <div class="evo-ui-row-actions">
                                                     <button
@@ -56,7 +64,7 @@
                 </section>
 
                 @if($recentErrorRows->isNotEmpty())
-                    <section class="evo-ui-dashboard-section">
+                    <section class="evo-ui-dashboard-section stask-dashboard-section--errors">
                         <div class="evo-ui-card__header">
                             <x-evo::icon name="circle-x" />
                             <h3>@lang('sTask::global.recent_error_logs')</h3>
@@ -195,7 +203,7 @@
         />
     </div>
 
-    <div x-show="activeTab === 'performance'" x-cloak>
+    <div class="stask-performance-tab" x-show="activeTab === 'performance'" x-cloak>
         <x-evo::dashboard :cards="$performanceCards">
             <x-slot:body>
                 <section class="evo-ui-dashboard-section">
@@ -217,9 +225,9 @@
                                 <tbody>
                                     @foreach($performanceAlerts as $alert)
                                         <tr>
-                                            <td>{{ $alert['severity'] ?? 'info' }}</td>
+                                            <td>{{ $alert['severity_label'] ?? '' }}</td>
                                             <td>{{ $alert['message'] ?? '' }}</td>
-                                            <td>{{ $alert['value'] ?? '' }}</td>
+                                            <td>{{ $alert['value_label'] ?? '' }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -236,10 +244,10 @@
                         <h3>@lang('sTask::global.worker_cache')</h3>
                     </div>
                     <div class="evo-ui-modal__grid">
-                        @foreach($cacheStats as $key => $value)
+                        @foreach($cacheStats as $stat)
                             <div class="evo-ui-static-field">
-                                <strong>{{ str_replace('_', ' ', (string)$key) }}</strong>
-                                <span>{{ is_scalar($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</span>
+                                <strong>{{ $stat['label'] ?? '' }}</strong>
+                                <span>{{ $stat['value'] ?? '' }}</span>
                             </div>
                         @endforeach
                     </div>

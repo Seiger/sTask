@@ -20,6 +20,18 @@
     'worker_cache' => 'Кеш воркеров',
     'clear_cache' => 'Очистить кеш',
     'value' => 'Значение',
+    'alert_severity_info' => 'Информация',
+    'alert_severity_warning' => 'Предупреждение',
+    'alert_severity_error' => 'Ошибка',
+    'performance_alert_low_success_rate' => 'Успешность выполнения задач ниже порога: :value',
+    'performance_alert_high_execution_time' => 'Среднее время выполнения превышает порог: :value',
+    'performance_alert_high_memory_usage' => 'Среднее использование памяти превышает порог: :value',
+    'cache_stat_hits' => 'Попадания',
+    'cache_stat_misses' => 'Промахи',
+    'cache_stat_evictions' => 'Вытеснения',
+    'cache_stat_hit_rate' => 'Доля попаданий',
+    'cache_stat_cache_size' => 'Размер кеша',
+    'cache_stat_memory_usage' => 'Использование памяти',
 
     // Dashboard
     'pending_tasks' => 'Ожидают',

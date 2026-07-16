@@ -149,6 +149,8 @@ $contains($shell, 'EvoUI\\Support\\ManagerContext', 'EvoUI shell must use Manage
 $contains($shell, "@include('evo::partials.assets')", 'EvoUI shell must load EvoUI local assets.');
 $contains($shell, 'data-evo-ui-root', 'EvoUI shell must expose data-evo-ui-root.');
 $contains($shell, '<livewire:stask.module-panel', 'EvoUI shell must mount the sTask module panel.');
+$contains($shell, 'stask-module.css', 'EvoUI shell must load the package module stylesheet.');
+$contains($shell, 'stask-module.js', 'EvoUI shell must load the package module watcher.');
 $notContains($shell, 'stask.min.css', 'EvoUI shell must not load old sTask CSS.');
 $notContains($shell, 'stask.js', 'EvoUI shell must not load old sTask JS.');
 $notContains($shell, 'cdn.jsdelivr', 'EvoUI shell must not load jsdelivr assets.');
@@ -175,6 +177,7 @@ $contains($modulePanel, 'LogsTableData::class', 'Dashboard task detail modal mus
 $contains($modulePanel, 'closeModal()', 'Dashboard task detail modal must expose the shared EvoUI close method.');
 $contains($modulePanel, 'clearWorkerCache()', 'sTask ModulePanel must expose cache clear action.');
 $contains($modulePanel, 'sTaskFacade::clearWorkerCache()', 'sTask ModulePanel must call the real cache clear service.');
+$notContains($modulePanel, 'refreshDashboard(): void', 'Dashboard progress must not poll by re-rendering the Livewire component.');
 
 $dashboardData = $read('src/Support/DashboardData.php');
 $contains($dashboardData, 'class DashboardData', 'DashboardData support class must exist.');
@@ -183,16 +186,24 @@ $contains($dashboardData, 'sTaskModel::with', 'DashboardData must read recent ta
 $contains($dashboardData, 'public function cards(): array', 'DashboardData must expose dashboard card data.');
 $contains($dashboardData, 'public function recentTasks', 'DashboardData must expose recent task rows.');
 $contains($dashboardData, 'public function recentErrors', 'DashboardData must expose recent failed task rows.');
+$contains($dashboardData, "'is_active' => in_array", 'DashboardData must identify active task rows for live progress styling.');
+$contains($dashboardData, "'start_at' => \$task->start_at", 'DashboardData must expose the execution start for recent task rows.');
 $contains($dashboardData, 'statusColor', 'DashboardData must map status tones/colors.');
 $contains($dashboardData, 'performanceCards', 'DashboardData must expose performance cards.');
 $contains($dashboardData, 'performanceAlerts', 'DashboardData must expose performance alerts.');
 $contains($dashboardData, 'cacheStats', 'DashboardData must expose cache stats.');
+$contains($dashboardData, "'high_memory_usage' => niceSize((float)\$value)", 'Performance memory alerts must use the shared niceSize helper.');
+$contains($dashboardData, "'memory_usage' => niceSize((float)\$value)", 'Worker cache memory usage must use the shared niceSize helper.');
+$contains($dashboardData, "'severity_label'", 'DashboardData must localize performance alert severities.');
 $contains($dashboardData, 'sTaskFacade::getPerformanceMetrics', 'DashboardData performance cards must use real metrics.');
 $contains($dashboardData, 'sTaskFacade::getCacheStats', 'DashboardData performance cards must use real cache stats.');
 
 $modulePanelView = $read('views/livewire/module-panel.blade.php');
 $contains($modulePanelView, '<x-evo::module-tab-shell', 'Module panel view must use the shared EvoUI module tab shell.');
 $contains($modulePanelView, '<x-evo::dashboard', 'Dashboard tab must use the shared EvoUI dashboard primitive.');
+$contains($modulePanelView, 'class="stask-dashboard-tab"', 'Dashboard tab must expose a scoped layout hook.');
+$contains($modulePanelView, 'stask-dashboard-section--tasks', 'Recent tasks section must expose its semantic icon tone hook.');
+$contains($modulePanelView, 'stask-dashboard-section--errors', 'Recent errors section must expose its semantic icon tone hook.');
 $contains($modulePanelView, ':cards=', 'Dashboard tab must feed shared dashboard cards.');
 $contains($modulePanelView, '<livewire:evo-ui.module-table', 'Tasks tab must use the shared EvoUI module table.');
 $contains($modulePanelView, 'preset="stask.tasks"', 'Tasks tab must render the sTask tasks table preset.');
@@ -203,18 +214,65 @@ $contains($modulePanelView, "'tab' => 'workers'", 'Workers table must opt in to 
 $contains($modulePanelView, "'tab' => 'logs'", 'Logs table must opt in to shared module-tab refresh events.');
 $contains($modulePanelView, '@if($recentErrorRows->isNotEmpty())', 'Dashboard tab must hide recent error logs when there are no errors.');
 $contains($modulePanelView, 'wire:dblclick="openTaskDetails', 'Dashboard recent task rows must open task details on double-click.');
+$notContains($modulePanelView, 'wire:poll', 'Dashboard must not continuously poll the full Livewire component.');
+$contains($modulePanelView, 'data-stask-live-dashboard', 'Dashboard must expose a visibility boundary for adaptive watchers.');
+$contains($modulePanelView, 'data-stask-progress-url', 'Active rows must expose their filesystem-backed progress endpoint.');
+$contains($modulePanelView, "'include_log' => 0", 'Dashboard progress requests must skip unused log history.');
+$contains($modulePanelView, 'data-stask-progress-cell', 'Dashboard rows must expose the progress value for direct updates.');
+$contains($modulePanelView, "<th>@lang('sTask::global.start_at')</th>", 'Dashboard recent tasks must label the execution start column.');
+$contains($modulePanelView, "<td>{{ \$task['start_at'] }}</td>", 'Dashboard recent tasks must display the execution start value.');
+$contains($modulePanelView, 'stask-task-progress-row--active', 'Dashboard must mark active rows for live progress styling.');
+$contains($modulePanelView, '--stask-task-progress:', 'Dashboard must expose each task progress value to the row border.');
 $contains($modulePanelView, 'wire:click.stop="openTaskDetails', 'Dashboard recent task actions must open task details without navigating.');
 $contains($modulePanelView, '<x-evo::icon name="eye"', 'Dashboard details action must use an eye icon instead of text-only links.');
 $contains($modulePanelView, '<x-evo::modal', 'Dashboard task details must open in an EvoUI modal.');
 $notContains($modulePanelView, '<x-evo::card :label="__(\'sTask::global.recent_tasks\')"', 'Recent tasks must not be wrapped in an extra outer card.');
 $notContains($modulePanelView, '@lang(\'sTask::global.no_error_logs\')', 'Dashboard must not render an empty recent error block.');
 $contains($modulePanelView, ':cards="$performanceCards"', 'Performance tab must render real dashboard cards.');
+$contains($modulePanelView, 'class="stask-performance-tab"', 'Performance tab must expose a scoped layout hook.');
 $contains($modulePanelView, '$performanceAlerts', 'Performance tab must render performance alerts.');
 $contains($modulePanelView, '$cacheStats', 'Performance tab must render cache stats.');
 $contains($modulePanelView, 'wire:click="clearWorkerCache"', 'Performance tab must expose guarded cache clear action.');
 $notContains($modulePanelView, 'stask-evo-ui-010', 'Performance tab must not keep the implementation placeholder.');
 $notContains($modulePanelView, '<style', 'Module panel must not add local style blocks.');
 $notContains($modulePanelView, '<script', 'Module panel must not add local script blocks.');
+
+$moduleCss = $read('css/module.css');
+$contains($moduleCss, '.stask-task-progress-row--active::after', 'Module CSS must render active task progress on the row edge.');
+$contains($moduleCss, 'width: var(--stask-task-progress)', 'Module CSS must size the live row edge from task progress.');
+$contains($moduleCss, 'width: clamp(28rem, 42vw, 72rem)', 'Task messages must use the available viewport width responsively.');
+$contains($moduleCss, '.stask-task-time-column', 'Task time headers must expose a shared width rule.');
+$contains($moduleCss, 'width: 10rem', 'Task start and finish columns must use the same stable width.');
+$contains($moduleCss, 'width: 5.25rem', 'Tasks action column must fit its icon buttons without excess space.');
+$contains($moduleCss, '[data-evo-column-key="message_text"]', 'Compact task rows must expose a responsive message line.');
+$contains($moduleCss, '.stask-performance-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section', 'Performance sections must have scoped vertical separation.');
+$contains($moduleCss, '.stask-dashboard-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section', 'Dashboard sections must have scoped vertical separation.');
+$contains($moduleCss, '.stask-dashboard-section--tasks > .evo-ui-card__header svg', 'Recent tasks icon must have a semantic info color.');
+$contains($moduleCss, '.stask-dashboard-section--errors > .evo-ui-card__header svg', 'Recent errors icon must have a semantic danger color.');
+$contains($moduleCss, 'prefers-reduced-motion: reduce', 'Module CSS must respect reduced-motion preferences.');
+
+$moduleJs = $read('js/module.js');
+$contains($moduleJs, 'const MIN_DELAY = 1200', 'Module watcher must avoid aggressive sub-second polling.');
+$contains($moduleJs, 'const MAX_DELAY = 25000', 'Module watcher must cap adaptive backoff.');
+$contains($moduleJs, 'row.offsetParent === null', 'Module watcher must pause requests while its table or dashboard tab is hidden.');
+$contains($moduleJs, 'delay * 1.8', 'Module watcher must back off exponentially when progress is unchanged.');
+$contains($moduleJs, 'TERMINAL_STATUSES.has', 'Module watcher must stop after terminal task status.');
+$contains($moduleJs, "window.Livewire.find(componentId)?.\$refresh()", 'Module watcher must perform only one final surface refresh.');
+$contains($moduleJs, '[data-evo-column-key="message_text"]', 'Module watcher must update the visible task message.');
+$contains($moduleJs, 'renderInlineMarkdown(snapshot.message)', 'Live task messages must preserve the supported inline Markdown styling.');
+$contains($moduleJs, "replaceAll('<', '&lt;')", 'Live task message Markdown must escape untrusted HTML first.');
+$notContains($moduleJs, 'setInterval', 'Module watcher must schedule without overlapping interval requests.');
+
+$serviceProvider = $read('src/sTaskServiceProvider.php');
+$contains($serviceProvider, "'/css/module.css'", 'Provider must publish the EvoUI module stylesheet.');
+$contains($serviceProvider, "'/js/module.js'", 'Provider must publish the adaptive module watcher.');
+
+$publishAssets = $read('src/Console/PublishAssets.php');
+$contains($publishAssets, "public_path('assets/site/stask-module.css')", 'Asset publisher must prune the module stylesheet before republishing.');
+$contains($publishAssets, "public_path('assets/site/stask-module.js')", 'Asset publisher must prune the module watcher before republishing.');
+
+$actionController = $read('src/Controllers/sTaskActionController.php');
+$contains($actionController, "request()->boolean('include_log', true)", 'Progress endpoint must support lightweight snapshots without log history.');
 
 $taskRunnerDescriptor = $read('src/Support/TaskRunnerDescriptor.php');
 $contains($taskRunnerDescriptor, 'class TaskRunnerDescriptor', 'sTask must expose a declarative task-runner descriptor.');
@@ -252,9 +310,10 @@ $contains($tasksTableConfig, "'default_sort' => 'id_label'", 'Tasks table config
 $contains($tasksTableConfig, 'sTask::global.search_tasks', 'Tasks table config must expose a localized search placeholder.');
 $contains($tasksTableConfig, "'state' => 'worker_id'", 'Tasks table config must include a worker filter.');
 $contains($tasksTableConfig, "'state' => 'action'", 'Tasks table config must include an action filter.');
+$contains($tasksTableConfig, "'icon' => 'bolt'", 'Tasks table action filter must use a thematic execution icon.');
 $contains($tasksTableConfig, "'state' => 'status'", 'Tasks table config must include a status filter.');
-$contains($tasksTableConfig, "'state' => 'priority'", 'Tasks table config must include a priority filter.');
-$contains($tasksTableConfig, "'state' => 'attempts'", 'Tasks table config must include an attempts filter.');
+$notContains($tasksTableConfig, "'state' => 'priority'", 'Tasks table filters must hide priority.');
+$notContains($tasksTableConfig, "'state' => 'attempts'", 'Tasks table filters must hide attempts.');
 $contains($tasksTableConfig, "'state' => 'created_at'", 'Tasks table config must include a created date filter.');
 $contains($tasksTableConfig, "'type' => 'date-range'", 'Tasks table config must include a created date-range filter.');
 $contains($tasksTableConfig, "'type' => 'multi-select'", 'Tasks table filters must use standard EvoUI multi-select filters.');
@@ -267,7 +326,10 @@ $contains($tasksTableConfig, "'key' => 'status_badge'", 'Tasks table config must
 $notContains($tasksTableConfig, "'key' => 'priority_badge'", 'Tasks table must hide the priority column.');
 $notContains($tasksTableConfig, "'key' => 'attempts_label'", 'Tasks table must hide the attempts column.');
 $contains($tasksTableConfig, "'key' => 'started_by'", 'Tasks table config must include started-by column.');
-$contains($tasksTableConfig, "'key' => 'message_excerpt'", 'Tasks table config must include message column.');
+$contains($tasksTableConfig, "'key' => 'message_text'", 'Tasks table config must include the full message column.');
+$contains($tasksTableConfig, "'cell_class' => 'stask-task-message-cell'", 'Tasks table message column must expose its responsive CSS hook.');
+$contains($tasksTableConfig, "'class' => 'stask-task-time-column', 'cell_class' => 'stask-task-time-cell'", 'Task start and finish columns must share header and cell sizing hooks.');
+$contains($tasksTableConfig, "'meta' => ['action', 'status_badge', 'progress_label', 'message_text']", 'Tasks compact list must include the live message.');
 $contains($tasksTableConfig, "'type' => 'markdown'", 'Tasks table message column must render inline Markdown.');
 $notContains($tasksTableConfig, "'key' => 'created_at_label'", 'Tasks table must hide the created column.');
 $notContains($tasksTableConfig, "'key' => 'updated_at_label'", 'Tasks table must hide the updated column.');
@@ -284,8 +346,11 @@ $contains($tasksTableConfig, "'icon' => 'player-eject'", 'Tasks emergency stop a
 
 $tasksTableData = $read('src/Tables/TasksTableData.php');
 $contains($tasksTableData, 'class TasksTableData', 'TasksTableData provider must exist.');
+$notContains($tasksTableData, '->limit(80)', 'Tasks table data must not truncate messages on the server.');
+$contains($tasksTableData, "'message_text' =>", 'Tasks table data must expose the full message text.');
 $contains($tasksTableData, 'public function total(): int', 'TasksTableData must expose total().');
 $contains($tasksTableData, 'public function rows(int $page, int $perPage): array', 'TasksTableData must expose rows().');
+$contains($tasksTableData, 'LiveProgressRow::attributes($task)', 'Tasks table rows must expose live progress attributes.');
 $contains($tasksTableData, 'public function filterGroups(): array', 'TasksTableData must expose filterGroups().');
 $contains($tasksTableData, "sTaskModel::query()->with(['worker', 'user'])", 'TasksTableData must query real task rows with worker and user relations.');
 $contains($tasksTableData, "'label' => __('sTask::global.pending')", 'TasksTableData filter groups must return EvoUI label keys.');
@@ -312,6 +377,8 @@ $logsTableConfig = $read('config/logs/table.php');
 $contains($logsTableConfig, "'key' => 'stask.logs'", 'Logs table config must use the stask.logs preset key.');
 $contains($logsTableConfig, "\\Seiger\\sTask\\Tables\\LogsTableData::class", 'Logs table config must use the sTask logs provider.');
 $contains($logsTableConfig, "'state' => 'worker_id'", 'Logs table config must include worker filter.');
+$contains($logsTableConfig, "'state' => 'action'", 'Logs table config must include action filter.');
+$contains($logsTableConfig, "'icon' => 'bolt'", 'Logs action filter must use the thematic execution icon.');
 $contains($logsTableConfig, "'state' => 'status'", 'Logs table config must include status filter.');
 $contains($logsTableConfig, "'type' => 'date-range'", 'Logs table config must include created date-range filter.');
 $notContains($logsTableConfig, "'key' => 'priority_badge'", 'Logs table must hide the priority column.');
@@ -339,10 +406,13 @@ $logsTableData = $read('src/Tables/LogsTableData.php');
 $contains($logsTableData, 'class LogsTableData', 'LogsTableData provider must exist.');
 $contains($logsTableData, 'public function total(): int', 'LogsTableData must expose total().');
 $contains($logsTableData, 'public function rows(int $page, int $perPage): array', 'LogsTableData must expose rows().');
+$contains($logsTableData, 'LiveProgressRow::attributes($task)', 'Logs table rows must expose live progress attributes.');
 $contains($logsTableData, 'public function filterGroups(): array', 'LogsTableData must expose filterGroups().');
 $contains($logsTableData, 'public function modalData(int $id): array', 'LogsTableData must expose task detail modal data.');
 $contains($logsTableData, "sTaskModel::query()->with(['worker', 'user'])", 'LogsTableData must query real task rows with worker and user relations.');
 $contains($logsTableData, "whereIn('identifier'", 'LogsTableData must apply worker multi-select filter through identifiers.');
+$contains($logsTableData, "whereIn('action'", 'LogsTableData must apply selected action filters.');
+$contains($logsTableData, 'protected function actionOptions(): array', 'LogsTableData must expose distinct action filter options.');
 $contains($logsTableData, "whereIn('status'", 'LogsTableData must apply multi-selected statuses.');
 $contains($logsTableData, "where('created_at', '>='", 'LogsTableData must apply date range from bound.');
 $contains($logsTableData, "where('created_at', '<='", 'LogsTableData must apply date range to bound.');
@@ -376,6 +446,7 @@ $contains($workersTableConfig, "'key' => 'worker_title'", 'Workers table config 
 $contains($workersTableConfig, "'key' => 'description_excerpt'", 'Workers table config must include description column.');
 $contains($workersTableConfig, "'key' => 'schedule_label'", 'Workers table config must include schedule display column.');
 $contains($workersTableConfig, "'key' => 'last_action_label'", 'Workers table config must include last action column.');
+$contains($workersTableConfig, "'key' => 'tasks_count_label'", 'Workers table must render the compact task count label.');
 $contains($workersTableConfig, "'key' => 'last_run_at_label'", 'Workers table config must include last run column.');
 $contains($workersTableConfig, "sTask::global.default_position", 'Workers edit modal must label position as default position.');
 $contains($workersTableConfig, "sTask::global.additional_settings", 'Workers edit modal must expose additional settings.');
@@ -414,6 +485,8 @@ $workersTableData = $read('src/Tables/WorkersTableData.php');
 $contains($workersTableData, 'class WorkersTableData', 'WorkersTableData provider must exist.');
 $contains($workersTableData, 'public function total(): int', 'WorkersTableData must expose total().');
 $contains($workersTableData, 'public function rows(int $page, int $perPage): array', 'WorkersTableData must expose rows().');
+$contains($workersTableData, 'activeTasksFor', 'Workers table must resolve the active task for live progress.');
+$contains($workersTableData, 'LiveProgressRow::attributes($activeTask)', 'Worker rows must expose live progress attributes from their active task.');
 $contains($workersTableData, 'public function filterGroups(): array', 'WorkersTableData must expose filterGroups().');
 $contains($workersTableData, 'public function togglePublished(int $id): void', 'WorkersTableData must expose EvoUI togglePublished hook for active state.');
 $contains($workersTableData, 'public function toggleVisibility(int $id): void', 'WorkersTableData must expose EvoUI visibility toggle hook.');
@@ -446,6 +519,7 @@ $contains($workersTableData, "'manual' => true", 'WorkersTableData run action mu
 $contains($workersTableData, 'launchTaskWorker', 'WorkersTableData run action must trigger the existing worker processor path.');
 $contains($workersTableData, 'lastTasksFor', 'WorkersTableData must expose last task status data.');
 $contains($workersTableData, 'last_action_label', 'WorkersTableData must expose last action data.');
+$contains($workersTableData, 'niceCount((int)$worker->tasks_count)', 'WorkersTableData must format task counts through the shared niceCount helper.');
 $contains($workersTableData, 'last_run_at_label', 'WorkersTableData must expose last run timestamp data.');
 $contains($workersTableData, 'schedule_label', 'WorkersTableData must expose schedule display text.');
 $contains($workersTableData, 'protected function scheduleLabel', 'WorkersTableData must format schedule display text.');
@@ -488,6 +562,11 @@ $contains($taskWorker, "protected \$signature = 'stask:worker';", 'TaskWorker co
 $dashboardData = $read('src/Support/DashboardData.php');
 $contains($dashboardData, "'progress' => max(0, min(100, (int)\$task->progress))", 'Dashboard recent tasks must show stored task progress.');
 
+$liveProgressRow = $read('src/Support/LiveProgressRow.php');
+$contains($liveProgressRow, "'data-stask-progress-url'", 'Live progress rows must expose the task snapshot endpoint.');
+$contains($liveProgressRow, "'include_log' => 0", 'Live progress rows must skip unused log history.');
+$contains($liveProgressRow, "'style' => '--stask-task-progress:", 'Live progress rows must expose their initial border width.');
+
 $logsTableData = $read('src/Tables/LogsTableData.php');
 $contains($logsTableData, "\$progress = max(0, min(100, (int)\$task->progress));", 'Logs table must show stored task progress.');
 
@@ -529,6 +608,16 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         'edit_worker',
         'permissions_group',
         'permission_access',
+        'alert_severity_warning',
+        'performance_alert_low_success_rate',
+        'performance_alert_high_execution_time',
+        'performance_alert_high_memory_usage',
+        'cache_stat_hits',
+        'cache_stat_misses',
+        'cache_stat_evictions',
+        'cache_stat_hit_rate',
+        'cache_stat_cache_size',
+        'cache_stat_memory_usage',
     ] as $key) {
         $assert(array_key_exists($key, $labels), "{$locale} lang must define {$key}.");
     }

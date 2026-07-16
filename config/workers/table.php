@@ -92,7 +92,7 @@
         ['key' => 'worker_title', 'type' => 'text', 'label' => 'sTask::global.worker', 'cell_class' => 'evo-ui-table__title-column evo-ui-table__title-text', 'sortable' => true, 'sort_field' => 'title'],
         ['key' => 'description_excerpt', 'type' => 'text', 'label' => 'sTask::global.description'],
         ['key' => 'schedule_label', 'type' => 'text', 'label' => 'sTask::global.schedule', 'sortable' => false, 'meta_icon' => 'clock'],
-        ['key' => 'tasks_count', 'type' => 'text', 'label' => 'sTask::global.tasks_count', 'sortable' => true, 'sort_field' => 'tasks_count', 'meta_icon' => 'list-checks'],
+        ['key' => 'tasks_count_label', 'type' => 'text', 'label' => 'sTask::global.tasks_count', 'sortable' => true, 'sort_field' => 'tasks_count', 'meta_icon' => 'list-checks'],
         ['key' => 'last_action_label', 'type' => 'text', 'label' => 'sTask::global.task', 'sortable' => false],
         ['key' => 'last_run_at_label', 'type' => 'text', 'label' => 'sTask::global.last_run', 'sortable' => false, 'meta_icon' => 'clock-play'],
     ],
@@ -101,7 +101,7 @@
         'icon' => 'cpu',
         'title' => 'worker_title',
         'subtitle' => 'description',
-        'meta' => ['schedule_label', 'identifier', 'tasks_count', 'last_action_label', 'last_run_at_label'],
+        'meta' => ['schedule_label', 'identifier', 'tasks_count_label', 'last_action_label', 'last_run_at_label'],
     ],
     'modal' => [
         'enabled' => true,

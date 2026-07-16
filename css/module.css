@@ -1,0 +1,101 @@
+.evo-ui .stask-task-progress-row {
+    --stask-task-progress: 0%;
+    position: relative;
+}
+
+.evo-ui .stask-task-progress-row--active::after {
+    position: absolute;
+    z-index: 1;
+    bottom: -1px;
+    left: 0;
+    width: var(--stask-task-progress);
+    height: 2px;
+    border-radius: 0 2px 2px 0;
+    background: var(--evo-ui-primary, #2563eb);
+    box-shadow: 0 0 5px color-mix(in srgb, var(--evo-ui-primary, #2563eb) 45%, transparent);
+    content: '';
+    pointer-events: none;
+    transition: width 700ms ease-out;
+}
+
+.evo-ui .stask-task-message-cell {
+    width: clamp(28rem, 42vw, 72rem);
+    max-width: clamp(28rem, 42vw, 72rem);
+}
+
+.evo-ui .stask-task-message-cell > span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evo-ui .stask-task-time-column,
+.evo-ui .stask-task-time-cell {
+    width: 10rem;
+    min-width: 10rem;
+    max-width: 10rem;
+}
+
+.evo-ui .stask-task-time-cell {
+    white-space: nowrap;
+}
+
+.evo-ui .evo-ui-table--module:has(.stask-task-message-cell) .evo-ui-table__actions,
+.evo-ui .evo-ui-table--module:has(.stask-task-message-cell) .evo-ui-row-actions-cell {
+    width: 5.25rem;
+    min-width: 5.25rem;
+    max-width: 5.25rem;
+}
+
+.evo-ui .evo-ui-list-item [data-evo-column-key="message_text"] {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.evo-ui .evo-ui-list-item [data-evo-column-key="message_text"] dd {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.evo-ui .evo-ui-list-item [data-evo-column-key="message_text"] dd > span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evo-ui .evo-ui-list-item--compact:has([data-evo-column-key="message_text"]) .evo-ui-list-item__body {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.evo-ui .evo-ui-list-item--compact:has([data-evo-column-key="message_text"]) .evo-ui-list-item__meta {
+    justify-content: flex-start;
+}
+
+.evo-ui .stask-performance-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section {
+    margin-top: 1.5rem;
+}
+
+.evo-ui .stask-dashboard-tab .evo-ui-dashboard-section + .evo-ui-dashboard-section {
+    margin-top: 1.5rem;
+}
+
+.evo-ui .stask-dashboard-section--tasks > .evo-ui-card__header svg {
+    color: var(--evo-ui-info, #0284c7);
+}
+
+.evo-ui .stask-dashboard-section--errors > .evo-ui-card__header svg {
+    color: var(--evo-ui-danger, #dc2626);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .evo-ui .stask-task-progress-row--active::after {
+        transition: none;
+    }
+}

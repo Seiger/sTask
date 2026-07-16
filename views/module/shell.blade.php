@@ -20,6 +20,14 @@
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $moduleTitle }}</title>
     @include('evo::partials.assets')
+    <link
+        rel="stylesheet"
+        href="{{ rtrim(evo()->getConfig('site_url'), '/') }}/assets/site/stask-module.css?{{ evo()->getConfig('sTaskVer') }}"
+    >
+    <script
+        src="{{ rtrim(evo()->getConfig('site_url'), '/') }}/assets/site/stask-module.js?{{ evo()->getConfig('sTaskVer') }}"
+        defer
+    ></script>
 </head>
 <body
     class="evo-ui-page {{ $themeClasses }}"

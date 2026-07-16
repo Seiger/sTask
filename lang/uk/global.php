@@ -20,6 +20,18 @@
     'worker_cache' => 'Кеш воркерів',
     'clear_cache' => 'Очистити кеш',
     'value' => 'Значення',
+    'alert_severity_info' => 'Інформація',
+    'alert_severity_warning' => 'Попередження',
+    'alert_severity_error' => 'Помилка',
+    'performance_alert_low_success_rate' => 'Успішність виконання завдань нижча за поріг: :value',
+    'performance_alert_high_execution_time' => 'Середня тривалість виконання перевищує поріг: :value',
+    'performance_alert_high_memory_usage' => 'Середнє використання пам’яті перевищує поріг: :value',
+    'cache_stat_hits' => 'Влучання',
+    'cache_stat_misses' => 'Промахи',
+    'cache_stat_evictions' => 'Витіснення',
+    'cache_stat_hit_rate' => 'Частка влучань',
+    'cache_stat_cache_size' => 'Розмір кешу',
+    'cache_stat_memory_usage' => 'Використання пам’яті',
 
     // Dashboard
     'pending_tasks' => 'Очікують',

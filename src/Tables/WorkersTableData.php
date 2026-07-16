@@ -7,6 +7,7 @@ use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker as sWorker;
 use Seiger\sTask\Services\WorkerDiscovery;
 use Seiger\sTask\Services\WorkerService;
+use Seiger\sTask\Support\LiveProgressRow;
 
 class WorkersTableData
 {
@@ -28,9 +29,14 @@ class WorkersTableData
             ->values();
 
         $lastTasks = $this->lastTasksFor($workers->pluck('identifier')->all());
+        $activeTasks = $this->activeTasksFor($workers->pluck('identifier')->all());
 
         return $workers
-            ->map(fn (sWorker $worker): array => $this->row($worker, $lastTasks[$worker->identifier] ?? null))
+            ->map(fn (sWorker $worker): array => $this->row(
+                $worker,
+                $lastTasks[$worker->identifier] ?? null,
+                $activeTasks[$worker->identifier] ?? null,
+            ))
             ->all();
     }
 
@@ -338,7 +344,15 @@ class WorkersTableData
         }, SORT_REGULAR, $direction === 'desc');
     }
 
-    protected function row(sWorker $worker, ?sTaskModel $lastTask): array
+    /**
+     * Convert a worker and its task state into a module-table row.
+     *
+     * @param sWorker $worker Worker represented by the row
+     * @param sTaskModel|null $lastTask Most recently created task
+     * @param sTaskModel|null $activeTask Current task used for live progress
+     * @return array<string, mixed>
+     */
+    protected function row(sWorker $worker, ?sTaskModel $lastTask, ?sTaskModel $activeTask): array
     {
         $classExists = $worker->class_exists;
         $schedule = (array)data_get($worker->settings ?? [], 'schedule', []);
@@ -346,6 +360,7 @@ class WorkersTableData
         return [
             'id' => (int)$worker->id,
             'wire_key' => 'stask-worker-' . $worker->id,
+            'row_attributes' => LiveProgressRow::attributes($activeTask),
             'worker_title' => $worker->title,
             'identifier' => (string)$worker->identifier,
             'scope' => (string)$worker->scope,
@@ -369,6 +384,7 @@ class WorkersTableData
                 'color' => (int)$worker->hidden > 0 ? '#D97706' : '#16A34A',
             ],
             'tasks_count' => (int)$worker->tasks_count,
+            'tasks_count_label' => niceCount((int)$worker->tasks_count),
             'can_run' => $this->canRun($worker),
             'run_disabled' => !$this->canRun($worker),
             'last_action_label' => $lastTask?->action ?? '',
@@ -434,6 +450,23 @@ class WorkersTableData
     {
         return sTaskModel::query()
             ->whereIn('identifier', array_values(array_filter($identifiers)))
+            ->orderByDesc('created_at')
+            ->get()
+            ->unique('identifier')
+            ->keyBy('identifier');
+    }
+
+    /**
+     * Resolve the newest active task for every visible worker.
+     *
+     * @param array<int, string> $identifiers Visible worker identifiers
+     * @return Collection<string, sTaskModel>
+     */
+    protected function activeTasksFor(array $identifiers): Collection
+    {
+        return sTaskModel::query()
+            ->whereIn('identifier', array_values(array_filter($identifiers)))
+            ->whereIn('status', sTaskModel::activeStatuses())
             ->orderByDesc('created_at')
             ->get()
             ->unique('identifier')

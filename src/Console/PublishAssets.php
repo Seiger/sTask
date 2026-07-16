@@ -43,6 +43,8 @@ class PublishAssets extends Command
         // 1) Targets to delete before publishing
         $targets = [
             public_path('assets/site/stask.min.css'),
+            public_path('assets/site/stask-module.css'),
+            public_path('assets/site/stask-module.js'),
             public_path('assets/site/stask.js'),
             public_path('assets/site/stask.svg'),
             public_path('assets/site/seigerit.tooltip.js'),

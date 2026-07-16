@@ -5,6 +5,14 @@ use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Support\DashboardData;
 use Seiger\sTask\Tables\LogsTableData;
 
+/**
+ * Own the interactive sTask module tabs and their dashboard state.
+ *
+ * Dashboard interactions stay scoped to the module content without reloading
+ * the manager frame or disturbing keyed tables mounted on the other tabs.
+ *
+ * @since 2.0.0
+ */
 class ModulePanel extends Component
 {
     public array $rawTabs = [];

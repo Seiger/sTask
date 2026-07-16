@@ -4,6 +4,11 @@ use Illuminate\Support\Collection;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
 
+/**
+ * Build presentation-ready data for the sTask dashboard and performance tabs.
+ *
+ * @since 2.0.0
+ */
 class DashboardData
 {
     public function stats(): array
@@ -59,14 +64,64 @@ class DashboardData
         ];
     }
 
+    /**
+     * Return localized, presentation-ready performance alerts.
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function performanceAlerts(): array
     {
-        return sTaskFacade::getPerformanceAlerts();
+        return collect(sTaskFacade::getPerformanceAlerts())
+            ->map(function (array $alert): array {
+                $type = (string)($alert['type'] ?? '');
+                $severity = (string)($alert['severity'] ?? 'info');
+                $value = $alert['value'] ?? 0;
+                $valueLabel = match ($type) {
+                    'low_success_rate' => number_format((float)$value, 2, '.', ' ') . '%',
+                    'high_execution_time' => niceEta((float)$value),
+                    'high_memory_usage' => niceSize((float)$value),
+                    default => is_scalar($value) ? (string)$value : '',
+                };
+                $message = match ($type) {
+                    'low_success_rate' => __('sTask::global.performance_alert_low_success_rate', ['value' => $valueLabel]),
+                    'high_execution_time' => __('sTask::global.performance_alert_high_execution_time', ['value' => $valueLabel]),
+                    'high_memory_usage' => __('sTask::global.performance_alert_high_memory_usage', ['value' => $valueLabel]),
+                    default => (string)($alert['message'] ?? ''),
+                };
+
+                return array_replace($alert, [
+                    'severity_label' => __('sTask::global.alert_severity_' . $severity),
+                    'message' => $message,
+                    'value_label' => $valueLabel,
+                ]);
+            })
+            ->values()
+            ->all();
     }
 
+    /**
+     * Return localized worker-cache statistics with formatted memory usage.
+     *
+     * @return array<int, array{key: string, label: string, value: string}>
+     */
     public function cacheStats(): array
     {
-        return sTaskFacade::getCacheStats();
+        return collect(sTaskFacade::getCacheStats())
+            ->map(function (mixed $value, string $key): array {
+                $valueLabel = match ($key) {
+                    'memory_usage' => niceSize((float)$value),
+                    'hit_rate' => number_format((float)$value, 2, '.', ' ') . '%',
+                    default => is_numeric($value) ? number_format((float)$value, 0, '.', ' ') : (string)$value,
+                };
+
+                return [
+                    'key' => $key,
+                    'label' => __('sTask::global.cache_stat_' . $key),
+                    'value' => $valueLabel,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     protected function card(string $titleKey, string $icon, string $status, int $value, string $labelKey): array
@@ -101,6 +156,12 @@ class DashboardData
         ];
     }
 
+    /**
+     * Convert a task model into dashboard row data, including live-state hints.
+     *
+     * @param sTaskModel $task Persisted task with its worker and user relations
+     * @return array<string, mixed>
+     */
     protected function taskRow(sTaskModel $task): array
     {
         $status = sTaskModel::statusText((int)$task->status);
@@ -113,8 +174,10 @@ class DashboardData
             'status' => (int)$task->status,
             'status_label' => __('sTask::global.' . $status),
             'status_color' => $this->statusColor((int)$task->status),
+            'is_active' => in_array((int)$task->status, sTaskModel::activeStatuses(), true),
             'progress' => max(0, min(100, (int)$task->progress)),
             'created_at' => $task->created_at?->format('Y-m-d H:i') ?? '',
+            'start_at' => $task->start_at?->format('Y-m-d H:i') ?? '',
             'message' => trim((string)($task->message ?? '')),
             'detail_url' => route('sTask.task.show', $task->id),
         ];

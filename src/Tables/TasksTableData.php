@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker as sWorker;
+use Seiger\sTask\Support\LiveProgressRow;
 
 class TasksTableData
 {
@@ -212,14 +213,19 @@ class TasksTableData
         return $query->orderBy($sort, $direction)->orderBy('id', 'desc');
     }
 
+    /**
+     * Build a table row without truncating live task messages on the server.
+     */
     protected function row(sTaskModel $task): array
     {
         $status = sTaskModel::statusText((int)$task->status);
         $priority = (string)($task->priority ?: 'normal');
+        $message = trim((string)$task->message);
 
         return [
             'id' => (int)$task->id,
             'wire_key' => 'stask-task-' . $task->id,
+            'row_attributes' => LiveProgressRow::attributes($task),
             'id_label' => '#' . $task->id,
             'id_link' => [
                 'label' => '#' . $task->id,
@@ -243,7 +249,7 @@ class TasksTableData
             'progress' => max(0, min(100, (int)$task->progress)),
             'progress_label' => max(0, min(100, (int)$task->progress)) . '%',
             'attempts_label' => (int)$task->attempts . ' / ' . (int)$task->max_attempts,
-            'message_excerpt' => str($task->message ?: __('sTask::global.raw_log_empty'))->limit(80)->toString(),
+            'message_text' => $message !== '' ? $message : __('sTask::global.raw_log_empty'),
             'started_by' => (string)($task->user->username ?? 'system'),
             'created_at_label' => $task->created_at?->format('Y-m-d H:i') ?? '',
             'start_at_label' => $task->start_at?->format('Y-m-d H:i') ?? '',

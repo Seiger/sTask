@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
+use Seiger\sTask\Support\LiveProgressRow;
 
 class LogsTableData
 {
@@ -27,6 +28,11 @@ class LogsTableData
             ->all();
     }
 
+    /**
+     * Return filter choices for workers, actions, and task statuses.
+     *
+     * @return array<int, array{key: string, items: array<int, array{id: int, label: string}>}>
+     */
     public function filterGroups(): array
     {
         return [
@@ -41,6 +47,10 @@ class LogsTableData
                         'label' => (string)$worker->identifier,
                     ])
                     ->all(),
+            ],
+            [
+                'key' => 'action',
+                'items' => $this->actionOptions(),
             ],
             [
                 'key' => 'status',
@@ -71,6 +81,7 @@ class LogsTableData
         return __('sTask::global.task') . ' #' . ((int)($id ?: ($data['id'] ?? 0)));
     }
 
+    /** Build the filtered and sorted task-log query for the current table state. */
     protected function query(): Builder
     {
         $query = sTaskModel::query()->with(['worker', 'user']);
@@ -114,6 +125,26 @@ class LogsTableData
             }
         }
 
+        $actionIds = collect((array)($filters['action'] ?? []))
+            ->map(fn ($id): int => (int)$id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($actionIds !== []) {
+            $actionMap = $this->actionMap();
+            $actions = collect($actionIds)
+                ->map(fn (int $id): string => (string)($actionMap[$id] ?? ''))
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($actions !== []) {
+                $query->whereIn('action', $actions);
+            }
+        }
+
         $statuses = collect((array)($filters['status'] ?? []))
             ->map(fn ($status): int => (int)$status)
             ->filter(fn (int $status): bool => in_array($status, $this->allowedStatuses(), true))
@@ -138,6 +169,40 @@ class LogsTableData
         $direction = ((string)($this->state['direction'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
 
         return $query->orderBy($sort, $direction)->orderBy('id', 'desc');
+    }
+
+    /**
+     * Return distinct logged actions as EvoUI multi-select options.
+     *
+     * @return array<int, array{id: int, label: string}>
+     * @since 2.1.0
+     */
+    protected function actionOptions(): array
+    {
+        return collect($this->actionMap())
+            ->map(fn (string $action, int $id): array => ['id' => $id, 'label' => $action])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Map stable per-request option identifiers to distinct logged actions.
+     *
+     * @return array<int, string>
+     * @since 2.1.0
+     */
+    protected function actionMap(): array
+    {
+        return sTaskModel::query()
+            ->select('action')
+            ->whereNotNull('action')
+            ->distinct()
+            ->orderBy('action')
+            ->pluck('action')
+            ->filter()
+            ->values()
+            ->mapWithKeys(fn (string $action, int $index): array => [$index + 1 => $action])
+            ->all();
     }
 
     protected function row(sTaskModel $task): array
@@ -172,6 +237,7 @@ class LogsTableData
 
         return [
             'id' => (int)$task->id,
+            'row_attributes' => LiveProgressRow::attributes($task),
             'id_label' => '#' . $task->id,
             'worker_identifier' => (string)$task->identifier,
             'worker_title' => (string)($task->worker->title ?? $task->identifier),

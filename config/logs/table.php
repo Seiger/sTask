@@ -25,6 +25,14 @@ return [
             'default' => [],
         ],
         [
+            'state' => 'action',
+            'type' => 'multi-select',
+            'icon' => 'bolt',
+            'label' => 'sTask::global.action',
+            'searchable' => true,
+            'default' => [],
+        ],
+        [
             'state' => 'status',
             'type' => 'multi-select',
             'icon' => 'activity',
@@ -43,9 +51,9 @@ return [
     'columns' => [
         ['key' => 'id_link', 'type' => 'link', 'label' => 'ID', 'sortable' => true, 'sort_field' => 'id', 'default_direction' => 'desc'],
         ['key' => 'worker_title', 'type' => 'text', 'label' => 'sTask::global.worker', 'sortable' => true, 'sort_field' => 'identifier'],
-        ['key' => 'action', 'type' => 'text', 'label' => 'sTask::global.action', 'sortable' => true, 'sort_field' => 'action'],
+        ['key' => 'action', 'type' => 'text', 'label' => 'sTask::global.action', 'sortable' => true, 'sort_field' => 'action', 'meta_icon' => 'bolt'],
         ['key' => 'status_badge', 'type' => 'badge', 'label' => 'sTask::global.status', 'sortable' => true, 'sort_field' => 'status'],
-        ['key' => 'progress_label', 'type' => 'text', 'label' => 'sTask::global.progress', 'sortable' => true, 'sort_field' => 'progress'],
+        ['key' => 'progress_label', 'type' => 'text', 'label' => 'sTask::global.progress', 'cell_class' => 'stask-task-progress-cell', 'sortable' => true, 'sort_field' => 'progress'],
         ['key' => 'created_at_label', 'type' => 'text', 'label' => 'sTask::global.created', 'sortable' => true, 'sort_field' => 'created_at', 'default_direction' => 'desc'],
         ['key' => 'start_at_label', 'type' => 'text', 'label' => 'sTask::global.start_at', 'sortable' => true, 'sort_field' => 'start_at', 'default_direction' => 'desc'],
         ['key' => 'finished_at_label', 'type' => 'text', 'label' => 'sTask::global.finished_at', 'sortable' => true, 'sort_field' => 'finished_at', 'default_direction' => 'desc'],
