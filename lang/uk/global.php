@@ -203,6 +203,7 @@
     'schedule_periodic' => 'Періодично о...',
     'schedule_regular' => 'Регулярно в період з... по...',
     'schedule_supervisor' => 'Супервізор (безперервний процес)',
+    'schedule_supervisor_short' => 'Супервізор',
     'supervisor_key' => 'Ключ супервізора',
     'supervisor_state' => 'Стан супервізора',
     'supervisor_pid' => 'PID',
