@@ -203,6 +203,7 @@
     'schedule_periodic' => 'Periodically at...',
     'schedule_regular' => 'Regularly in period from... to...',
     'schedule_supervisor' => 'Supervisor (continuous process)',
+    'schedule_supervisor_short' => 'Supervisor',
     'supervisor_key' => 'Supervisor key',
     'supervisor_state' => 'Supervisor state',
     'supervisor_pid' => 'PID',

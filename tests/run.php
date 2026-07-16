@@ -355,7 +355,8 @@ $notContains($workersTableConfig, "'state' => 'active',\n            'type' => '
 $notContains($workersTableConfig, "'default' => 'all'", 'Workers table filters must not use static all select defaults.');
 $contains($workersTableConfig, "'key' => 'worker_title'", 'Workers table config must include worker title column.');
 $contains($workersTableConfig, "'key' => 'description_excerpt'", 'Workers table config must include description column.');
-$contains($workersTableConfig, "'key' => 'schedule_label'", 'Workers table config must include schedule display column.');
+$contains($workersTableConfig, "'key' => 'schedule_display', 'type' => 'chips'", 'Workers table config must combine the schedule and Supervisor state in one column.');
+$notContains($workersTableConfig, "'key' => 'supervisor_state_badge'", 'Workers table config must not expose a noisy standalone Supervisor state column.');
 $contains($workersTableConfig, "'key' => 'last_action_label'", 'Workers table config must include last action column.');
 $contains($workersTableConfig, "'key' => 'last_run_at_label'", 'Workers table config must include last run column.');
 $contains($workersTableConfig, "sTask::global.default_position", 'Workers edit modal must label position as default position.');
@@ -432,6 +433,9 @@ $contains($workersTableData, 'last_action_label', 'WorkersTableData must expose 
 $contains($workersTableData, 'last_run_at_label', 'WorkersTableData must expose last run timestamp data.');
 $contains($workersTableData, 'schedule_label', 'WorkersTableData must expose schedule display text.');
 $contains($workersTableData, 'protected function scheduleLabel', 'WorkersTableData must format schedule display text.');
+$contains($workersTableData, 'protected function scheduleDisplay', 'WorkersTableData must build a combined schedule and Supervisor state cell.');
+$contains($workersTableData, "'sTask::global.schedule_supervisor_short'", 'Workers table must use the compact Supervisor schedule label.');
+$contains($workersTableData, "\$item['badge'] = \$badge['label'];", 'Workers table must place the Supervisor state badge beside its schedule.');
 $contains($workersTableData, 'statusColor', 'WorkersTableData must map last task statuses to badge colors.');
 
 $routes = $read('src/Http/routes.php');
@@ -539,6 +543,7 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         'permission_access',
         'schedule_supervisor',
         'supervisor_key',
+        'schedule_supervisor_short',
         'supervisor_state',
         'supervisor_pid',
         'supervisor_heartbeat',

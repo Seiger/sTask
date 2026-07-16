@@ -415,6 +415,7 @@ class WorkersTableData
             'description' => $worker->description,
             'description_excerpt' => str($worker->description ?: __('sTask::global.worker_description'))->limit(96)->toString(),
             'schedule_label' => $this->scheduleLabel($schedule),
+            'schedule_display' => $this->scheduleDisplay($schedule, $supervisorState),
             'supervisor_state_badge' => $this->supervisorStateBadge($supervisorState),
             'active' => (bool)$worker->active,
             'active_badge' => [
@@ -451,7 +452,7 @@ class WorkersTableData
         $type = (string)($schedule['type'] ?? 'manual');
 
         if ($type === 'supervisor') {
-            return __('sTask::global.schedule_supervisor');
+            return __('sTask::global.schedule_supervisor_short');
         }
 
         if ($type === 'once') {
@@ -482,6 +483,39 @@ class WorkersTableData
         return $time !== '' && !in_array($frequency, ['minutely', 'every_5min', 'every_15min', 'every_30min'], true)
             ? $label . ' ' . __('sTask::global.schedule_at') . ' ' . $time
             : $label;
+    }
+
+    /**
+     * Build the compact schedule cell used by the workers table and list view.
+     *
+     * @param array<string, mixed> $schedule Worker schedule settings
+     * @param sSupervisorState|null $supervisorState Current persisted supervisor state
+     * @return array<int, array<string, mixed>> Schedule chip descriptors
+     */
+    protected function scheduleDisplay(array $schedule, ?sSupervisorState $supervisorState): array
+    {
+        $label = $this->scheduleLabel($schedule);
+
+        if ($label === '') {
+            return [];
+        }
+
+        $item = [
+            'label' => $label,
+            'icon' => 'clock',
+        ];
+
+        if ((string)($schedule['type'] ?? '') === 'supervisor') {
+            $item['icon'] = 'activity-heartbeat';
+            $badge = $this->supervisorStateBadge($supervisorState);
+
+            if ($badge) {
+                $item['badge'] = $badge['label'];
+                $item['color'] = $badge['color'];
+            }
+        }
+
+        return [$item];
     }
 
     protected function scheduleFrequencyLabel(string $frequency): string
