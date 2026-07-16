@@ -319,6 +319,8 @@ $contains($logsTableConfig, "'key' => 'stask.logs'", 'Logs table config must use
 $contains($logsTableConfig, "\\Seiger\\sTask\\Tables\\LogsTableData::class", 'Logs table config must use the sTask logs provider.');
 $contains($logsTableConfig, "'state' => 'worker_id'", 'Logs table config must include worker filter.');
 $contains($logsTableConfig, "'state' => 'status'", 'Logs table config must include status filter.');
+$contains($logsTableConfig, "'state' => 'started_by'", 'Logs table config must include user filter.');
+$appearsBefore($logsTableConfig, "'state' => 'started_by'", "'state' => 'created_at'", 'Logs user filter must precede the created period filter.');
 $contains($logsTableConfig, "'type' => 'date-range'", 'Logs table config must include created date-range filter.');
 $appearsBefore($logsTableConfig, "'key' => 'worker_title'", "'key' => 'worker_identifier'", 'Logs table identifier column must follow the worker column.');
 $appearsBefore($logsTableConfig, "'key' => 'worker_identifier'", "'key' => 'action'", 'Logs table identifier column must precede the action column.');
@@ -343,6 +345,9 @@ $contains($logsTableData, "get(['id', 'identifier', 'class'])", 'Logs worker fil
 $contains($logsTableData, "trim((string)\$worker->title) !== ''", 'Logs worker filter must prefer worker titles over identifiers.');
 $contains($logsTableData, "sortBy(fn (array \$option): string => mb_strtolower(\$option['label']))", 'Logs worker filter must sort the resolved display titles in memory.');
 $contains($logsTableData, "whereIn('status'", 'LogsTableData must apply multi-selected statuses.');
+$contains($logsTableData, "'id' => -1", 'Logs user filter must expose the system starter option.');
+$contains($logsTableData, "whereIn('started_by'", 'LogsTableData must filter tasks by selected users.');
+$contains($logsTableData, "orWhereNull('started_by')", 'Logs system filter must include tasks without a starter id.');
 $contains($logsTableData, "where('created_at', '>='", 'LogsTableData must apply date range from bound.');
 $contains($logsTableData, "where('created_at', '<='", 'LogsTableData must apply date range to bound.');
 $contains($logsTableData, 'prettyPayload', 'LogsTableData must pretty-print modal meta/result payloads.');

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use EvolutionCMS\Models\User;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Support\LiveProgressRow;
@@ -54,6 +55,10 @@ class LogsTableData
                     ['id' => sTaskModel::TASK_STATUS_FAILED, 'label' => __('sTask::global.failed')],
                 ],
             ],
+            [
+                'key' => 'started_by',
+                'items' => $this->userOptions(),
+            ],
         ];
     }
 
@@ -74,6 +79,28 @@ class LogsTableData
             ])
             ->sortBy(fn (array $option): string => mb_strtolower($option['label']))
             ->values()
+            ->all();
+    }
+
+    /** @return array<int, array{id: int, label: string}> */
+    protected function userOptions(): array
+    {
+        $usedUserIds = sTaskModel::query()
+            ->where('started_by', '>', 0)
+            ->distinct()
+            ->pluck('started_by');
+
+        $users = User::query()
+            ->whereIn('id', $usedUserIds)
+            ->orderBy('username')
+            ->get(['id', 'username'])
+            ->map(fn (User $user): array => [
+                'id' => (int)$user->id,
+                'label' => (string)$user->username,
+            ]);
+
+        return collect([['id' => -1, 'label' => 'system']])
+            ->concat($users)
             ->all();
     }
 
@@ -166,6 +193,31 @@ class LogsTableData
 
         if ($statuses !== []) {
             $query->whereIn('status', $statuses);
+        }
+
+        $selectedStarterIds = collect((array)($filters['started_by'] ?? []))
+            ->map(fn ($id): int => (int)$id)
+            ->unique()
+            ->values()
+            ->all();
+        $userIds = array_values(array_filter($selectedStarterIds, fn (int $id): bool => $id > 0));
+        $includeSystem = in_array(-1, $selectedStarterIds, true);
+
+        if ($includeSystem && $userIds !== []) {
+            $query->where(function (Builder $scope) use ($userIds): void {
+                $scope
+                    ->whereIn('started_by', $userIds)
+                    ->orWhereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($includeSystem) {
+            $query->where(function (Builder $scope): void {
+                $scope
+                    ->whereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($userIds !== []) {
+            $query->whereIn('started_by', $userIds);
         }
 
         $range = (array)($filters['created_at'] ?? []);
