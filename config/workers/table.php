@@ -92,7 +92,8 @@
         ['key' => 'worker_title', 'type' => 'text', 'label' => 'sTask::global.worker', 'cell_class' => 'evo-ui-table__title-column evo-ui-table__title-text', 'sortable' => true, 'sort_field' => 'title'],
         ['key' => 'description_excerpt', 'type' => 'text', 'label' => 'sTask::global.description'],
         ['key' => 'schedule_label', 'type' => 'text', 'label' => 'sTask::global.schedule', 'sortable' => false, 'meta_icon' => 'clock'],
-        ['key' => 'tasks_count_label', 'type' => 'text', 'label' => 'sTask::global.tasks_count', 'sortable' => true, 'sort_field' => 'tasks_count', 'meta_icon' => 'list-checks'],
+        ['key' => 'supervisor_state_badge', 'type' => 'badge', 'label' => 'sTask::global.supervisor_state', 'sortable' => false],
+        ['key' => 'tasks_count_label', 'type' => 'text', 'label' => 'sTask::global.tasks_count', 'sortable' => true, 'sort_field' => 'tasks_count', 'meta_icon' => 'clipboard-list'],
         ['key' => 'last_action_label', 'type' => 'text', 'label' => 'sTask::global.task', 'sortable' => false],
         ['key' => 'last_run_at_label', 'type' => 'text', 'label' => 'sTask::global.last_run', 'sortable' => false, 'meta_icon' => 'clock-play'],
     ],
@@ -124,12 +125,7 @@
                 'type' => 'select',
                 'label' => 'sTask::global.schedule_type',
                 'visible_if' => ['field' => 'schedule_enabled', 'value' => true],
-                'options' => [
-                    ['value' => 'manual', 'label' => 'sTask::global.schedule_manual'],
-                    ['value' => 'once', 'label' => 'sTask::global.schedule_once'],
-                    ['value' => 'periodic', 'label' => 'sTask::global.schedule_periodic'],
-                    ['value' => 'regular', 'label' => 'sTask::global.schedule_regular'],
-                ],
+                'options_provider' => 'scheduleTypeOptions',
             ],
             [
                 'name' => 'schedule_datetime',
@@ -196,6 +192,69 @@
                 'visible_if_all' => [
                     ['field' => 'schedule_enabled', 'value' => true],
                     ['field' => 'schedule_type', 'value' => 'regular'],
+                ],
+            ],
+            [
+                'name' => 'supervisor_key',
+                'type' => 'static',
+                'label' => 'sTask::global.supervisor_key',
+                'visible_if_all' => [
+                    ['field' => 'schedule_enabled', 'value' => true],
+                    ['field' => 'schedule_type', 'value' => 'supervisor'],
+                ],
+            ],
+            [
+                'name' => 'supervisor_state_badge',
+                'type' => 'badge',
+                'label' => 'sTask::global.supervisor_state',
+                'visible_if_all' => [
+                    ['field' => 'schedule_enabled', 'value' => true],
+                    ['field' => 'schedule_type', 'value' => 'supervisor'],
+                ],
+            ],
+            [
+                'name' => 'supervisor_pid',
+                'type' => 'static',
+                'label' => 'sTask::global.supervisor_pid',
+                'visible_if_all' => [
+                    ['field' => 'schedule_enabled', 'value' => true],
+                    ['field' => 'schedule_type', 'value' => 'supervisor'],
+                ],
+            ],
+            [
+                'name' => 'supervisor_heartbeat_at',
+                'type' => 'static',
+                'label' => 'sTask::global.supervisor_heartbeat',
+                'visible_if_all' => [
+                    ['field' => 'schedule_enabled', 'value' => true],
+                    ['field' => 'schedule_type', 'value' => 'supervisor'],
+                ],
+            ],
+            [
+                'name' => 'supervisor_uptime',
+                'type' => 'static',
+                'label' => 'sTask::global.supervisor_uptime',
+                'visible_if_all' => [
+                    ['field' => 'schedule_enabled', 'value' => true],
+                    ['field' => 'schedule_type', 'value' => 'supervisor'],
+                ],
+            ],
+            [
+                'name' => 'supervisor_last_diagnostic',
+                'type' => 'static',
+                'label' => 'sTask::global.supervisor_last_diagnostic',
+                'visible_if_all' => [
+                    ['field' => 'schedule_enabled', 'value' => true],
+                    ['field' => 'schedule_type', 'value' => 'supervisor'],
+                ],
+            ],
+            [
+                'name' => 'supervisor_last_transition_at',
+                'type' => 'static',
+                'label' => 'sTask::global.supervisor_last_transition',
+                'visible_if_all' => [
+                    ['field' => 'schedule_enabled', 'value' => true],
+                    ['field' => 'schedule_type', 'value' => 'supervisor'],
                 ],
             ],
             ['name' => 'settings_payload', 'type' => 'textarea', 'label' => 'sTask::global.additional_settings', 'rows' => 8, 'help' => 'sTask::global.additional_settings_help'],

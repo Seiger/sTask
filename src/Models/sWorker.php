@@ -41,6 +41,16 @@ class sWorker extends Model
     }
 
     /**
+     * Get separately persisted live supervisor states owned by this worker.
+     *
+     * @return HasMany<sSupervisorState, $this>
+     */
+    public function supervisorStates(): HasMany
+    {
+        return $this->hasMany(sSupervisorState::class, 'worker_id');
+    }
+
+    /**
      * Scope for active workers
      */
     public function scopeActive($query)

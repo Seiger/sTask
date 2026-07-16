@@ -3,8 +3,10 @@
 use Illuminate\Console\Command;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Log;
+use Seiger\sTask\Contracts\SupervisorWorkerInterface;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
+use Seiger\sTask\Services\SupervisorService;
 use Seiger\sTask\Services\TaskProgress;
 use Seiger\sTask\Services\WorkerService;
 
@@ -135,16 +137,33 @@ class TaskWorker extends Command
                     continue;
                 }
 
-                // Check if worker has taskMake method (scheduled workers only)
-                if (!method_exists($worker, 'taskMake')) {
-                    continue;
-                }
-
                 // Get schedule configuration
-                $schedule = $worker->getSchedule();
+                $schedule = method_exists($worker, 'getSchedule')
+                    ? $worker->getSchedule()
+                    : (array)data_get($workerRecord->settings ?? [], 'schedule', []);
 
                 // Skip if schedule not enabled
                 if (!($schedule['enabled'] ?? false)) {
+                    continue;
+                }
+
+                $scheduleType = $schedule['type'] ?? 'manual';
+
+                // Supervisor schedules supervise live state directly and never queue a health-check task.
+                if ($scheduleType === 'supervisor') {
+                    $supervisor = app(SupervisorService::class);
+                    $created += $worker instanceof SupervisorWorkerInterface
+                        ? $supervisor->supervise($workerRecord, $worker)
+                        : $supervisor->recordContractFailure(
+                            $workerRecord,
+                            'supervisor-contract',
+                            __('sTask::global.supervisor_contract_required')
+                        );
+                    continue;
+                }
+
+                // Regular scheduled workers still require the conventional make action.
+                if (!method_exists($worker, 'taskMake')) {
                     continue;
                 }
 
@@ -158,7 +177,6 @@ class TaskWorker extends Command
                 }
 
                 // Determine when task should start
-                $scheduleType = $schedule['type'] ?? 'manual';
                 $startAt = null;
 
                 if ($scheduleType === 'once') {
