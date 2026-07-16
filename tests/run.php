@@ -339,6 +339,9 @@ $contains($logsTableData, 'public function filterGroups(): array', 'LogsTableDat
 $contains($logsTableData, 'public function modalData(int $id): array', 'LogsTableData must expose task detail modal data.');
 $contains($logsTableData, "sTaskModel::query()->with(['worker', 'user'])", 'LogsTableData must query real task rows with worker and user relations.');
 $contains($logsTableData, "whereIn('identifier'", 'LogsTableData must apply worker multi-select filter through identifiers.');
+$contains($logsTableData, "get(['id', 'identifier', 'class'])", 'Logs worker filter must load the class required by the title accessor.');
+$contains($logsTableData, "trim((string)\$worker->title) !== ''", 'Logs worker filter must prefer worker titles over identifiers.');
+$contains($logsTableData, "sortBy(fn (array \$option): string => mb_strtolower(\$option['label']))", 'Logs worker filter must sort the resolved display titles in memory.');
 $contains($logsTableData, "whereIn('status'", 'LogsTableData must apply multi-selected statuses.');
 $contains($logsTableData, "where('created_at', '>='", 'LogsTableData must apply date range from bound.');
 $contains($logsTableData, "where('created_at', '<='", 'LogsTableData must apply date range to bound.');
