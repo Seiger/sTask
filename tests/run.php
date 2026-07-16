@@ -338,6 +338,7 @@ $contains($logsTableConfig, "'submit' => false", 'Logs table detail modal must h
 $contains($logsTableConfig, "'type' => 'code'", 'Logs table detail modal must render log/meta/result code fields.');
 
 $logsTableData = $read('src/Tables/LogsTableData.php');
+$taskModel = $read('src/Models/sTaskModel.php');
 $contains($logsTableData, 'class LogsTableData', 'LogsTableData provider must exist.');
 $contains($logsTableData, 'public function total(): int', 'LogsTableData must expose total().');
 $contains($logsTableData, 'public function rows(int $page, int $perPage): array', 'LogsTableData must expose rows().');
@@ -353,6 +354,7 @@ $contains($logsTableData, "'id' => -1", 'Logs user filter must expose the system
 $contains($logsTableData, "whereIn('started_by'", 'LogsTableData must filter tasks by selected users.');
 $contains($logsTableData, "orWhereNull('started_by')", 'Logs system filter must include tasks without a starter id.');
 $contains($logsTableData, "niceEta((float)\$task->duration)", 'LogsTableData must format execution duration with niceEta().');
+$contains($taskModel, "max(0, (int)\$this->start_at->diffInSeconds(\$end))", 'Task duration must be calculated forward from start and never become negative.');
 $contains($logsTableData, 'protected function orderByDuration', 'LogsTableData must provide computed duration sorting.');
 $contains($logsTableData, "'pgsql' => 'COALESCE(EXTRACT(EPOCH", 'Logs duration sorting must support PostgreSQL.');
 $contains($logsTableData, "'mysql', 'mariadb' => 'COALESCE(TIMESTAMPDIFF", 'Logs duration sorting must support MySQL and MariaDB.');
