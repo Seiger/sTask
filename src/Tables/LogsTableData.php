@@ -232,6 +232,10 @@ class LogsTableData
         $sort = $this->sortField((string)($this->state['sort'] ?? ''));
         $direction = ((string)($this->state['direction'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
 
+        if ($sort === 'duration') {
+            return $this->orderByDuration($query, $direction)->orderBy('id', 'desc');
+        }
+
         return $query->orderBy($sort, $direction)->orderBy('id', 'desc');
     }
 
@@ -321,7 +325,21 @@ class LogsTableData
             'start_at_label' => $task->start_at?->format('Y-m-d H:i') ?? '',
             'finished_at_label' => $task->finished_at?->format('Y-m-d H:i') ?? '',
             'updated_at_label' => $task->updated_at?->format('Y-m-d H:i') ?? '',
+            'duration_label' => $task->duration !== null ? niceEta((float)$task->duration) : '',
         ];
+    }
+
+    protected function orderByDuration(Builder $query, string $direction): Builder
+    {
+        $expression = match ($query->getConnection()->getDriverName()) {
+            'pgsql' => 'COALESCE(EXTRACT(EPOCH FROM (COALESCE(finished_at, CURRENT_TIMESTAMP) - start_at)), 0)',
+            'mysql', 'mariadb' => 'COALESCE(TIMESTAMPDIFF(SECOND, start_at, COALESCE(finished_at, CURRENT_TIMESTAMP)), 0)',
+            'sqlite' => 'COALESCE((julianday(COALESCE(finished_at, CURRENT_TIMESTAMP)) - julianday(start_at)) * 86400, 0)',
+            'sqlsrv' => 'COALESCE(DATEDIFF(SECOND, start_at, COALESCE(finished_at, CURRENT_TIMESTAMP)), 0)',
+            default => 'COALESCE(start_at, CURRENT_TIMESTAMP)',
+        };
+
+        return $query->orderByRaw($expression . ' ' . ($direction === 'asc' ? 'ASC' : 'DESC'));
     }
 
     protected function allowedStatuses(): array

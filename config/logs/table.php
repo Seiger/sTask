@@ -68,6 +68,7 @@ return [
         ['key' => 'start_at_label', 'type' => 'text', 'label' => 'sTask::global.start_at', 'sortable' => true, 'sort_field' => 'start_at', 'default_direction' => 'desc'],
         ['key' => 'finished_at_label', 'type' => 'text', 'label' => 'sTask::global.finished_at', 'sortable' => true, 'sort_field' => 'finished_at', 'default_direction' => 'desc'],
         ['key' => 'updated_at_label', 'type' => 'text', 'label' => 'sTask::global.updated', 'sortable' => true, 'sort_field' => 'updated_at', 'default_direction' => 'desc'],
+        ['key' => 'duration_label', 'type' => 'text', 'label' => 'sTask::global.supervisor_uptime', 'sortable' => true, 'sort_field' => 'duration', 'default_direction' => 'desc'],
     ],
     'list' => [
         'media' => false,

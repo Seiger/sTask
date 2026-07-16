@@ -326,6 +326,9 @@ $appearsBefore($logsTableConfig, "'key' => 'worker_title'", "'key' => 'worker_id
 $appearsBefore($logsTableConfig, "'key' => 'worker_identifier'", "'key' => 'action'", 'Logs table identifier column must precede the action column.');
 $appearsBefore($logsTableConfig, "'key' => 'progress_label'", "'key' => 'started_by'", 'Logs table started-by column must follow progress.');
 $appearsBefore($logsTableConfig, "'key' => 'started_by'", "'key' => 'created_at_label'", 'Logs table started-by column must precede created time.');
+$contains($logsTableConfig, "'key' => 'duration_label'", 'Logs table config must include execution duration.');
+$contains($logsTableConfig, "'sort_field' => 'duration'", 'Logs execution duration must be sortable by its computed field.');
+$appearsBefore($logsTableConfig, "'key' => 'updated_at_label'", "'key' => 'duration_label'", 'Logs execution duration must be the final data column before row actions.');
 $contains($logsTableConfig, "'row_dblclick_action' => 'details'", 'Logs table rows must open the details action modal on double-click.');
 $contains($logsTableConfig, "'method' => 'openActionModal'", 'Logs table details must open an EvoUI action modal.');
 $contains($logsTableConfig, "'action_argument' => true", 'Logs table action modal must pass action key and task id.');
@@ -348,6 +351,11 @@ $contains($logsTableData, "whereIn('status'", 'LogsTableData must apply multi-se
 $contains($logsTableData, "'id' => -1", 'Logs user filter must expose the system starter option.');
 $contains($logsTableData, "whereIn('started_by'", 'LogsTableData must filter tasks by selected users.');
 $contains($logsTableData, "orWhereNull('started_by')", 'Logs system filter must include tasks without a starter id.');
+$contains($logsTableData, "niceEta((float)\$task->duration)", 'LogsTableData must format execution duration with niceEta().');
+$contains($logsTableData, 'protected function orderByDuration', 'LogsTableData must provide computed duration sorting.');
+$contains($logsTableData, "'pgsql' => 'COALESCE(EXTRACT(EPOCH", 'Logs duration sorting must support PostgreSQL.');
+$contains($logsTableData, "'mysql', 'mariadb' => 'COALESCE(TIMESTAMPDIFF", 'Logs duration sorting must support MySQL and MariaDB.');
+$contains($logsTableData, "'sqlite' => 'COALESCE((julianday", 'Logs duration sorting must support SQLite.');
 $contains($logsTableData, "where('created_at', '>='", 'LogsTableData must apply date range from bound.');
 $contains($logsTableData, "where('created_at', '<='", 'LogsTableData must apply date range to bound.');
 $contains($logsTableData, 'prettyPayload', 'LogsTableData must pretty-print modal meta/result payloads.');
