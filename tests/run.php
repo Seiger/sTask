@@ -187,6 +187,7 @@ $contains($dashboardData, 'public function recentTasks', 'DashboardData must exp
 $contains($dashboardData, 'public function recentErrors', 'DashboardData must expose recent failed task rows.');
 $contains($dashboardData, 'statusColor', 'DashboardData must map status tones/colors.');
 $contains($dashboardData, 'performanceCards', 'DashboardData must expose performance cards.');
+$contains($dashboardData, "metricCard('average_duration', 'stopwatch'", 'Average-duration card must use the thematic stopwatch icon.');
 $contains($dashboardData, 'performanceAlerts', 'DashboardData must expose performance alerts.');
 $contains($dashboardData, 'cacheStats', 'DashboardData must expose cache stats.');
 $contains($dashboardData, 'sTaskFacade::getPerformanceMetrics', 'DashboardData performance cards must use real metrics.');

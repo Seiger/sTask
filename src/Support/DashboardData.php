@@ -59,7 +59,7 @@ class DashboardData
         return [
             $this->metricCard('total_tasks', 'clipboard-list', 'neutral', (int)($tasks['total'] ?? 0), 'last_24_hours'),
             $this->metricCard('success_rate', 'activity', 'success', (float)($performance['success_rate'] ?? 0) . '%', 'performance'),
-            $this->metricCard('average_duration', 'timer', 'info', (float)($performance['average_duration'] ?? 0) . 's', 'performance'),
+            $this->metricCard('average_duration', 'stopwatch', 'info', (float)($performance['average_duration'] ?? 0) . 's', 'performance'),
             $this->metricCard('cache_entries', 'database', 'primary', (int)($cache['total_cached'] ?? $cache['cached_workers'] ?? 0), 'worker_cache'),
         ];
     }
