@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use EvolutionCMS\Models\User;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker as sWorker;
 use Seiger\sTask\Support\LiveProgressRow;
@@ -48,6 +49,10 @@ class TasksTableData
                     ['id' => sTaskModel::TASK_STATUS_FINISHED, 'label' => __('sTask::global.completed')],
                     ['id' => sTaskModel::TASK_STATUS_FAILED, 'label' => __('sTask::global.failed')],
                 ],
+            ],
+            [
+                'key' => 'started_by',
+                'items' => $this->userOptions(),
             ],
             [
                 'key' => 'priority',
@@ -175,6 +180,31 @@ class TasksTableData
             $query->whereIn('status', $statuses);
         }
 
+        $selectedStarterIds = collect((array)($filters['started_by'] ?? []))
+            ->map(fn ($id): int => (int)$id)
+            ->unique()
+            ->values()
+            ->all();
+        $userIds = array_values(array_filter($selectedStarterIds, fn (int $id): bool => $id > 0));
+        $includeSystem = in_array(-1, $selectedStarterIds, true);
+
+        if ($includeSystem && $userIds !== []) {
+            $query->where(function (Builder $scope) use ($userIds): void {
+                $scope
+                    ->whereIn('started_by', $userIds)
+                    ->orWhereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($includeSystem) {
+            $query->where(function (Builder $scope): void {
+                $scope
+                    ->whereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($userIds !== []) {
+            $query->whereIn('started_by', $userIds);
+        }
+
         $priorities = collect((array)($filters['priority'] ?? []))
             ->map(fn ($priority): int => (int)$priority)
             ->map(fn (int $priority): ?string => $this->priorityFilterValue($priority))
@@ -260,16 +290,54 @@ class TasksTableData
         ];
     }
 
+    /**
+     * Return workers for the filter using human-readable titles.
+     *
+     * @return array<int, array{id: int, label: string}>
+     * @since 2.1.0
+     */
     protected function workerOptions(): array
     {
         return sWorker::query()
             ->orderBy('scope')
             ->orderBy('identifier')
-            ->get(['id', 'identifier'])
+            ->get(['id', 'identifier', 'class'])
             ->map(fn (sWorker $worker): array => [
                 'id' => (int)$worker->id,
-                'label' => (string)$worker->identifier,
+                'label' => trim((string)$worker->title) !== '' ? (string)$worker->title : (string)$worker->identifier,
             ])
+            ->sortBy(fn (array $option): string => mb_strtolower($option['label']))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Return manager users that have started at least one task.
+     *
+     * @return array<int, array{id: int, label: string}>
+     * @since 2.1.0
+     */
+    protected function userOptions(): array
+    {
+        $usedUserIds = sTaskModel::query()
+            ->where('started_by', '>', 0)
+            ->distinct()
+            ->pluck('started_by');
+
+        $users = User::query()
+            ->whereIn('id', $usedUserIds)
+            ->orderBy('username')
+            ->get(['id', 'username'])
+            ->map(fn (User $user): array => [
+                'id' => (int)$user->id,
+                'label' => (string)$user->username,
+            ]);
+
+        return collect([[
+            'id' => -1,
+            'label' => 'system',
+        ]])
+            ->concat($users)
             ->all();
     }
 

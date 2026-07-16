@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use EvolutionCMS\Models\User;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Support\LiveProgressRow;
@@ -38,15 +39,7 @@ class LogsTableData
         return [
             [
                 'key' => 'worker_id',
-                'items' => sWorker::query()
-                    ->orderBy('scope')
-                    ->orderBy('identifier')
-                    ->get(['id', 'identifier'])
-                    ->map(fn (sWorker $worker): array => [
-                        'id' => (int)$worker->id,
-                        'label' => (string)$worker->identifier,
-                    ])
-                    ->all(),
+                'items' => $this->workerOptions(),
             ],
             [
                 'key' => 'action',
@@ -62,7 +55,53 @@ class LogsTableData
                     ['id' => sTaskModel::TASK_STATUS_FAILED, 'label' => __('sTask::global.failed')],
                 ],
             ],
+            [
+                'key' => 'started_by',
+                'items' => $this->userOptions(),
+            ],
         ];
+    }
+
+    /**
+     * Return workers for the filter using human-readable titles.
+     *
+     * @return array<int, array{id: int, label: string}>
+     */
+    protected function workerOptions(): array
+    {
+        return sWorker::query()
+            ->orderBy('scope')
+            ->orderBy('identifier')
+            ->get(['id', 'identifier', 'class'])
+            ->map(fn (sWorker $worker): array => [
+                'id' => (int)$worker->id,
+                'label' => trim((string)$worker->title) !== '' ? (string)$worker->title : (string)$worker->identifier,
+            ])
+            ->sortBy(fn (array $option): string => mb_strtolower($option['label']))
+            ->values()
+            ->all();
+    }
+
+    /** @return array<int, array{id: int, label: string}> */
+    protected function userOptions(): array
+    {
+        $usedUserIds = sTaskModel::query()
+            ->where('started_by', '>', 0)
+            ->distinct()
+            ->pluck('started_by');
+
+        $users = User::query()
+            ->whereIn('id', $usedUserIds)
+            ->orderBy('username')
+            ->get(['id', 'username'])
+            ->map(fn (User $user): array => [
+                'id' => (int)$user->id,
+                'label' => (string)$user->username,
+            ]);
+
+        return collect([['id' => -1, 'label' => 'system']])
+            ->concat($users)
+            ->all();
     }
 
     public function modalData(int $id): array
@@ -156,6 +195,31 @@ class LogsTableData
             $query->whereIn('status', $statuses);
         }
 
+        $selectedStarterIds = collect((array)($filters['started_by'] ?? []))
+            ->map(fn ($id): int => (int)$id)
+            ->unique()
+            ->values()
+            ->all();
+        $userIds = array_values(array_filter($selectedStarterIds, fn (int $id): bool => $id > 0));
+        $includeSystem = in_array(-1, $selectedStarterIds, true);
+
+        if ($includeSystem && $userIds !== []) {
+            $query->where(function (Builder $scope) use ($userIds): void {
+                $scope
+                    ->whereIn('started_by', $userIds)
+                    ->orWhereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($includeSystem) {
+            $query->where(function (Builder $scope): void {
+                $scope
+                    ->whereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($userIds !== []) {
+            $query->whereIn('started_by', $userIds);
+        }
+
         $range = (array)($filters['created_at'] ?? []);
         if (($from = $this->dateBoundary((string)($range['from'] ?? ''), true)) !== null) {
             $query->where('created_at', '>=', $from);
@@ -167,6 +231,10 @@ class LogsTableData
 
         $sort = $this->sortField((string)($this->state['sort'] ?? ''));
         $direction = ((string)($this->state['direction'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        if ($sort === 'duration') {
+            return $this->orderByDuration($query, $direction)->orderBy('id', 'desc');
+        }
 
         return $query->orderBy($sort, $direction)->orderBy('id', 'desc');
     }
@@ -257,7 +325,21 @@ class LogsTableData
             'start_at_label' => $task->start_at?->format('Y-m-d H:i') ?? '',
             'finished_at_label' => $task->finished_at?->format('Y-m-d H:i') ?? '',
             'updated_at_label' => $task->updated_at?->format('Y-m-d H:i') ?? '',
+            'duration_label' => $task->duration !== null ? niceEta((float)$task->duration) : '',
         ];
+    }
+
+    protected function orderByDuration(Builder $query, string $direction): Builder
+    {
+        $expression = match ($query->getConnection()->getDriverName()) {
+            'pgsql' => 'COALESCE(EXTRACT(EPOCH FROM (COALESCE(finished_at, CURRENT_TIMESTAMP) - start_at)), 0)',
+            'mysql', 'mariadb' => 'COALESCE(TIMESTAMPDIFF(SECOND, start_at, COALESCE(finished_at, CURRENT_TIMESTAMP)), 0)',
+            'sqlite' => 'COALESCE((julianday(COALESCE(finished_at, CURRENT_TIMESTAMP)) - julianday(start_at)) * 86400, 0)',
+            'sqlsrv' => 'COALESCE(DATEDIFF(SECOND, start_at, COALESCE(finished_at, CURRENT_TIMESTAMP)), 0)',
+            default => 'COALESCE(start_at, CURRENT_TIMESTAMP)',
+        };
+
+        return $query->orderByRaw($expression . ' ' . ($direction === 'asc' ? 'ASC' : 'DESC'));
     }
 
     protected function allowedStatuses(): array

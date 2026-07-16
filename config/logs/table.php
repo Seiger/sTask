@@ -41,6 +41,14 @@ return [
             'default' => [],
         ],
         [
+            'state' => 'started_by',
+            'type' => 'multi-select',
+            'icon' => 'user',
+            'label' => 'sTask::global.user',
+            'searchable' => true,
+            'default' => [],
+        ],
+        [
             'state' => 'created_at',
             'type' => 'date-range',
             'icon' => 'calendar',
@@ -51,13 +59,16 @@ return [
     'columns' => [
         ['key' => 'id_link', 'type' => 'link', 'label' => 'ID', 'sortable' => true, 'sort_field' => 'id', 'default_direction' => 'desc'],
         ['key' => 'worker_title', 'type' => 'text', 'label' => 'sTask::global.worker', 'sortable' => true, 'sort_field' => 'identifier'],
+        ['key' => 'worker_identifier', 'type' => 'text', 'label' => 'sTask::global.identifier', 'sortable' => true, 'sort_field' => 'identifier'],
         ['key' => 'action', 'type' => 'text', 'label' => 'sTask::global.action', 'sortable' => true, 'sort_field' => 'action', 'meta_icon' => 'bolt'],
         ['key' => 'status_badge', 'type' => 'badge', 'label' => 'sTask::global.status', 'sortable' => true, 'sort_field' => 'status'],
         ['key' => 'progress_label', 'type' => 'text', 'label' => 'sTask::global.progress', 'cell_class' => 'stask-task-progress-cell', 'sortable' => true, 'sort_field' => 'progress'],
+        ['key' => 'started_by', 'type' => 'text', 'label' => 'sTask::global.started_by', 'sortable' => true, 'sort_field' => 'started_by', 'meta_icon' => 'user'],
         ['key' => 'created_at_label', 'type' => 'text', 'label' => 'sTask::global.created', 'sortable' => true, 'sort_field' => 'created_at', 'default_direction' => 'desc'],
         ['key' => 'start_at_label', 'type' => 'text', 'label' => 'sTask::global.start_at', 'sortable' => true, 'sort_field' => 'start_at', 'default_direction' => 'desc'],
         ['key' => 'finished_at_label', 'type' => 'text', 'label' => 'sTask::global.finished_at', 'sortable' => true, 'sort_field' => 'finished_at', 'default_direction' => 'desc'],
         ['key' => 'updated_at_label', 'type' => 'text', 'label' => 'sTask::global.updated', 'sortable' => true, 'sort_field' => 'updated_at', 'default_direction' => 'desc'],
+        ['key' => 'duration_label', 'type' => 'text', 'label' => 'sTask::global.supervisor_uptime', 'sortable' => true, 'sort_field' => 'duration', 'default_direction' => 'desc'],
     ],
     'list' => [
         'media' => false,

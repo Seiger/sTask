@@ -43,6 +43,14 @@ return [
             'default' => [],
         ],
         [
+            'state' => 'started_by',
+            'type' => 'multi-select',
+            'icon' => 'user',
+            'label' => 'sTask::global.user',
+            'searchable' => true,
+            'default' => [],
+        ],
+        [
             'state' => 'created_at',
             'type' => 'date-range',
             'icon' => 'calendar',
@@ -53,7 +61,6 @@ return [
     'columns' => [
         ['key' => 'id_label', 'type' => 'text', 'label' => 'ID', 'sortable' => true, 'sort_field' => 'id', 'default_direction' => 'desc'],
         ['key' => 'worker_title', 'type' => 'text', 'label' => 'sTask::global.worker', 'sortable' => true, 'sort_field' => 'identifier', 'meta_icon' => 'cpu'],
-        ['key' => 'worker_identifier', 'type' => 'text', 'label' => 'sTask::global.identifier', 'sortable' => true, 'sort_field' => 'identifier'],
         ['key' => 'action', 'type' => 'text', 'label' => 'sTask::global.action', 'sortable' => true, 'sort_field' => 'action', 'meta_icon' => 'bolt'],
         ['key' => 'status_badge', 'type' => 'badge', 'label' => 'sTask::global.status', 'sortable' => true, 'sort_field' => 'status'],
         ['key' => 'progress_label', 'type' => 'text', 'label' => 'sTask::global.progress', 'cell_class' => 'stask-task-progress-cell', 'sortable' => true, 'sort_field' => 'progress', 'meta_icon' => 'percentage'],

@@ -28,6 +28,7 @@ $labels['cache_stat_cache_size'] = 'Cache-Größe';
 $labels['cache_stat_memory_usage'] = 'Speichernutzung';
 $labels['emergency_stop_task'] = 'Aufgabe notfallmäßig stoppen';
 $labels['task_emergency_stopped'] = 'Aufgabe wurde manuell notfallmäßig gestoppt.';
+$labels['user'] = 'Benutzer';
 $labels['schedule_supervisor'] = 'Supervisor (kontinuierlicher Prozess)';
 $labels['schedule_supervisor_short'] = 'Supervisor';
 $labels['supervisor_key'] = 'Supervisor-Schlüssel';

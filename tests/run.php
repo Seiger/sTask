@@ -182,10 +182,12 @@ $contains($dashboardData, 'class DashboardData', 'DashboardData support class mu
 $contains($dashboardData, 'sTaskFacade::getStats()', 'DashboardData must read real sTask stats.');
 $contains($dashboardData, 'sTaskModel::with', 'DashboardData must read recent tasks from sTaskModel.');
 $contains($dashboardData, 'public function cards(): array', 'DashboardData must expose dashboard card data.');
+$contains($dashboardData, "'value' => niceCount(\$value)", 'Dashboard cards must format task and worker totals with niceCount.');
 $contains($dashboardData, 'public function recentTasks', 'DashboardData must expose recent task rows.');
 $contains($dashboardData, 'public function recentErrors', 'DashboardData must expose recent failed task rows.');
 $contains($dashboardData, 'statusColor', 'DashboardData must map status tones/colors.');
 $contains($dashboardData, 'performanceCards', 'DashboardData must expose performance cards.');
+$contains($dashboardData, "metricCard('average_duration', 'stopwatch'", 'Average-duration card must use the thematic stopwatch icon.');
 $contains($dashboardData, 'performanceAlerts', 'DashboardData must expose performance alerts.');
 $contains($dashboardData, 'cacheStats', 'DashboardData must expose cache stats.');
 $contains($dashboardData, 'sTaskFacade::getPerformanceMetrics', 'DashboardData performance cards must use real metrics.');
@@ -251,6 +253,8 @@ $contains($tasksTableConfig, 'sTask::global.search_tasks', 'Tasks table config m
 $contains($tasksTableConfig, "'state' => 'worker_id'", 'Tasks table config must include a worker filter.');
 $contains($tasksTableConfig, "'state' => 'action'", 'Tasks table config must include an action filter.');
 $contains($tasksTableConfig, "'state' => 'status'", 'Tasks table config must include a status filter.');
+$contains($tasksTableConfig, "'state' => 'started_by'", 'Tasks table config must include a user filter.');
+$appearsBefore($tasksTableConfig, "'state' => 'started_by'", "'state' => 'created_at'", 'Tasks user filter must precede the created period filter.');
 $notContains($tasksTableConfig, "'state' => 'priority'", 'Tasks table config must not restore the removed priority filter.');
 $notContains($tasksTableConfig, "'state' => 'attempts'", 'Tasks table config must not restore the removed attempts filter.');
 $contains($tasksTableConfig, "'state' => 'created_at'", 'Tasks table config must include a created date filter.');
@@ -260,7 +264,7 @@ $notContains($tasksTableConfig, "'type' => 'select'", 'Tasks table filters must 
 $notContains($tasksTableConfig, "'default' => 'all'", 'Tasks table filters must not use static all select defaults.');
 $contains($tasksTableConfig, "'key' => 'id_label'", 'Tasks table config must include ID label column.');
 $contains($tasksTableConfig, "'key' => 'worker_title'", 'Tasks table config must include worker column.');
-$contains($tasksTableConfig, "'key' => 'worker_identifier'", 'Tasks table config must include worker identifier column.');
+$notContains($tasksTableConfig, "'key' => 'worker_identifier'", 'Tasks table must keep the worker identifier out of the visible columns.');
 $contains($tasksTableConfig, "'key' => 'status_badge'", 'Tasks table config must include status badge column.');
 $notContains($tasksTableConfig, "'key' => 'priority_badge'", 'Tasks table config must not restore the removed priority column.');
 $notContains($tasksTableConfig, "'key' => 'attempts_label'", 'Tasks table config must not restore the removed attempts column.');
@@ -288,6 +292,14 @@ $notContains($tasksTableData, "'name' => __('sTask::global.pending')", 'TasksTab
 $contains($tasksTableData, "whereIn('identifier'", 'TasksTableData must apply worker multi-select filter through identifiers.');
 $contains($tasksTableData, "whereIn('action'", 'TasksTableData must apply action multi-select filter.');
 $contains($tasksTableData, "whereIn('status'", 'TasksTableData must apply multi-selected statuses.');
+$contains($tasksTableData, "whereIn('started_by'", 'TasksTableData must filter tasks by the selected users.');
+$contains($tasksTableData, "'id' => -1", 'Tasks user filter must expose the system starter option.');
+$contains($tasksTableData, "orWhereNull('started_by')", 'Tasks system filter must include tasks without a starter id.');
+$contains($tasksTableData, "orWhere('started_by', '<=', 0)", 'Tasks system filter must include zero-valued starter ids.');
+$contains($tasksTableData, "get(['id', 'identifier', 'class'])", 'Tasks worker filter must load the class required by the title accessor.');
+$contains($tasksTableData, "trim((string)\$worker->title) !== ''", 'Tasks worker filter must prefer worker titles over identifiers.');
+$contains($tasksTableData, "sortBy(fn (array \$option): string => mb_strtolower(\$option['label']))", 'Tasks worker filter must sort the resolved display titles in memory.');
+$contains($tasksTableData, 'protected function userOptions(): array', 'TasksTableData must expose user filter options.');
 $contains($tasksTableData, "whereIn('priority'", 'TasksTableData must apply multi-selected priorities.');
 $contains($tasksTableData, "whereIn('attempts'", 'TasksTableData must apply attempts multi-select filter.');
 $contains($tasksTableData, "where('created_at', '>='", 'TasksTableData must apply date range from bound.');
@@ -308,7 +320,16 @@ $contains($logsTableConfig, "'key' => 'stask.logs'", 'Logs table config must use
 $contains($logsTableConfig, "\\Seiger\\sTask\\Tables\\LogsTableData::class", 'Logs table config must use the sTask logs provider.');
 $contains($logsTableConfig, "'state' => 'worker_id'", 'Logs table config must include worker filter.');
 $contains($logsTableConfig, "'state' => 'status'", 'Logs table config must include status filter.');
+$contains($logsTableConfig, "'state' => 'started_by'", 'Logs table config must include user filter.');
+$appearsBefore($logsTableConfig, "'state' => 'started_by'", "'state' => 'created_at'", 'Logs user filter must precede the created period filter.');
 $contains($logsTableConfig, "'type' => 'date-range'", 'Logs table config must include created date-range filter.');
+$appearsBefore($logsTableConfig, "'key' => 'worker_title'", "'key' => 'worker_identifier'", 'Logs table identifier column must follow the worker column.');
+$appearsBefore($logsTableConfig, "'key' => 'worker_identifier'", "'key' => 'action'", 'Logs table identifier column must precede the action column.');
+$appearsBefore($logsTableConfig, "'key' => 'progress_label'", "'key' => 'started_by'", 'Logs table started-by column must follow progress.');
+$appearsBefore($logsTableConfig, "'key' => 'started_by'", "'key' => 'created_at_label'", 'Logs table started-by column must precede created time.');
+$contains($logsTableConfig, "'key' => 'duration_label'", 'Logs table config must include execution duration.');
+$contains($logsTableConfig, "'sort_field' => 'duration'", 'Logs execution duration must be sortable by its computed field.');
+$appearsBefore($logsTableConfig, "'key' => 'updated_at_label'", "'key' => 'duration_label'", 'Logs execution duration must be the final data column before row actions.');
 $contains($logsTableConfig, "'row_dblclick_action' => 'details'", 'Logs table rows must open the details action modal on double-click.');
 $contains($logsTableConfig, "'method' => 'openActionModal'", 'Logs table details must open an EvoUI action modal.');
 $contains($logsTableConfig, "'action_argument' => true", 'Logs table action modal must pass action key and task id.');
@@ -317,6 +338,7 @@ $contains($logsTableConfig, "'submit' => false", 'Logs table detail modal must h
 $contains($logsTableConfig, "'type' => 'code'", 'Logs table detail modal must render log/meta/result code fields.');
 
 $logsTableData = $read('src/Tables/LogsTableData.php');
+$taskModel = $read('src/Models/sTaskModel.php');
 $contains($logsTableData, 'class LogsTableData', 'LogsTableData provider must exist.');
 $contains($logsTableData, 'public function total(): int', 'LogsTableData must expose total().');
 $contains($logsTableData, 'public function rows(int $page, int $perPage): array', 'LogsTableData must expose rows().');
@@ -324,7 +346,19 @@ $contains($logsTableData, 'public function filterGroups(): array', 'LogsTableDat
 $contains($logsTableData, 'public function modalData(int $id): array', 'LogsTableData must expose task detail modal data.');
 $contains($logsTableData, "sTaskModel::query()->with(['worker', 'user'])", 'LogsTableData must query real task rows with worker and user relations.');
 $contains($logsTableData, "whereIn('identifier'", 'LogsTableData must apply worker multi-select filter through identifiers.');
+$contains($logsTableData, "get(['id', 'identifier', 'class'])", 'Logs worker filter must load the class required by the title accessor.');
+$contains($logsTableData, "trim((string)\$worker->title) !== ''", 'Logs worker filter must prefer worker titles over identifiers.');
+$contains($logsTableData, "sortBy(fn (array \$option): string => mb_strtolower(\$option['label']))", 'Logs worker filter must sort the resolved display titles in memory.');
 $contains($logsTableData, "whereIn('status'", 'LogsTableData must apply multi-selected statuses.');
+$contains($logsTableData, "'id' => -1", 'Logs user filter must expose the system starter option.');
+$contains($logsTableData, "whereIn('started_by'", 'LogsTableData must filter tasks by selected users.');
+$contains($logsTableData, "orWhereNull('started_by')", 'Logs system filter must include tasks without a starter id.');
+$contains($logsTableData, "niceEta((float)\$task->duration)", 'LogsTableData must format execution duration with niceEta().');
+$contains($taskModel, "max(0, (int)\$this->start_at->diffInSeconds(\$end))", 'Task duration must be calculated forward from start and never become negative.');
+$contains($logsTableData, 'protected function orderByDuration', 'LogsTableData must provide computed duration sorting.');
+$contains($logsTableData, "'pgsql' => 'COALESCE(EXTRACT(EPOCH", 'Logs duration sorting must support PostgreSQL.');
+$contains($logsTableData, "'mysql', 'mariadb' => 'COALESCE(TIMESTAMPDIFF", 'Logs duration sorting must support MySQL and MariaDB.');
+$contains($logsTableData, "'sqlite' => 'COALESCE((julianday", 'Logs duration sorting must support SQLite.');
 $contains($logsTableData, "where('created_at', '>='", 'LogsTableData must apply date range from bound.');
 $contains($logsTableData, "where('created_at', '<='", 'LogsTableData must apply date range to bound.');
 $contains($logsTableData, 'prettyPayload', 'LogsTableData must pretty-print modal meta/result payloads.');
@@ -524,6 +558,7 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         'task_details',
         'search_workers',
         'priority_low',
+        'user',
         'priority_normal',
         'priority_high',
         'available',

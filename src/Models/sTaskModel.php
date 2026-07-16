@@ -274,7 +274,7 @@ class sTaskModel extends Model
         }
 
         $end = $this->finished_at ?? now();
-        return $end->diffInSeconds($this->start_at);
+        return max(0, (int)$this->start_at->diffInSeconds($end));
     }
 
     /**
