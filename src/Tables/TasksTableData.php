@@ -180,14 +180,28 @@ class TasksTableData
             $query->whereIn('status', $statuses);
         }
 
-        $userIds = collect((array)($filters['started_by'] ?? []))
+        $selectedStarterIds = collect((array)($filters['started_by'] ?? []))
             ->map(fn ($id): int => (int)$id)
-            ->filter(fn (int $id): bool => $id > 0)
             ->unique()
             ->values()
             ->all();
+        $userIds = array_values(array_filter($selectedStarterIds, fn (int $id): bool => $id > 0));
+        $includeSystem = in_array(-1, $selectedStarterIds, true);
 
-        if ($userIds !== []) {
+        if ($includeSystem && $userIds !== []) {
+            $query->where(function (Builder $scope) use ($userIds): void {
+                $scope
+                    ->whereIn('started_by', $userIds)
+                    ->orWhereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($includeSystem) {
+            $query->where(function (Builder $scope): void {
+                $scope
+                    ->whereNull('started_by')
+                    ->orWhere('started_by', '<=', 0);
+            });
+        } elseif ($userIds !== []) {
             $query->whereIn('started_by', $userIds);
         }
 
@@ -310,14 +324,20 @@ class TasksTableData
             ->distinct()
             ->pluck('started_by');
 
-        return User::query()
+        $users = User::query()
             ->whereIn('id', $usedUserIds)
             ->orderBy('username')
             ->get(['id', 'username'])
             ->map(fn (User $user): array => [
                 'id' => (int)$user->id,
                 'label' => (string)$user->username,
-            ])
+            ]);
+
+        return collect([[
+            'id' => -1,
+            'label' => 'system',
+        ]])
+            ->concat($users)
             ->all();
     }
 

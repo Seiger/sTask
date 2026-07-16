@@ -292,6 +292,9 @@ $contains($tasksTableData, "whereIn('identifier'", 'TasksTableData must apply wo
 $contains($tasksTableData, "whereIn('action'", 'TasksTableData must apply action multi-select filter.');
 $contains($tasksTableData, "whereIn('status'", 'TasksTableData must apply multi-selected statuses.');
 $contains($tasksTableData, "whereIn('started_by'", 'TasksTableData must filter tasks by the selected users.');
+$contains($tasksTableData, "'id' => -1", 'Tasks user filter must expose the system starter option.');
+$contains($tasksTableData, "orWhereNull('started_by')", 'Tasks system filter must include tasks without a starter id.');
+$contains($tasksTableData, "orWhere('started_by', '<=', 0)", 'Tasks system filter must include zero-valued starter ids.');
 $contains($tasksTableData, "get(['id', 'identifier', 'class'])", 'Tasks worker filter must load the class required by the title accessor.');
 $contains($tasksTableData, "trim((string)\$worker->title) !== ''", 'Tasks worker filter must prefer worker titles over identifiers.');
 $contains($tasksTableData, "sortBy(fn (array \$option): string => mb_strtolower(\$option['label']))", 'Tasks worker filter must sort the resolved display titles in memory.');
