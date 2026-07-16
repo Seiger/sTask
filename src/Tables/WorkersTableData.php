@@ -507,7 +507,7 @@ class WorkersTableData
 
         if ((string)($schedule['type'] ?? '') === 'supervisor') {
             $item['icon'] = 'activity-heartbeat';
-            $badge = $this->supervisorStateBadge($supervisorState);
+            $badge = $this->supervisorScheduleBadge($supervisorState);
 
             if ($badge) {
                 $item['badge'] = $badge['label'];
@@ -569,6 +569,23 @@ class WorkersTableData
                 default => '#64748B',
             },
         ];
+    }
+
+    /**
+     * Build the table badge, replacing a healthy state label with process uptime.
+     *
+     * @param sSupervisorState|null $state Current persisted supervisor state
+     * @return array{label: string, color: string}|null Badge descriptor or null
+     */
+    protected function supervisorScheduleBadge(?sSupervisorState $state): ?array
+    {
+        $badge = $this->supervisorStateBadge($state);
+
+        if ($badge && (string)$state?->state === 'healthy' && $state?->uptime_seconds !== null) {
+            $badge['label'] = niceEta((float)$state->uptime_seconds);
+        }
+
+        return $badge;
     }
 
     protected function lastTasksFor(array $identifiers): Collection

@@ -436,6 +436,9 @@ $contains($workersTableData, 'protected function scheduleLabel', 'WorkersTableDa
 $contains($workersTableData, 'protected function scheduleDisplay', 'WorkersTableData must build a combined schedule and Supervisor state cell.');
 $contains($workersTableData, "'sTask::global.schedule_supervisor_short'", 'Workers table must use the compact Supervisor schedule label.');
 $contains($workersTableData, "\$item['badge'] = \$badge['label'];", 'Workers table must place the Supervisor state badge beside its schedule.');
+$contains($workersTableData, 'protected function supervisorScheduleBadge', 'Workers table must format its Supervisor badge separately from the modal state badge.');
+$contains($workersTableData, "(string)\$state?->state === 'healthy'", 'Workers table must replace only the healthy Supervisor label with uptime.');
+$contains($workersTableData, "\$badge['label'] = niceEta((float)\$state->uptime_seconds);", 'Workers table must display formatted Supervisor uptime instead of the healthy state word.');
 $contains($workersTableData, 'statusColor', 'WorkersTableData must map last task statuses to badge colors.');
 
 $routes = $read('src/Http/routes.php');
