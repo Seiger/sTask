@@ -151,7 +151,7 @@ abstract class BaseWorker implements TaskInterface
     public function getSchedule(): array
     {
         return $this->getConfig('schedule', [
-            'type' => 'manual', // manual, once, periodic, regular
+            'type' => 'manual', // manual, once, periodic, regular, supervisor
             'enabled' => false,
             'datetime' => null, // for 'once' type
             'time' => null, // for 'periodic' type (e.g., '14:00' or '*:35' for hourly)

@@ -3,6 +3,8 @@
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Seiger\sTask\Contracts\SupervisorWorkerInterface;
+use Seiger\sTask\Models\sSupervisorState;
 use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker as sWorker;
 use Seiger\sTask\Services\WorkerDiscovery;
@@ -69,7 +71,7 @@ class WorkersTableData
 
     public function togglePublished(int $id): void
     {
-        $worker = sWorker::query()->find($id);
+        $worker = sWorker::query()->with('supervisorStates')->find($id);
 
         if (!$worker) {
             return;
@@ -108,6 +110,8 @@ class WorkersTableData
             : '';
         $settingsPayload = $worker->settings ?? [];
         unset($settingsPayload['schedule']);
+        $supervisorState = $this->latestSupervisorState($worker);
+        $supportsSupervisor = $this->supportsSupervisor($worker);
 
         return [
             'title' => $worker->title,
@@ -118,12 +122,20 @@ class WorkersTableData
             'position' => (int)$worker->position,
             'schedule_enabled' => (bool)($schedule['enabled'] ?? false),
             'schedule_type' => $scheduleType,
+            'supports_supervisor' => $supportsSupervisor,
             'schedule_datetime' => (string)($schedule['datetime'] ?? ''),
             'schedule_frequency' => $scheduleFrequency,
             'schedule_hourly_minute' => $scheduleHourlyMinute,
             'schedule_time' => $scheduleFrequency === 'hourly' ? '' : $scheduleTime,
             'schedule_start_time' => (string)($schedule['start_time'] ?? ''),
             'schedule_end_time' => (string)($schedule['end_time'] ?? ''),
+            'supervisor_key' => (string)($supervisorState?->supervisor_key ?? ''),
+            'supervisor_state_badge' => $this->supervisorStateBadge($supervisorState),
+            'supervisor_pid' => $supervisorState?->pid !== null ? (string)$supervisorState->pid : '',
+            'supervisor_heartbeat_at' => $supervisorState?->heartbeat_at?->format('Y-m-d H:i:s') ?? '',
+            'supervisor_uptime' => $supervisorState?->uptime_seconds !== null ? niceEta((float)$supervisorState->uptime_seconds) : '',
+            'supervisor_last_diagnostic' => (string)($supervisorState?->message ?? ''),
+            'supervisor_last_transition_at' => $supervisorState?->last_transition_at?->format('Y-m-d H:i:s') ?? '',
             'settings_payload' => json_encode($settingsPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
             'class' => (string)$worker->class,
             'description' => $worker->description,
@@ -171,7 +183,10 @@ class WorkersTableData
         }
 
         $settings = $customSettings;
-        $scheduleType = $this->allowedValue((string)($data['schedule_type'] ?? 'manual'), ['manual', 'once', 'periodic', 'regular'], 'manual');
+        $scheduleType = $this->allowedValue((string)($data['schedule_type'] ?? 'manual'), ['manual', 'once', 'periodic', 'regular', 'supervisor'], 'manual');
+        if ($scheduleType === 'supervisor' && !$this->supportsSupervisor($worker)) {
+            throw new \InvalidArgumentException(__('sTask::global.supervisor_schedule_unsupported'));
+        }
         $scheduleFrequency = $this->allowedValue(
             (string)($data['schedule_frequency'] ?? 'hourly'),
             $scheduleType === 'regular'
@@ -216,6 +231,37 @@ class WorkersTableData
                 ['value' => 'weekly', 'label' => 'sTask::global.frequency_weekly'],
                 ['value' => 'monthly', 'label' => 'sTask::global.frequency_monthly'],
             ];
+    }
+
+    /**
+     * Return schedule types supported by the selected worker implementation.
+     *
+     * Supervisor is an optional capability of a conventional worker. Manual,
+     * one-time, periodic, and regular schedules therefore remain available to
+     * every worker, while Supervisor is exposed only when its class implements
+     * the dedicated lifecycle contract.
+     *
+     * @param array<string, mixed> $field Modal field definition
+     * @param array<string, mixed> $data Current modal data
+     * @param int|null $id Persisted worker identifier
+     * @param string $mode Modal mode
+     * @return array<int, array{value: string, label: string}> Supported schedule options
+     */
+    public function scheduleTypeOptions(array $field, array $data, ?int $id = null, string $mode = 'edit'): array
+    {
+        $options = [
+            ['value' => 'manual', 'label' => 'sTask::global.schedule_manual'],
+            ['value' => 'once', 'label' => 'sTask::global.schedule_once'],
+            ['value' => 'periodic', 'label' => 'sTask::global.schedule_periodic'],
+            ['value' => 'regular', 'label' => 'sTask::global.schedule_regular'],
+        ];
+        $worker = $id ? sWorker::query()->find($id) : null;
+
+        if ($worker && $this->supportsSupervisor($worker)) {
+            $options[] = ['value' => 'supervisor', 'label' => 'sTask::global.schedule_supervisor'];
+        }
+
+        return $options;
     }
 
     public function runWorker(int $id, array $action = []): ?int
@@ -284,7 +330,7 @@ class WorkersTableData
 
     protected function workers(): Collection
     {
-        $query = sWorker::query()->withCount('tasks');
+        $query = sWorker::query()->with('supervisorStates')->withCount('tasks');
 
         $search = trim((string)($this->state['search'] ?? ''));
         if ($search !== '') {
@@ -356,6 +402,7 @@ class WorkersTableData
     {
         $classExists = $worker->class_exists;
         $schedule = (array)data_get($worker->settings ?? [], 'schedule', []);
+        $supervisorState = $this->latestSupervisorState($worker);
 
         return [
             'id' => (int)$worker->id,
@@ -368,6 +415,7 @@ class WorkersTableData
             'description' => $worker->description,
             'description_excerpt' => str($worker->description ?: __('sTask::global.worker_description'))->limit(96)->toString(),
             'schedule_label' => $this->scheduleLabel($schedule),
+            'supervisor_state_badge' => $this->supervisorStateBadge($supervisorState),
             'active' => (bool)$worker->active,
             'active_badge' => [
                 'label' => $worker->active ? __('sTask::global.active') : __('sTask::global.inactive'),
@@ -401,6 +449,10 @@ class WorkersTableData
         }
 
         $type = (string)($schedule['type'] ?? 'manual');
+
+        if ($type === 'supervisor') {
+            return __('sTask::global.schedule_supervisor');
+        }
 
         if ($type === 'once') {
             $datetime = trim((string)($schedule['datetime'] ?? ''));
@@ -444,6 +496,45 @@ class WorkersTableData
             'monthly' => __('sTask::global.frequency_monthly'),
             default => __('sTask::global.frequency_hourly'),
         };
+    }
+
+    /**
+     * Resolve the most recently observed supervisor state for a worker.
+     *
+     * @param sWorker $worker Worker with its supervisorStates relation loaded
+     * @return sSupervisorState|null Latest live state, if the supervisor has been observed
+     */
+    protected function latestSupervisorState(sWorker $worker): ?sSupervisorState
+    {
+        return $worker->supervisorStates
+            ->sortByDesc(fn (sSupervisorState $state): int => $state->last_seen_at?->timestamp ?? 0)
+            ->first();
+    }
+
+    /**
+     * Build the translated supervisor-state badge used by the worker table and modal.
+     *
+     * @param sSupervisorState|null $state Current persisted supervisor state
+     * @return array{label: string, color: string}|null Badge descriptor or null
+     */
+    protected function supervisorStateBadge(?sSupervisorState $state): ?array
+    {
+        if (!$state) {
+            return null;
+        }
+
+        $value = (string)$state->state;
+
+        return [
+            'label' => __('sTask::global.supervisor_state_' . $value),
+            'color' => match ($value) {
+                'healthy' => '#16A34A',
+                'starting' => '#2563EB',
+                'degraded' => '#D97706',
+                'failed', 'stopped' => '#DC2626',
+                default => '#64748B',
+            },
+        ];
     }
 
     protected function lastTasksFor(array $identifiers): Collection
@@ -518,6 +609,25 @@ class WorkersTableData
         $instance = $worker->getInstance();
 
         return $instance && method_exists($instance, 'taskMake');
+    }
+
+    /**
+     * Determine whether a worker exposes the optional Supervisor lifecycle capability.
+     *
+     * @param sWorker $worker Persisted worker configuration
+     * @return bool True when the resolved worker implements SupervisorWorkerInterface
+     */
+    protected function supportsSupervisor(sWorker $worker): bool
+    {
+        if (!$worker->class_exists) {
+            return false;
+        }
+
+        try {
+            return $worker->getInstance() instanceof SupervisorWorkerInterface;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     protected function allowedValue(string $value, array $allowed, string $default): string

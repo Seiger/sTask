@@ -38,7 +38,7 @@ class sTaskServiceProvider extends ServiceProvider
         $this->ensureStorageExists();
 
         // Load migrations, translations, views
-        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
+        $this->loadMigrationsFrom(dirname(__DIR__) . '/database/migrations');
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.php', 'stask.tasks.table');
@@ -135,6 +135,9 @@ class sTaskServiceProvider extends ServiceProvider
 
         // Register MetricsService as singleton
         $this->app->singleton(\Seiger\sTask\Services\MetricsService::class);
+
+        // Register the transport-neutral Supervisor service
+        $this->app->singleton(\Seiger\sTask\Services\SupervisorService::class);
 
         // Register sTask as singleton
         $this->app->singleton(\Seiger\sTask\sTask::class);
