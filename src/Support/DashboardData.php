@@ -25,7 +25,7 @@ class DashboardData
             $this->card('running_tasks', 'player-play', 'primary', (int)($stats['running'] ?? 0), 'in_progress'),
             $this->card('completed_tasks', 'circle-check', 'success', (int)($stats['completed'] ?? 0), 'successfully_finished'),
             $this->card('failed_tasks', 'circle-x', 'danger', (int)($stats['failed'] ?? 0), 'with_errors'),
-            $this->card('total_tasks', 'list-checks', 'neutral', (int)($stats['total'] ?? 0), 'all_time'),
+            $this->card('total_tasks', 'clipboard-list', 'neutral', (int)($stats['total'] ?? 0), 'all_time'),
             $this->card('workers', 'cpu', 'info', (int)($stats['active_workers'] ?? 0), 'active_workers'),
         ];
     }
@@ -57,7 +57,7 @@ class DashboardData
         $tasks = (array)($summary['tasks'] ?? []);
 
         return [
-            $this->metricCard('total_tasks', 'list-checks', 'neutral', (int)($tasks['total'] ?? 0), 'last_24_hours'),
+            $this->metricCard('total_tasks', 'clipboard-list', 'neutral', (int)($tasks['total'] ?? 0), 'last_24_hours'),
             $this->metricCard('success_rate', 'activity', 'success', (float)($performance['success_rate'] ?? 0) . '%', 'performance'),
             $this->metricCard('average_duration', 'timer', 'info', (float)($performance['average_duration'] ?? 0) . 's', 'performance'),
             $this->metricCard('cache_entries', 'database', 'primary', (int)($cache['total_cached'] ?? $cache['cached_workers'] ?? 0), 'worker_cache'),

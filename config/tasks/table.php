@@ -64,7 +64,7 @@ return [
     ],
     'list' => [
         'media' => true,
-        'icon' => 'list-checks',
+        'icon' => 'clipboard-list',
         'title' => 'id_label',
         'subtitle' => 'worker_title',
         'meta' => ['action', 'status_badge', 'progress_label', 'message_text'],

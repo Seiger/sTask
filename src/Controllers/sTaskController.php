@@ -27,7 +27,7 @@ class sTaskController
 
         $tabs = [
             ['key' => 'dashboard', 'label' => __('sTask::global.dashboard'), 'icon' => 'layout-dashboard'],
-            ['key' => 'tasks', 'label' => __('sTask::global.tasks'), 'icon' => 'list-checks'],
+            ['key' => 'tasks', 'label' => __('sTask::global.tasks'), 'icon' => 'clipboard-list'],
             ['key' => 'workers', 'label' => __('sTask::global.workers'), 'icon' => 'cpu'],
             ['key' => 'logs', 'label' => __('sTask::global.logs'), 'icon' => 'file-text'],
             ['key' => 'performance', 'label' => __('sTask::global.statistics'), 'icon' => 'chart-bar'],

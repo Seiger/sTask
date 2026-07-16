@@ -133,6 +133,7 @@ $contains($controller, "view('sTask::module.shell'", 'Controller index must rend
 $contains($controller, "view('sTask::module.task-detail'", 'Controller task detail must render the EvoUI task detail shell.');
 $contains($controller, "'dashboard'", 'Controller must define dashboard module tab.');
 $contains($controller, "'tasks'", 'Controller must define tasks module tab.');
+$contains($controller, "'icon' => 'clipboard-list'", 'Tasks tab must use the supported thematic clipboard-list icon.');
 $contains($controller, "'workers'", 'Controller must define workers module tab.');
 $contains($controller, "'logs'", 'Controller must define logs module tab.');
 $contains($controller, "'performance'", 'Controller must define performance module tab.');

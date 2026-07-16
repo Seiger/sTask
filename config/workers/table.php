@@ -93,7 +93,7 @@
         ['key' => 'description_excerpt', 'type' => 'text', 'label' => 'sTask::global.description'],
         ['key' => 'schedule_label', 'type' => 'text', 'label' => 'sTask::global.schedule', 'sortable' => false, 'meta_icon' => 'clock'],
         ['key' => 'supervisor_state_badge', 'type' => 'badge', 'label' => 'sTask::global.supervisor_state', 'sortable' => false],
-        ['key' => 'tasks_count_label', 'type' => 'text', 'label' => 'sTask::global.tasks_count', 'sortable' => true, 'sort_field' => 'tasks_count', 'meta_icon' => 'list-checks'],
+        ['key' => 'tasks_count_label', 'type' => 'text', 'label' => 'sTask::global.tasks_count', 'sortable' => true, 'sort_field' => 'tasks_count', 'meta_icon' => 'clipboard-list'],
         ['key' => 'last_action_label', 'type' => 'text', 'label' => 'sTask::global.task', 'sortable' => false],
         ['key' => 'last_run_at_label', 'type' => 'text', 'label' => 'sTask::global.last_run', 'sortable' => false, 'meta_icon' => 'clock-play'],
     ],
