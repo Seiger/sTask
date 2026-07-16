@@ -286,12 +286,14 @@ class TasksTableData
     {
         return sWorker::query()
             ->orderBy('scope')
-            ->orderBy('title')
-            ->get(['id', 'identifier', 'title'])
+            ->orderBy('identifier')
+            ->get(['id', 'identifier', 'class'])
             ->map(fn (sWorker $worker): array => [
                 'id' => (int)$worker->id,
                 'label' => trim((string)$worker->title) !== '' ? (string)$worker->title : (string)$worker->identifier,
             ])
+            ->sortBy(fn (array $option): string => mb_strtolower($option['label']))
+            ->values()
             ->all();
     }
 
