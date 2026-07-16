@@ -28,6 +28,7 @@ $labels['cache_stat_cache_size'] = 'Rozmiar pamięci podręcznej';
 $labels['cache_stat_memory_usage'] = 'Użycie pamięci';
 $labels['emergency_stop_task'] = 'Awaryjnie zatrzymaj zadanie';
 $labels['task_emergency_stopped'] = 'Zadanie zostało awaryjnie zatrzymane ręcznie.';
+$labels['user'] = 'Użytkownik';
 $labels['schedule_supervisor'] = 'Nadzorca (proces ciągły)';
 $labels['schedule_supervisor_short'] = 'Nadzorca';
 $labels['supervisor_key'] = 'Klucz nadzorcy';

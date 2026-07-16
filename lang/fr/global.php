@@ -54,6 +54,7 @@
     // Tasks
     'task' => 'Tâche',
     'worker' => 'Gestionnaire de tâches',
+    'user' => 'Utilisateur',
     'schedule' => 'Planning',
     'artisan_command_list_hint' => 'Cliquer une commande remplit le champ sans execution automatique.',
     'artisan_command' => 'Commande Artisan',

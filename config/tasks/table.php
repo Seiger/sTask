@@ -43,6 +43,14 @@ return [
             'default' => [],
         ],
         [
+            'state' => 'started_by',
+            'type' => 'multi-select',
+            'icon' => 'user',
+            'label' => 'sTask::global.user',
+            'searchable' => true,
+            'default' => [],
+        ],
+        [
             'state' => 'created_at',
             'type' => 'date-range',
             'icon' => 'calendar',

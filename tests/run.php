@@ -252,6 +252,8 @@ $contains($tasksTableConfig, 'sTask::global.search_tasks', 'Tasks table config m
 $contains($tasksTableConfig, "'state' => 'worker_id'", 'Tasks table config must include a worker filter.');
 $contains($tasksTableConfig, "'state' => 'action'", 'Tasks table config must include an action filter.');
 $contains($tasksTableConfig, "'state' => 'status'", 'Tasks table config must include a status filter.');
+$contains($tasksTableConfig, "'state' => 'started_by'", 'Tasks table config must include a user filter.');
+$appearsBefore($tasksTableConfig, "'state' => 'started_by'", "'state' => 'created_at'", 'Tasks user filter must precede the created period filter.');
 $notContains($tasksTableConfig, "'state' => 'priority'", 'Tasks table config must not restore the removed priority filter.');
 $notContains($tasksTableConfig, "'state' => 'attempts'", 'Tasks table config must not restore the removed attempts filter.');
 $contains($tasksTableConfig, "'state' => 'created_at'", 'Tasks table config must include a created date filter.');
@@ -289,6 +291,10 @@ $notContains($tasksTableData, "'name' => __('sTask::global.pending')", 'TasksTab
 $contains($tasksTableData, "whereIn('identifier'", 'TasksTableData must apply worker multi-select filter through identifiers.');
 $contains($tasksTableData, "whereIn('action'", 'TasksTableData must apply action multi-select filter.');
 $contains($tasksTableData, "whereIn('status'", 'TasksTableData must apply multi-selected statuses.');
+$contains($tasksTableData, "whereIn('started_by'", 'TasksTableData must filter tasks by the selected users.');
+$contains($tasksTableData, "get(['id', 'identifier', 'title'])", 'Tasks worker filter must load display titles.');
+$contains($tasksTableData, "trim((string)\$worker->title) !== ''", 'Tasks worker filter must prefer worker titles over identifiers.');
+$contains($tasksTableData, 'protected function userOptions(): array', 'TasksTableData must expose user filter options.');
 $contains($tasksTableData, "whereIn('priority'", 'TasksTableData must apply multi-selected priorities.');
 $contains($tasksTableData, "whereIn('attempts'", 'TasksTableData must apply attempts multi-select filter.');
 $contains($tasksTableData, "where('created_at', '>='", 'TasksTableData must apply date range from bound.');
@@ -529,6 +535,7 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         'task_details',
         'search_workers',
         'priority_low',
+        'user',
         'priority_normal',
         'priority_high',
         'available',

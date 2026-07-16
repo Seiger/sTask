@@ -54,6 +54,7 @@
     // Tasks
     'task' => 'Task',
     'worker' => 'Worker',
+    'user' => 'User',
     'schedule' => 'Schedule',
     'artisan_command_list_hint' => 'Click a command to fill the field; it will not run automatically.',
     'artisan_command' => 'Artisan command',
