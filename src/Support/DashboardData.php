@@ -133,7 +133,7 @@ class DashboardData
             'status' => $status,
             'stats' => [
                 [
-                    'value' => number_format($value, 0, '.', ' '),
+                    'value' => niceCount($value),
                     'label' => __('sTask::global.' . $labelKey),
                 ],
             ],

@@ -182,6 +182,7 @@ $contains($dashboardData, 'class DashboardData', 'DashboardData support class mu
 $contains($dashboardData, 'sTaskFacade::getStats()', 'DashboardData must read real sTask stats.');
 $contains($dashboardData, 'sTaskModel::with', 'DashboardData must read recent tasks from sTaskModel.');
 $contains($dashboardData, 'public function cards(): array', 'DashboardData must expose dashboard card data.');
+$contains($dashboardData, "'value' => niceCount(\$value)", 'Dashboard cards must format task and worker totals with niceCount.');
 $contains($dashboardData, 'public function recentTasks', 'DashboardData must expose recent task rows.');
 $contains($dashboardData, 'public function recentErrors', 'DashboardData must expose recent failed task rows.');
 $contains($dashboardData, 'statusColor', 'DashboardData must map status tones/colors.');
@@ -309,6 +310,10 @@ $contains($logsTableConfig, "\\Seiger\\sTask\\Tables\\LogsTableData::class", 'Lo
 $contains($logsTableConfig, "'state' => 'worker_id'", 'Logs table config must include worker filter.');
 $contains($logsTableConfig, "'state' => 'status'", 'Logs table config must include status filter.');
 $contains($logsTableConfig, "'type' => 'date-range'", 'Logs table config must include created date-range filter.');
+$appearsBefore($logsTableConfig, "'key' => 'worker_title'", "'key' => 'worker_identifier'", 'Logs table identifier column must follow the worker column.');
+$appearsBefore($logsTableConfig, "'key' => 'worker_identifier'", "'key' => 'action'", 'Logs table identifier column must precede the action column.');
+$appearsBefore($logsTableConfig, "'key' => 'progress_label'", "'key' => 'started_by'", 'Logs table started-by column must follow progress.');
+$appearsBefore($logsTableConfig, "'key' => 'started_by'", "'key' => 'created_at_label'", 'Logs table started-by column must precede created time.');
 $contains($logsTableConfig, "'row_dblclick_action' => 'details'", 'Logs table rows must open the details action modal on double-click.');
 $contains($logsTableConfig, "'method' => 'openActionModal'", 'Logs table details must open an EvoUI action modal.');
 $contains($logsTableConfig, "'action_argument' => true", 'Logs table action modal must pass action key and task id.');
