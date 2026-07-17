@@ -1,8 +1,8 @@
 <?php return [
     'title' => 'Task Manager',
-    'module_title' => 'Task Manager',
+    'module_title' => 'sTask',
     'module_description' => 'Background task runner for Evolution CMS: workers, queues, progress logs, performance metrics, and cache controls.',
-    'module_icon' => 'tabler-list-check',
+    'module_icon' => 'tabler-progress-check',
 
     // Menu
     'dashboard' => 'Dashboard',

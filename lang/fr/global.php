@@ -1,8 +1,8 @@
 <?php return [
     'title' => 'Gestionnaire de tâches',
-    'module_title' => 'Gestionnaire de tâches',
+    'module_title' => 'sTask',
     'module_description' => 'Task runner en arriere-plan pour Evolution CMS: workers, files, progress logs, metriques de performance et cache.',
-    'module_icon' => 'tabler-list-check',
+    'module_icon' => 'tabler-progress-check',
 
     // Menu
     'dashboard' => 'Tableau de bord',

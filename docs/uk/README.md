@@ -1,39 +1,54 @@
-# Документація sTask
+# sTask 2.x
 
-sTask - пакет Evolution CMS для фонових задач. Він знаходить воркери, створює
-завдання в черзі, відстежує прогрес, зберігає логи та результати і дає
-адміністратору компактну EvoUI + Livewire панель керування.
+sTask — пакет Evolution CMS для керування фоновими завданнями. Він зберігає чергу в базі даних, знаходить воркери через Composer, запускає їх командою `stask:worker`, показує прогрес і журнал у менеджері та окремо наглядає за довготривалими supervisor-процесами.
 
-## Гайди
+Документація описує фактичну гілку `2.x`. Вона не припускає наявності зовнішньої черги, SSE або WebSocket: live progress у менеджері читається періодичними HTTP-запитами з файлових журналів `storage/stask/{taskId}.log`.
 
-- [Гайд користувача](user-guide.md)
-- [Гайд розробника](developer-guide.md)
-- [Довідник](reference.md)
-- [Конфігурація](configuration.md)
-- [Діагностика](troubleshooting.md)
-- [Міграція кастомних воркерів](custom-worker-migration.md)
-- [Frontend guide](frontend-guide.md)
-- [Backend guide](backend-guide.md)
+## Кому читати
 
-## Поверхні менеджера
+- **Адміністратору** — встановлення, права, cron, вкладки менеджера, діагностика і production-експлуатація.
+- **Інтегратору** — розклади, реєстрація воркерів, маршрути менеджера, міграції та оновлення.
+- **PHP-розробнику** — `TaskInterface`, `BaseWorker`, фасад `sTask`, progress API і supervisor contract.
 
-- Панель з картками очікуваних, активних, завершених, помилкових, усіх задач і активних воркерів.
-- Останні завдання з дією перегляду і модалкою деталей по double-click.
-- Таблиця/список завдань з фільтрами по воркеру, дії, статусу, пріоритету, спробах і даті створення.
-- Таблиця/список воркерів з редагуванням, запуском, активацією/деактивацією, статусом і доступністю класу.
-- Логи з тією самою модалкою деталей, що й завдання.
-- Вкладка статистики для майбутньої реалізації performance/cache.
+## Карта документації
 
-## Runtime
+1. Початок роботи
+   - [Вимоги, встановлення та оновлення](01-getting-started/installation.md)
+   - [Швидкий старт](01-getting-started/quick-start.md)
+2. Концепції
+   - [Архітектура і життєвий цикл](02-concepts/architecture-and-lifecycle.md)
+   - [Розклади](02-concepts/schedules.md)
+   - [Supervisor-процеси](02-concepts/supervisor.md)
+3. Менеджер Evolution CMS
+   - [Панель, Завдання, Воркери, Логи та Статистика](03-manager/interface.md)
+4. Розробка
+   - [Фасад і PHP API](04-development/public-api.md)
+   - [Власний воркер](04-development/custom-worker.md)
+   - [Маршрути, progress-файли і завантаження](04-development/routes-and-progress.md)
+5. Експлуатація
+   - [Production-рекомендації](05-operations/production.md)
+   - [Діагностика](05-operations/troubleshooting.md)
+   - [Перехід з 1.x на 2.x](05-operations/upgrade-1-to-2.md)
+6. Довідник
+   - [Конфігурація](06-reference/configuration.md)
+   - [Таблиці бази даних](06-reference/database.md)
+   - [CLI, статуси й маршрути](06-reference/cli-statuses-routes.md)
+   - [FAQ](06-reference/faq.md)
 
-- `Seiger\sTask\sTaskServiceProvider` реєструє модуль, маршрути, міграції, переклади, views, EvoUI presets і Livewire панель.
-- `Seiger\sTask\Livewire\ModulePanel` керує EvoUI оболонкою модуля.
-- `TasksTableData`, `WorkersTableData` і `LogsTableData` віддають дані таблиць.
-- `TaskWorker` обробляє чергу.
-- `BaseWorker` є базою для кастомних воркерів.
+## Межі відповідальності
 
-## Примітка для dDocs
+sTask виконує воркер послідовно в процесі `stask:worker`. Пакет не надає гарантії exactly-once, розподіленого брокера, автоматичного завершення OS-процесу кнопкою emergency stop або зберігання всіх progress-повідомлень у БД. Такі вимоги реалізує прикладний воркер та інфраструктура проєкту.
 
-Ця папка є file-first джерелом документації. Старі Docusaurus сторінки
-залишаються історичною документацією, але для dDocs і агентів стартовою точкою
-мають бути локалізовані папки.
+## Перша перевірка
+
+Після встановлення виконайте:
+
+```bash
+cd core
+php artisan migrate
+php artisan package:discover
+php artisan stask:publish
+php artisan stask:worker
+```
+
+Очікуваний результат: міграції створили `s_workers`, `s_tasks` і `s_supervisor_states`, пакетні assets опубліковані, а команда воркера завершилася з повідомленням про кількість створених і оброблених завдань. Далі відкрийте модуль **sTask** у менеджері.

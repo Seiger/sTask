@@ -2,7 +2,7 @@
 
 $labels = include dirname(__DIR__) . '/en/global.php';
 
-$labels['module_title'] = 'Task Manager';
+$labels['module_title'] = 'sTask';
 $labels['module_description'] = 'Background task runner dla Evolution CMS: workery, kolejki, progress logs, performance metrics i cache controls.';
 $labels['performance'] = 'Wydajnosc';
 $labels['performance_alerts'] = 'Alerty wydajnosci';

@@ -42,6 +42,7 @@ $appearsBefore = static function (string $haystack, string $first, string $secon
 $composer = json_decode($read('composer.json'), true);
 $assert(is_array($composer), 'composer.json must be valid JSON.');
 $assert(($composer['name'] ?? null) === 'seiger/stask', 'composer package name must stay seiger/stask.');
+$assert(($composer['require']['evolution-cms/evolution'] ?? null) === '^3.5.7', 'sTask must require the Evolution CMS 3.5.7 baseline.');
 $assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.0.6', 'sTask must pin evo-ui baseline dependency.');
 $assert(($composer['scripts']['test'] ?? null) === 'php tests/run.php', 'composer test must run the package smoke suite.');
 $assert(
@@ -51,33 +52,130 @@ $assert(
 
 $docsRoot = $root . '/docs';
 $docsReadme = $read('docs/README.md');
-foreach (['en', 'uk', 'pl', 'de', 'fr'] as $locale) {
+$ukrainianDocs = [
+    'README.md',
+    '01-getting-started/installation.md',
+    '01-getting-started/quick-start.md',
+    '02-concepts/architecture-and-lifecycle.md',
+    '02-concepts/schedules.md',
+    '02-concepts/supervisor.md',
+    '03-manager/interface.md',
+    '04-development/public-api.md',
+    '04-development/custom-worker.md',
+    '04-development/routes-and-progress.md',
+    '05-operations/production.md',
+    '05-operations/troubleshooting.md',
+    '05-operations/upgrade-1-to-2.md',
+    '06-reference/configuration.md',
+    '06-reference/database.md',
+    '06-reference/cli-statuses-routes.md',
+    '06-reference/faq.md',
+];
+$documentationScreenshots = [
+    'docs/assets/screenshots/stask-dashboard.png',
+    'docs/assets/screenshots/stask-tasks.png',
+    'docs/assets/screenshots/stask-workers.png',
+    'docs/assets/screenshots/stask-logs.png',
+    'docs/assets/screenshots/stask-statistics.png',
+];
+
+foreach ($documentationScreenshots as $screenshot) {
+    $fullPath = $root . '/' . $screenshot;
+    $assert(is_file($fullPath), "Documentation screenshot {$screenshot} must exist.");
+    $assert(is_file($fullPath) && filesize($fullPath) > 1024, "Documentation screenshot {$screenshot} must not be empty.");
+}
+
+foreach (['en', 'uk', 'ru', 'pl', 'de', 'fr'] as $locale) {
     $contains($docsReadme, "({$locale}/README.md)", "Root docs README must link {$locale} docs.");
-    foreach ([
-        'README.md',
-        'user-guide.md',
-        'developer-guide.md',
-        'reference.md',
-        'configuration.md',
-        'troubleshooting.md',
-        'custom-worker-migration.md',
-        'frontend-guide.md',
-        'backend-guide.md',
-    ] as $file) {
+
+    $actualLocaleDocs = [];
+    $localeIterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$docsRoot}/{$locale}"));
+    foreach ($localeIterator as $fileInfo) {
+        if ($fileInfo->isFile() && $fileInfo->getExtension() === 'md') {
+            $actualLocaleDocs[] = ltrim(str_replace('\\', '/', substr($fileInfo->getPathname(), strlen("{$docsRoot}/{$locale}"))), '/');
+        }
+    }
+    $expectedLocaleDocs = $ukrainianDocs;
+    sort($actualLocaleDocs);
+    sort($expectedLocaleDocs);
+    $assert($actualLocaleDocs === $expectedLocaleDocs, "{$locale} documentation tree must match the canonical Ukrainian tree.");
+
+    foreach ($ukrainianDocs as $file) {
         $path = "docs/{$locale}/{$file}";
         $content = $read($path);
         $assert(trim($content) !== '', "{$path} must not be empty.");
+
+        $canonicalContent = $read("docs/uk/{$file}");
+        $assert(
+            substr_count($content, '```') === substr_count($canonicalContent, '```'),
+            "{$path} must preserve the canonical code fence structure."
+        );
+        preg_match_all('/^#{1,6}\s+/m', $content, $localizedHeadings);
+        preg_match_all('/^#{1,6}\s+/m', $canonicalContent, $canonicalHeadings);
+        $assert(
+            count($localizedHeadings[0]) === count($canonicalHeadings[0]),
+            "{$path} must preserve the canonical heading structure."
+        );
+        preg_match_all('/!?\[[^\]]*\]\([^)]+\)/', $content, $localizedLinks);
+        preg_match_all('/!?\[[^\]]*\]\([^)]+\)/', $canonicalContent, $canonicalLinks);
+        $assert(
+            count($localizedLinks[0]) === count($canonicalLinks[0]),
+            "{$path} must preserve the canonical Markdown link and image structure."
+        );
+        $notContains($content, '! [', "{$path} must not contain a detached Markdown image marker.");
     }
 
     $localeReadme = $read("docs/{$locale}/README.md");
-    $contains($localeReadme, '(user-guide.md)', "{$locale} README must link user guide.");
-    $contains($localeReadme, '(developer-guide.md)', "{$locale} README must link developer guide.");
-    $contains($localeReadme, '(reference.md)', "{$locale} README must link reference.");
-    $contains($localeReadme, '(configuration.md)', "{$locale} README must link configuration.");
-    $contains($localeReadme, '(troubleshooting.md)', "{$locale} README must link troubleshooting.");
-    $contains($localeReadme, '(custom-worker-migration.md)', "{$locale} README must link custom worker migration.");
-    $contains($localeReadme, '(frontend-guide.md)', "{$locale} README must link frontend guide.");
-    $contains($localeReadme, '(backend-guide.md)', "{$locale} README must link backend guide.");
+    foreach (array_slice($ukrainianDocs, 1) as $file) {
+        $contains($localeReadme, "({$file})", "{$locale} README must link {$file}.");
+    }
+}
+
+foreach (['pages', 'i18n'] as $legacyTree) {
+    $assert(!is_dir("{$docsRoot}/{$legacyTree}"), "Historical Docusaurus {$legacyTree} must stay outside the dDocs source tree.");
+}
+
+$docsManifest = json_decode($read('docs/docs.json'), true);
+$assert(is_array($docsManifest), 'docs/docs.json must be valid JSON.');
+$assert(($docsManifest['schemaVersion'] ?? null) === 1, 'Docs manifest must use schema version 1.');
+$assert(($docsManifest['package'] ?? null) === 'seiger/stask', 'Docs manifest must identify seiger/stask.');
+$assert(($docsManifest['title'] ?? null) === 'sTask', 'Docs manifest must expose the canonical sTask title.');
+$assert(($docsManifest['icon'] ?? null) === 'tabler-progress-check', 'Docs manifest must expose the thematic Tabler icon.');
+$assert(($docsManifest['canonicalLocale'] ?? null) === 'uk', 'Docs manifest must identify Ukrainian as canonical locale.');
+foreach (['uk', 'en', 'ru', 'pl', 'de', 'fr'] as $locale) {
+    $assert(($docsManifest['locales'][$locale] ?? null) === 'complete', "Docs manifest must mark {$locale} documentation complete.");
+}
+
+foreach (($docsManifest['entrypoints'] ?? []) as $name => $entrypoint) {
+    $path = (string)($entrypoint['path'] ?? '');
+    $assert($path !== '' && is_file($docsRoot . '/' . $path), "Docs manifest entrypoint {$name} must resolve.");
+}
+
+$tasksUiDocs = $read('docs/uk/03-manager/interface.md');
+$contains($tasksUiDocs, 'Priority та Attempts не є актуальними колонками або фільтрами', 'Manager docs must explicitly reject removed Priority/Attempts UI controls.');
+$contains($tasksUiDocs, '`player-eject`', 'Manager docs must describe the emergency stop icon.');
+$contains($tasksUiDocs, '`system`', 'Manager docs must describe the system user filter.');
+$contains($tasksUiDocs, 'HTTP polling', 'Manager docs must describe the real live progress transport.');
+$contains($tasksUiDocs, 'подвійний клік у всіх рядкових представленнях', 'Manager docs must guarantee double-click behavior for every row-based surface.');
+$notContains($tasksUiDocs, 'SSE', 'Manager docs must not present SSE as the live transport.');
+$notContains($tasksUiDocs, 'WebSocket', 'Manager docs must not present WebSocket as the live transport.');
+
+$installationDocs = $read('docs/uk/01-getting-started/installation.md');
+$notContains($installationDocs, '`down()` міграції supervisor', 'Installation rollback guidance must not depend on a split migration layout.');
+$notContains($installationDocs, '`^', 'Installation docs must not expose caret constraints that dDocs renders as superscript markup.');
+$contains($installationDocs, '<code>&#94;3.5.7</code>', 'Installation docs must render the exact Evolution CMS Composer constraint safely.');
+
+$russianQuickStart = $read('docs/ru/01-getting-started/quick-start.md');
+$notContains($russianQuickStart, '`^', 'Russian quick start must not expose caret constraints that dDocs renders as superscript markup.');
+
+$faqDocs = $read('docs/uk/06-reference/faq.md');
+foreach ([
+    'Чому Priority/Attempts не видно?',
+    'Чому Статистика показує 0 для duration/memory?',
+    'Чому sTask docs не видно в dDocs, хоча вони є на GitHub?',
+    'Чи треба додавати sTask у `extra_docs_roots`?',
+] as $removedQuestion) {
+    $notContains($faqDocs, $removedQuestion, "FAQ must not restore removed question: {$removedQuestion}");
 }
 
 $docsIterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($docsRoot));
@@ -88,6 +186,7 @@ foreach ($docsIterator as $fileInfo) {
 
     $relativePath = 'docs/' . ltrim(str_replace($docsRoot, '', $fileInfo->getPathname()), '/');
     $content = (string) file_get_contents($fileInfo->getPathname());
+    $assert(substr_count($content, '```') % 2 === 0, "Markdown code fences in {$relativePath} must be balanced.");
     preg_match_all('/\[[^\]]+\]\(([^)#][^)]+\.md(?:#[^)]+)?)\)/', $content, $matches);
 
     foreach ($matches[1] as $target) {
@@ -100,6 +199,16 @@ foreach ($docsIterator as $fileInfo) {
         $assert(
             $targetPath !== false && str_starts_with($targetPath, $docsRoot) && is_file($targetPath),
             "Markdown link {$target} in {$relativePath} must resolve inside docs."
+        );
+    }
+
+    preg_match_all('/!\[[^\]]*\]\(([^)]+\.(?:png|jpe?g|webp|svg))\)/i', $content, $imageMatches);
+
+    foreach ($imageMatches[1] as $target) {
+        $targetPath = realpath(dirname($fileInfo->getPathname()) . '/' . $target);
+        $assert(
+            $targetPath !== false && str_starts_with($targetPath, $docsRoot) && is_file($targetPath),
+            "Markdown image {$target} in {$relativePath} must resolve inside docs."
         );
     }
 }
@@ -544,6 +653,9 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
     $lang = $read("lang/{$locale}/global.php");
     $labels = require $root . "/lang/{$locale}/global.php";
 
+    $assert(($labels['module_title'] ?? null) === 'sTask', "{$locale} dDocs/module title must stay sTask.");
+    $assert(($labels['module_icon'] ?? null) === 'tabler-progress-check', "{$locale} dDocs/module icon must stay tabler-progress-check.");
+
     foreach ([
         'module_title',
         'module_description',
@@ -608,7 +720,7 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
     }
 }
 
-foreach (['en', 'uk', 'de', 'fr', 'pl'] as $locale) {
+foreach (['en', 'uk', 'ru', 'de', 'fr', 'pl'] as $locale) {
     $lang = require $root . "/lang/{$locale}/global.php";
     $assert(trim((string)($lang['module_description'] ?? '')) !== '', "{$locale} module_description must not be empty.");
     $assert(mb_strlen((string)$lang['module_description']) <= 140, "{$locale} module_description must fit dDocs source cards.");

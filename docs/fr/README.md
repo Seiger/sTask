@@ -1,30 +1,54 @@
-# Documentation sTask
+# sTask 2.x
 
-sTask est le paquet Evolution CMS pour les taches en arriere-plan. Il detecte
-les workers, cree des taches en file, suit la progression, stocke les logs et les
-resultats, et fournit un panneau manager EvoUI + Livewire.
+sTask est un package Evolution CMS pour gérer les tâches en arrière-plan. Il stocke la file dans la base de données, trouve les workers via Composer, les exécute avec la commande `stask:worker`, affiche la progression et les journaux dans le manager, et supervise séparément les processus supervisés de longue durée.
 
-## Guides
+La documentation décrit la branche actuelle `2.x`. Elle ne suppose ni file d’attente externe, ni SSE, ni WebSocket : la progression en direct dans le manager est lue par des requêtes HTTP périodiques depuis les journaux `storage/stask/{taskId}.log`.
 
-- [Guide utilisateur](user-guide.md)
-- [Guide developpeur](developer-guide.md)
-- [Reference](reference.md)
-- [Configuration](configuration.md)
-- [Depannage](troubleshooting.md)
-- [Migration des custom workers](custom-worker-migration.md)
-- [Guide frontend](frontend-guide.md)
-- [Guide backend](backend-guide.md)
+## À qui s’adresse cette documentation
 
-## Surfaces manager
+- **Administrateur** — installation, permissions, cron, onglets du manager, diagnostic et exploitation en production.
+- **Intégrateur** — planifications, enregistrement des workers, routes du manager, migrations et mises à jour.
+- **Développeur PHP** — `TaskInterface`, `BaseWorker`, façade `sTask`, API de progression et contrat du supervisor.
 
-- Tableau de bord avec compteurs de taches et workers actifs.
-- Dernieres taches avec action oeil et modal de details au double-clic.
-- Taches en table/liste avec filtres worker, action, statut, priorite, tentatives et date de creation.
-- Workers avec edition, lancement, activation/desactivation, statut et disponibilite de classe.
-- Logs avec le meme modal de details que les taches.
-- Onglet statistiques pour performance/cache.
+## Carte de documentation
 
-## dDocs
+1. Débuts
+   - [Exigences, installation et mises à jour](01-getting-started/installation.md)
+   - [Démarrage rapide](01-getting-started/quick-start.md)
+2. Concepts
+   - [Architecture et cycle de vie](02-concepts/architecture-and-lifecycle.md)
+   - [Horaires](02-concepts/schedules.md)
+   - [Superviseur de processus](02-concepts/supervisor.md)
+3. Responsable du CMS Evolution
+   - [Panel, Tâches, Travies, Journaux et Statistiques](03-manager/interface.md)
+4. Développement
+   - [API Facade et PHP](04-development/public-api.md)
+   - [Ouvrier propre](04-development/custom-worker.md)
+   - [Itinéraires, fichiers de progression et téléchargements](04-development/routes-and-progress.md)
+5. Fonctionnement
+   - [Recommandations de production](05-operations/production.md)
+   - [Diagnostic](05-operations/troubleshooting.md)
+   - [Transition de 1.x à 2.x](05-operations/upgrade-1-to-2.md)
+6. Annuaire
+   - [Configuration](06-reference/configuration.md)
+   - [Tables de bases de données](06-reference/database.md)
+   - [CLI, statuts et routes](06-reference/cli-statuses-routes.md)
+   - [FAQ](06-reference/faq.md)
 
-Ce dossier est la source documentaire fichier-first. Les anciennes pages
-Docusaurus restent historiques; dDocs doit commencer par les dossiers de langue.
+## Limites de responsabilité
+
+sTask exécute le worker de manière séquentielle dans le processus `stask:worker`. Le package ne fournit pas de garantie unique et distribuée par le courtier, la fin automatique du processus du système d’exploitation avec un bouton d’arrêt d’urgence, ni le stockage de tous les messages de progression dans la base de données. Ces exigences sont mises en œuvre par l’opérateur applicatif et l’infrastructure du projet.
+
+## Premier contrôle
+
+Une fois installé, effectuez :
+
+```bash
+cd core
+php artisan migrate
+php artisan package:discover
+php artisan stask:publish
+php artisan stask:worker
+```
+
+Résultat attendu : des migrations ont été créées `s_workers`, `s_tasks` et `s_supervisor_states`, les assets batch ont été publiés, et la commande `stask:worker` s’est terminée par un message indiquant le nombre de tâches créées et traitées. Ensuite, ouvrez le module **sTask** dans le gestionnaire.
