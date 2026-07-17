@@ -20,7 +20,9 @@ not be treated as the current runtime contract.
 
 ## Coverage
 
-The canonical guide covers installation, lifecycle and schedules, supervisor
-state, all five EvoUI manager tabs, public PHP extension points, manager routes,
-progress files, database schema, production operations, troubleshooting, and the
-1.x to 2.x review checklist. Machine-readable inventory lives in `docs.json`.
+Every language tree contains the complete guide: installation, lifecycle and
+schedules, supervisor state, all five EvoUI manager tabs, public PHP extension
+points, manager routes, progress files, database schema, production operations,
+troubleshooting, and the 1.x to 2.x review checklist. Ukrainian remains the
+canonical source for future synchronization. Machine-readable inventory lives
+in `docs.json`.

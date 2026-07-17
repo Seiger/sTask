@@ -1,50 +1,98 @@
-# Frontend Guide
+# Szybki start
 
-Ta strona opisuje granice UI sTask po migracji na EvoUI.
+Ten skrypt uruchamia się od czystej instalacji do pierwszego ukończonego zadania bez żadnych fikcyjnych API.
 
-## Shell
+## 1. Sprawdź opakowanie
 
-Manager shell renderuje `views/module/shell.blade.php`, montuje
-`<livewire:stask.module-panel>` i laduje assets przez `evo::partials.assets`.
-
-Nie dodawaj lokalnych blokow `<style>` ani `<script>` do panelu. Shell nie
-powinien ladowac `stask.min.css`, `stask.js`, CDN bundles ani starego
-`media/script/main.js`.
-
-## Tabs
-
-`ModulePanel` zarzadza aktywna zakladka:
-
-- Dashboard;
-- Tasks;
-- Workers;
-- Logs;
-- Statistics.
-
-Zakladki powinny uzywac wspolnego EvoUI tab shell, aby sTask byl spojny z
-sArticles i innymi przeniesionymi pakietami.
-
-## Tables and lists
-
-Tasks, workers i logs uzywaja `livewire:evo-ui.module-table` z presetami:
-
-```text
-stask.tasks
-stask.workers
-stask.logs
+```bash
+cd core
+php artisan route:list --path=stask
+php artisan stask:worker
 ```
 
-Table/list switch, search, pagination, sorting, filters, badges, row selection i
-row double-click naleza do EvoUI primitives.
+Druga drużyna może wyciągnąć `created 0 scheduled task(s), processed 0 task(s)` – to normalny wynik dla pustej kolejki.
 
-## Actions
+## 2. Zaktualizuj rejestr pracowników
 
-Uzywaj ikon dla kompaktowych row actions:
+Otwórz **sTask → Workers** i kliknij przycisk z ikoną `database-cog` (**Aktualizuj Worker Registry**). Discovery odczytuje `vendor/composer/autoload_classmap.php`, odrzuca wykluczone przestrzenie nazw i rejestruje konkretne klasy implementujące `TaskInterface`.
 
-- eye dla details;
-- edit dla worker settings;
-- play dla run task;
-- power lub pause dla activation state.
+Nowy pracownik jest tworzony jako nieaktywny. Włącz go przyciskiem zasilania lub w oknie edycji modalnej.
 
-Szczegoly zadania otwieraj przez wspolny EvoUI modal.
+## 3. Uruchom ręcznie
 
+Dla aktywnego workera z metodą `taskMake()` naciśnij `player-play`. sTask:
+
+1. utworzyć `s_tasks` o statusie `10`;
+2. napisać pierwszą linię w `storage/stask/{id}.log`;
+3. spróbuje uruchomić `php core/artisan stask:worker` w tle;
+4. będzie pokazywać postęp na żywo w wierszu tabeli za pomocą adaptacyjnego odpytywania HTTP.
+
+Jeśli `exec`/`shell_exec` są wyłączone, wykonaj polecenie ręcznie:
+
+```bash
+php artisan stask:worker
+```
+
+## 4. Sprawdź wynik
+
+Na zakładce **Zadania** znajdź wpis według ID, nazwy pracownika lub akcji. Oczekiwana sekwencja statusów:
+
+```text
+10 queued → 50 running → 80 finished
+```
+
+Status `30 preparing` definiowany przez model i może być używany przez kod aplikacji, ale standardowy `TaskWorker` przechodzi z kolejki bezpośrednio do uruchomienia.
+
+Podwójne kliknięcie na linię otwiera modal tylko do odczytu z komunikatem, meta i wynikiem. Osobny link do ID znajduje się na zakładce **Logs** i prowadzi na pełną stronę szczegółów zadań.
+
+## 5. Stwórz zadanie z PHP
+
+Fasada zwraca istniejący aktywny duplikat lub nowy model:
+
+```php
+<?php
+
+use Seiger\sTask\Facades\sTask;
+
+$task = sTask::create(
+    identifier: 'inventory_sync',
+    action: 'make',
+    data: ['warehouse' => 12, 'force' => false],
+    priority: 'normal',
+    userId: evo()->getLoginUserID() ?: null,
+);
+
+echo $task->id;
+```
+
+Ważne: `create()` tylko ustawia kolejkę dla wpisu. Wykonanie wymaga `stask:worker` lub wywołania `sTask::execute($task)` w kontrolowanym procesie.
+
+## 6. Ustaw automatyczny start
+
+W trybie worker włącz Auto Start i wybierz harmonogram. Na przykład co godzina w 15. minucie:
+
+```json
+{
+  "schedule": {
+    "enabled": true,
+    "type": "periodic",
+    "frequency": "hourly",
+    "time": "*:15",
+    "datetime": "",
+    "start_time": "",
+    "end_time": ""
+  }
+}
+```
+
+Następne `stask:worker` utworzy przyszłe zadanie kolejkowe z `start_at`. Do czasu nadejścia tego momentu zadanie jest widoczne w **Zadaniu**, ale nie jest wykonywane.
+
+## Lista kontrolna
+
+- odniesienie źródłowe pakietu odpowiada oczekiwanej gałęzi 2.x;
+- migracje są udane;
+- `stask` przydzielone do wybranej roli menedżera;
+- `storage/stask` użytkownik sieci i użytkownik CLI są dostępne do zapisu;
+- cron uruchamia scheduler co minutę;
+- pracownik jest aktywny, klasa istnieje, identyfikator jest unikalny;
+- zadanie przechodzi w status końcowy i ma `finished_at`.

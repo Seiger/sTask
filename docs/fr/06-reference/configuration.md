@@ -1,53 +1,118 @@
 # Configuration
 
-Cette page decrit l'installation sTask, l'enregistrement manager, les presets de
-tables, les commandes et la discovery des workers.
+## `config/sTaskCheck.php`
 
-## Installation et publish
+Fusionnant en `cms.settings`:
 
-Execute les commandes depuis le dossier Evolution CMS `core`.
-
-```console
-php artisan package:installrequire seiger/stask "*"
-php artisan vendor:publish --tag=stask
-php artisan vendor:publish --tag=evo-ui --force
-php artisan migrate
-```
-
-Apres les migrations de permissions, deconnecte-toi du manager puis reconnecte-toi.
-
-## Enregistrement manager
-
-`Seiger\sTask\sTaskServiceProvider` merge `config/sTaskCheck.php` dans
-`cms.settings`. Verifie titre, icone, ordre et package alias avant de changer le
-runtime.
-
-## Table presets
-
-| Config key | Fichier | Surface |
+| Clé | Par défaut | Signification |
 | --- | --- | --- |
-| `stask.tasks.table` | `config/tasks/table.php` | Table/liste des taches. |
-| `stask.workers.table` | `config/workers/table.php` | Table/liste des workers. |
-| `stask.logs.table` | `config/logs/table.php` | Logs et details. |
+| `check_sTask` | `true` | Présence du paquet/Drapeau de contrôle |
+| `sTaskVer` | `2.9999999.9999999.9999999-dev` | Marqueur de version de la branche de développement |
 
-Les filtres de taches doivent rester des EvoUI multi-select filters quand
-plusieurs valeurs sont possibles. Ne copie pas les single-select article filters.
+Ce n’est pas un réglage à l’exécution du travail.
 
-## Worker discovery
+## Préréglages de table
 
-`WorkerDiscovery` trouve les worker classes et respecte `excluded_namespaces`.
-Un worker garde une identity stable, des settings et une map `handles`.
+| Fichier | Clé de configuration | Surface |
+| --- | --- | --- |
+| `config/tasks/table.php` | `stask.tasks.table` | Tâches |
+| `config/workers/table.php` | `stask.workers.table` | Ouvriers |
+| `config/logs/table.php` | `stask.logs.table` | Journaux |
 
-## Command security
+Les préréglages définissent le fournisseur, les méthodes de fil, la pagination, les vues, les filtres, les colonnes, le mode et les actions. Pour le remplacement de projet, utilisez le mécanisme de configuration personnalisé Evolution ou le point de publication/extension si votre version le supporte ; Ne modifiez pas les fichiers des fournisseurs.
 
-`config/artisan_security.php` controle allowed, forbidden, dangerous et
-confirmation-required commands pour `ArtisanWorker`.
+## `config/excluded_namespaces.php`
 
-## Commands
+Liste des préfixes d’espace de noms que `WorkerDiscovery` ne prend pas en compte. Par défaut, les espaces framework/fournisseurs comme `Illuminate\`, `Symfony\`, `EvolutionCMS\Legacy\`, `PHPUnit\` , etc. sont exclus.
 
-```console
-php artisan stask:worker
-php artisan stask:publish
-php artisan stask:publish --no-prune
+Si votre worker se trouve sous le préfixe exclus, déplacez-le dans l’espace de noms paquet/projet. Ne raccourcissez pas la liste sans analyse : la découverte peut commencer à instancier des milliers de classes tierces.
+
+## `config/artisan_security.php`
+
+Utilisé `ArtisanWorker`:
+
+| Clé | Par défaut |
+| --- | --- |
+| `dangerous_commands` | `migrate:fresh`, `migrate:reset`, `db:wipe` |
+| `confirmation_required` | `migrate`, `migrate:refresh`, `migrate:rollback`, `db:seed`, `cache:clear-full` |
+| `whitelist` | vide : tous sauf bloqués |
+| `blacklist` | vide |
+| `enabled` | `true` |
+| `log_executions` | `true` |
+| `required_permission` | `run_artisan` |
+
+Les patrons whitelistés prennent en charge `*` pour les commentaires de contrat. En production, laissez la sécurité activée et formez une liste blanche explicite pour les besoins opérationnels.
+
+## Réglages des workers
+
+Stocké en `s_workers.settings` JSON :
+
+```json
+{
+  "schedule": {
+    "enabled": true,
+    "type": "periodic",
+    "datetime": "",
+    "frequency": "hourly",
+    "time": "*:10",
+    "start_time": "",
+    "end_time": ""
+  },
+  "http": {
+    "timeout": 15
+  }
+}
 ```
 
+`BaseWorker` API:
+
+```php
+$worker->settings();
+$worker->getConfig('http.timeout', 10);
+$worker->setConfig('http.timeout', 20);
+$worker->updateConfig(['endpoint' => 'https://example.test']);
+$worker->getSchedule();
+$worker->shouldRunNow();
+```
+
+`TaskWorker` calcule indépendamment la prochaine exécution ; `shouldRunNow()` est un assistant côté worker et n’est pas la décision principale de planificateur dans la CLI.
+
+## Conteneur de service
+
+Célibataires :
+
+```php
+app(Seiger\sTask\sTask::class);
+app(Seiger\sTask\Services\WorkerService::class);
+app(Seiger\sTask\Services\MetricsService::class);
+app(Seiger\sTask\Services\SupervisorService::class);
+```
+
+Accessoire de façade : `sTask`.
+
+## Stockage
+
+| Chemin | Données |
+| --- | --- |
+| `core/storage/stask/{id}.log` | Progrès uniquement en annexe |
+| `core/storage/stask/uploads` | Contrôleur/worker de fichiers de téléchargement/résultat |
+| cache Laravel | instances de worker, métriques, verrouillages de superviseurs |
+
+Le fournisseur ne crée que la racine `storage/stask`. Les sous-répertoires sont créés par le chemin de code correspondant.
+
+## Métadonnées de paquet pour dDocs
+
+dDocs indique :
+
+- Nom du compositeur `seiger/stask`;
+- les `lang/{locale}/global.php` localisées `module_title`, `module_description`, `module_icon`;
+- `docs/{locale}`.
+
+Métadonnées attendues :
+
+```php
+'module_title' => 'sTask',
+'module_icon' => 'tabler-progress-check',
+```
+
+`docs/docs.json` est un manifeste d’inventaire portable. L’exécution actuelle de dDocs peut ne pas utiliser manifest directement ; Discoverability offre un scan de paquet Composer et un arbre de documentation localisé physique.

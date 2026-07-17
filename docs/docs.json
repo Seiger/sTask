@@ -13,11 +13,11 @@
   "status": "complete",
   "locales": {
     "uk": "complete",
-    "en": "partial",
-    "ru": "partial",
-    "pl": "partial",
-    "de": "partial",
-    "fr": "partial"
+    "en": "complete",
+    "ru": "complete",
+    "pl": "complete",
+    "de": "complete",
+    "fr": "complete"
   },
   "legacyAliases": {
     "ua": "uk"

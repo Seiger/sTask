@@ -52,17 +52,6 @@ $assert(
 
 $docsRoot = $root . '/docs';
 $docsReadme = $read('docs/README.md');
-$fallbackLocaleFiles = [
-    'README.md',
-    '01-getting-started/quick-start.md',
-    '02-concepts/architecture-and-lifecycle.md',
-    '03-manager/interface.md',
-    '04-development/public-api.md',
-    '05-operations/troubleshooting.md',
-    '05-operations/upgrade-1-to-2.md',
-    '06-reference/cli-statuses-routes.md',
-    '06-reference/configuration.md',
-];
 $ukrainianDocs = [
     'README.md',
     '01-getting-started/installation.md',
@@ -98,23 +87,47 @@ foreach ($documentationScreenshots as $screenshot) {
 
 foreach (['en', 'uk', 'ru', 'pl', 'de', 'fr'] as $locale) {
     $contains($docsReadme, "({$locale}/README.md)", "Root docs README must link {$locale} docs.");
-    $requiredFiles = $locale === 'uk' ? $ukrainianDocs : $fallbackLocaleFiles;
 
-    foreach ($requiredFiles as $file) {
+    $actualLocaleDocs = [];
+    $localeIterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$docsRoot}/{$locale}"));
+    foreach ($localeIterator as $fileInfo) {
+        if ($fileInfo->isFile() && $fileInfo->getExtension() === 'md') {
+            $actualLocaleDocs[] = ltrim(str_replace('\\', '/', substr($fileInfo->getPathname(), strlen("{$docsRoot}/{$locale}"))), '/');
+        }
+    }
+    $expectedLocaleDocs = $ukrainianDocs;
+    sort($actualLocaleDocs);
+    sort($expectedLocaleDocs);
+    $assert($actualLocaleDocs === $expectedLocaleDocs, "{$locale} documentation tree must match the canonical Ukrainian tree.");
+
+    foreach ($ukrainianDocs as $file) {
         $path = "docs/{$locale}/{$file}";
         $content = $read($path);
         $assert(trim($content) !== '', "{$path} must not be empty.");
+
+        $canonicalContent = $read("docs/uk/{$file}");
+        $assert(
+            substr_count($content, '```') === substr_count($canonicalContent, '```'),
+            "{$path} must preserve the canonical code fence structure."
+        );
+        preg_match_all('/^#{1,6}\s+/m', $content, $localizedHeadings);
+        preg_match_all('/^#{1,6}\s+/m', $canonicalContent, $canonicalHeadings);
+        $assert(
+            count($localizedHeadings[0]) === count($canonicalHeadings[0]),
+            "{$path} must preserve the canonical heading structure."
+        );
+        preg_match_all('/!?\[[^\]]*\]\([^)]+\)/', $content, $localizedLinks);
+        preg_match_all('/!?\[[^\]]*\]\([^)]+\)/', $canonicalContent, $canonicalLinks);
+        $assert(
+            count($localizedLinks[0]) === count($canonicalLinks[0]),
+            "{$path} must preserve the canonical Markdown link and image structure."
+        );
+        $notContains($content, '! [', "{$path} must not contain a detached Markdown image marker.");
     }
 
     $localeReadme = $read("docs/{$locale}/README.md");
-    if ($locale === 'uk') {
-        foreach (array_slice($ukrainianDocs, 1) as $file) {
-            $contains($localeReadme, "({$file})", "Ukrainian README must link {$file}.");
-        }
-    } else {
-        foreach (array_slice($fallbackLocaleFiles, 1) as $file) {
-            $contains($localeReadme, "({$file})", "{$locale} README must link {$file}.");
-        }
+    foreach (array_slice($ukrainianDocs, 1) as $file) {
+        $contains($localeReadme, "({$file})", "{$locale} README must link {$file}.");
     }
 }
 
@@ -129,7 +142,9 @@ $assert(($docsManifest['package'] ?? null) === 'seiger/stask', 'Docs manifest mu
 $assert(($docsManifest['title'] ?? null) === 'sTask', 'Docs manifest must expose the canonical sTask title.');
 $assert(($docsManifest['icon'] ?? null) === 'tabler-progress-check', 'Docs manifest must expose the thematic Tabler icon.');
 $assert(($docsManifest['canonicalLocale'] ?? null) === 'uk', 'Docs manifest must identify Ukrainian as canonical locale.');
-$assert(($docsManifest['locales']['ru'] ?? null) === 'partial', 'Docs manifest must register the Russian fallback locale.');
+foreach (['uk', 'en', 'ru', 'pl', 'de', 'fr'] as $locale) {
+    $assert(($docsManifest['locales'][$locale] ?? null) === 'complete', "Docs manifest must mark {$locale} documentation complete.");
+}
 
 foreach (($docsManifest['entrypoints'] ?? []) as $name => $entrypoint) {
     $path = (string)($entrypoint['path'] ?? '');

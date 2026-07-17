@@ -1,141 +1,133 @@
-# Developer Guide
+# Facade and PHP API
 
-## Installation Checks
+The canonical service class is `Seiger\sTask\sTask`; facade — `Seiger\sTask\Facades\sTask`. Composer alias is `sTask` also logged, but explicit import is better readable and more convenient for static analysis.
 
-Run inside the Evolution CMS `core` directory:
-
-```console
-php artisan package:installrequire seiger/stask "*"
-php artisan vendor:publish --tag=stask
-php artisan vendor:publish --tag=evo-ui --force
-php artisan migrate
-```
-
-After permission migrations, log out and log back in so the manager permission
-cache is refreshed.
-
-## Architecture
-
-sTask is a package-owned runtime with an EvoUI manager surface.
-
-- sTask owns workers, task lifecycle, progress, uploads, downloads, permissions,
-  and command execution.
-- EvoUI owns shared manager layout, tabs, tables, filters, badges, modals,
-  list/table switching, and local assets.
-- Legacy widget code stays package-owned until it is migrated to a task-runner
-  primitive.
-
-Important files:
-
-```text
-module/sTaskModule.php
-src/sTaskServiceProvider.php
-src/Livewire/ModulePanel.php
-src/Tables/TasksTableData.php
-src/Tables/WorkersTableData.php
-src/Tables/LogsTableData.php
-src/Console/TaskWorker.php
-src/Workers/BaseWorker.php
-src/Workers/ArtisanWorker.php
-src/Workers/ComposerUpdateWorker.php
-config/tasks/table.php
-config/workers/table.php
-config/logs/table.php
-config/artisan_security.php
-```
-
-## Manager Module And Assets
-
-The active EvoUI manager shell must load `evo::partials.assets` and must not load
-legacy `stask.min.css`, `stask.js`, CDN bundles, or the old manager main script.
-If the manager renders unstyled HTML, check published local assets before adding
-fallbacks.
-
-## Worker Contract
-
-Workers implement `TaskInterface` or extend `BaseWorker`.
-
-Required identity methods:
+## Creating a task
 
 ```php
-public function identifier(): string;
-public function scope(): string;
-public function title(): string;
-public function description(): string;
-public function settings(): array;
+public function create(
+    string $identifier,
+    string $action,
+    array $data = [],
+    string $priority = 'normal',
+    ?int $userId = null,
+): sTaskModel
 ```
-
-Task actions are methods named `task<Action>`. For example action `make` maps to:
 
 ```php
-public function taskMake(\Seiger\sTask\Models\sTaskModel $task, array $options = []): void
-{
-    $this->pushProgress($task, [
-        'progress' => 25,
-        'message' => 'Preparing data',
-    ]);
+use Seiger\sTask\Facades\sTask;
 
-    $this->markFinished($task, null, 'Done');
-}
+$task = sTask::create(
+    'catalog_sync',
+    'sync_stock',
+    ['shop_id' => 7, 'dry_run' => false],
+    'normal',
+    evo()->getLoginUserID() ?: null,
+);
 ```
 
-## Task Data Contract
+The method normalizes associative meta by recursive sorting and returns active duplicate if the identifier/action/meta already matches. New record: queued, progress 0, attempts 0, max_attempts 3.
 
-Tasks store:
+Priority exists in PHP/schema for compatibility and queue ordering in `getPendingTasks()`, but is not shown in the current manager table columns/filters.
 
-- `identifier` and `action`;
-- numeric `status`;
-- `message`;
-- `started_by`;
-- `meta` and `result`;
-- `start_at`, `finished_at`, `created_at`, `updated_at`;
-- `attempts`, `max_attempts`, `priority`, and `progress`.
+## Performing a single task
 
-Use `meta` for structured input and `result` for structured output. The details
-modal pretty-prints both fields when they contain JSON-like data.
-
-## Progress And Logs
-
-Use `pushProgress()` for long-running actions. The worker command and manager
-details surface read progress, messages, meta, and result without requiring
-module-specific JavaScript.
-
-## Uploads And Downloads
-
-The action controller supports task uploads, worker uploads, chunked uploads, and
-downloads for completed tasks. Uploaded files are stored under the sTask storage
-upload area and referenced through task metadata.
-
-## Artisan Worker Security
-
-`config/artisan_security.php` defines dangerous, confirmation-required, allowed,
-and forbidden commands. Do not bypass this layer from widgets or custom manager
-buttons.
-
-## Widget Migration Policy
-
-Existing `renderWidget()` output is a compatibility surface. New widgets should
-move toward a shared task-runner pattern:
-
-- declare inputs in config or provider data;
-- submit options to a task action;
-- render progress through the shared task detail/log modal;
-- avoid inline scripts and local CSS for generic buttons, tables, modals, or
-  status badges.
-
-## Verification
-
-```console
-composer test
-php -l src/Tables/TasksTableData.php
-php -l src/Tables/WorkersTableData.php
-php -l src/Tables/LogsTableData.php
+```php
+public function execute(sTaskModel $task): bool
 ```
 
-Manual smoke:
+The method writes start metrics, sets running, resolves the worker through `WorkerService`, calls action, and finalizes the task if the worker has not done so. An exception commits a task to failed and returns `false`.
 
-- open the manager module;
-- switch Dashboard, Tasks, Workers, Logs, and Statistics tabs;
-- switch table/list views;
-- open task details by eye action and double-click;
-- confirm assets load as CSS/JS, not HTML error pages.
+Call `execute()` only in a controlled CLI/queue context. Manager flow and scheduler use the `stask:worker`.
+
+## Queue
+
+```php
+public function getPendingTasks(int $limit = 10): Collection
+public function processPendingTasks(?int $batchSize = null): int
+```
+
+`getPendingTasks()` reads status `10`, sorts priority high → normal → low, then `created_at`. Unlike CLI `TaskWorker`, this method does not filter future `start_at`; Do not use it for Scheduler Semantics without an additional condition.
+
+`processPendingTasks()` sequentially calls `execute()` and returns the number of successful tasks.
+
+## Statistics and metrics
+
+```php
+public function getStats(): array
+public function getPerformanceMetrics(int $hours = 24): array
+public function getWorkerStats(?string $identifier = null, int $hours = 24): array
+public function getPerformanceAlerts(): array
+```
+
+`getStats()` returns counts pending/running/completed/failed/total and workers. Performance API partially placeholder: duration/memory aggregation from task records has not yet been implemented.
+
+## Worker registry
+
+```php
+public function discoverWorkers(): array
+public function registerWorker(string $className): ?sWorker
+public function cleanOrphanedWorkers(): int
+public function getWorkers(bool $activeOnly = false): Collection
+public function getWorker(string $identifier): ?sWorker
+public function activateWorker(string $identifier): bool
+public function deactivateWorker(string $identifier): bool
+```
+
+Discovery works on the Composer classmap. After adding a class:
+
+```bash
+composer dump-autoload
+php artisan package:discover
+```
+
+or click refresh registry in the UI. Remember: new records are created inactive.
+
+## Worker cache
+
+```php
+public function getCacheStats(): array
+public function clearWorkerCache(?string $identifier = null): void
+```
+
+`WorkerService` has in-memory cache and Laravel cache entries with prefix `stask_worker_`. Clear a specific identifier after changing settings/class or the entire cache after registry refresh/deploy.
+
+## Clearing history
+
+```php
+public function cleanOldTasks(int $days = 30): int
+```
+
+Deletes only finished tasks (`status = 80`) with `finished_at` highest cutoff. Failed, queued, running, supervisor state, and progress files are not cleared by this method.
+
+## sTaskModel
+
+Useful scopes and methods:
+
+```php
+sTaskModel::queued();
+sTaskModel::preparing();
+sTaskModel::running();
+sTaskModel::finished();
+sTaskModel::failed();
+sTaskModel::incomplete();
+sTaskModel::byIdentifier('catalog_sync');
+sTaskModel::byAction('make');
+
+$task->markAsRunning();
+$task->markAsFinished('Done');
+$task->markAsFailed('Reason');
+$task->updateProgress(50, 'Half complete');
+$task->canRetry();
+$task->isFinished();
+$task->isRunning();
+$task->isPending();
+```
+
+`markAsRunning()` overwrites `start_at = now()` and increases attempts. `markAsFinished()` put progress 100. `markAsFailed()` don't put progress 100.
+
+## Meta and Result
+
+The model casts `meta` and `result` as arrays, and `start_at`/`finished_at` as datetimes. Pass JSON-compatible values. Do not put Eloquent models, resources, closures or secrets.
+
+For downloadable result, `BaseWorker::markFinished()` can get a string path, but model cast `result => array` and HTTP download logic have their own expectations. Check concrete worker contract and endpoint test; Do not consider any arbitrary path to be automatically accessible.
