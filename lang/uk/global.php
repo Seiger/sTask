@@ -1,8 +1,8 @@
 <?php return [
     'title' => 'Менеджер Задач',
-    'module_title' => 'Менеджер Задач',
+    'module_title' => 'sTask',
     'module_description' => 'Фоновий task runner для Evolution CMS: воркери, черги, progress logs, performance metrics і cache controls.',
-    'module_icon' => 'tabler-list-check',
+    'module_icon' => 'tabler-progress-check',
 
     // Menu
     'dashboard' => 'Панель',

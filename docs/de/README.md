@@ -6,14 +6,14 @@ stellt ein kompaktes EvoUI + Livewire Manager-Panel bereit.
 
 ## Leitfaden
 
-- [Benutzerhandbuch](user-guide.md)
-- [Entwicklerhandbuch](developer-guide.md)
-- [Referenz](reference.md)
-- [Konfiguration](configuration.md)
-- [Fehlerbehebung](troubleshooting.md)
-- [Custom Worker Migration](custom-worker-migration.md)
-- [Frontend Guide](frontend-guide.md)
-- [Backend Guide](backend-guide.md)
+- [Benutzerhandbuch](03-manager/interface.md)
+- [Entwicklerhandbuch](04-development/public-api.md)
+- [Referenz](06-reference/cli-statuses-routes.md)
+- [Konfiguration](06-reference/configuration.md)
+- [Fehlerbehebung](05-operations/troubleshooting.md)
+- [Custom Worker Migration](05-operations/upgrade-1-to-2.md)
+- [Frontend Guide](01-getting-started/quick-start.md)
+- [Backend Guide](02-concepts/architecture-and-lifecycle.md)
 
 ## Manager-Bereiche
 

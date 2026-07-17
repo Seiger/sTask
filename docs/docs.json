@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "package": "seiger/stask",
+  "title": "sTask",
+  "description": "Background task runner for Evolution CMS with workers, schedules, progress logs and supervisor state.",
+  "icon": "tabler-progress-check",
+  "canonicalLocale": "uk",
+  "visibility": "public",
+  "generated": false,
+  "legacy": false,
+  "owners": ["Seiger/sTask maintainers"],
+  "audience": ["manager-users", "integrators", "php-developers", "operators"],
+  "status": "complete",
+  "locales": {
+    "uk": "complete",
+    "en": "partial",
+    "ru": "partial",
+    "pl": "partial",
+    "de": "partial",
+    "fr": "partial"
+  },
+  "legacyAliases": {
+    "ua": "uk"
+  },
+  "entrypoints": {
+    "overview": {"type": "explanation", "path": "uk/README.md", "status": "complete"},
+    "install": {"type": "how-to", "path": "uk/01-getting-started/installation.md", "status": "complete"},
+    "manager": {"type": "how-to", "path": "uk/03-manager/interface.md", "status": "complete"},
+    "developer": {"type": "how-to", "path": "uk/04-development/custom-worker.md", "status": "complete"},
+    "operations": {"type": "how-to", "path": "uk/05-operations/production.md", "status": "complete"},
+    "reference": {"type": "reference", "path": "uk/06-reference/cli-statuses-routes.md", "status": "complete"}
+  }
+}

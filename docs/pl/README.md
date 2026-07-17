@@ -6,14 +6,14 @@ administracyjny EvoUI + Livewire.
 
 ## Przewodniki
 
-- [Przewodnik uzytkownika](user-guide.md)
-- [Przewodnik dewelopera](developer-guide.md)
-- [Reference](reference.md)
-- [Konfiguracja](configuration.md)
-- [Rozwiazywanie problemow](troubleshooting.md)
-- [Migracja custom workerow](custom-worker-migration.md)
-- [Frontend guide](frontend-guide.md)
-- [Backend guide](backend-guide.md)
+- [Przewodnik uzytkownika](03-manager/interface.md)
+- [Przewodnik dewelopera](04-development/public-api.md)
+- [Reference](06-reference/cli-statuses-routes.md)
+- [Konfiguracja](06-reference/configuration.md)
+- [Rozwiazywanie problemow](05-operations/troubleshooting.md)
+- [Migracja custom workerow](05-operations/upgrade-1-to-2.md)
+- [Frontend guide](01-getting-started/quick-start.md)
+- [Backend guide](02-concepts/architecture-and-lifecycle.md)
 
 ## Powierzchnie managera
 

@@ -6,14 +6,14 @@ resultats, et fournit un panneau manager EvoUI + Livewire.
 
 ## Guides
 
-- [Guide utilisateur](user-guide.md)
-- [Guide developpeur](developer-guide.md)
-- [Reference](reference.md)
-- [Configuration](configuration.md)
-- [Depannage](troubleshooting.md)
-- [Migration des custom workers](custom-worker-migration.md)
-- [Guide frontend](frontend-guide.md)
-- [Guide backend](backend-guide.md)
+- [Guide utilisateur](03-manager/interface.md)
+- [Guide developpeur](04-development/public-api.md)
+- [Reference](06-reference/cli-statuses-routes.md)
+- [Configuration](06-reference/configuration.md)
+- [Depannage](05-operations/troubleshooting.md)
+- [Migration des custom workers](05-operations/upgrade-1-to-2.md)
+- [Guide frontend](01-getting-started/quick-start.md)
+- [Guide backend](02-concepts/architecture-and-lifecycle.md)
 
 ## Surfaces manager
 

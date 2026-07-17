@@ -6,14 +6,14 @@ results, and gives administrators a compact EvoUI + Livewire control panel.
 
 ## Guides
 
-- [User Guide](user-guide.md)
-- [Developer Guide](developer-guide.md)
-- [Reference](reference.md)
-- [Configuration](configuration.md)
-- [Troubleshooting](troubleshooting.md)
-- [Custom Worker Migration](custom-worker-migration.md)
-- [Frontend Guide](frontend-guide.md)
-- [Backend Guide](backend-guide.md)
+- [User Guide](03-manager/interface.md)
+- [Developer Guide](04-development/public-api.md)
+- [Reference](06-reference/cli-statuses-routes.md)
+- [Configuration](06-reference/configuration.md)
+- [Troubleshooting](05-operations/troubleshooting.md)
+- [Custom Worker Migration](05-operations/upgrade-1-to-2.md)
+- [Frontend Guide](01-getting-started/quick-start.md)
+- [Backend Guide](02-concepts/architecture-and-lifecycle.md)
 
 ## Manager Surfaces
 
