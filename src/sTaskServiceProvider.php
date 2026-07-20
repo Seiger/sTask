@@ -1,8 +1,8 @@
 <?php namespace Seiger\sTask;
 
 use EvolutionCMS\ServiceProvider;
+use EvoUI\EvoUI;
 use Illuminate\Console\Scheduling\Schedule;
-use Livewire\Livewire;
 use Seiger\sTask\Console\PublishAssets;
 use Seiger\sTask\Console\TaskWorker;
 
@@ -44,7 +44,7 @@ class sTaskServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.php', 'stask.tasks.table');
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/workers/table.php', 'stask.workers.table');
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/logs/table.php', 'stask.logs.table');
-        Livewire::component('stask.module-panel', \Seiger\sTask\Livewire\ModulePanel::class);
+        $this->registerEvoUIComponents();
 
         // Load routes
         $this->loadRoutes();
@@ -56,6 +56,28 @@ class sTaskServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $this->defineConsoleSchedule();
         });
+    }
+
+    /**
+     * Declare sTask manager components through the EvoUI runtime boundary.
+     *
+     * The first package discovery after upgrading from sTask 1.x may boot this provider
+     * before Evolution has discovered EvoUI. Skipping that transitional boot allows the
+     * discovery command to finish; the component is registered on the next application boot.
+     *
+     * @return void
+     * @since 2.0.0
+     */
+    protected function registerEvoUIComponents(): void
+    {
+        if (!$this->app->bound(EvoUI::class)) {
+            return;
+        }
+
+        $this->app->make(EvoUI::class)->registerComponent(
+            'stask.module-panel',
+            \Seiger\sTask\Components\ModulePanel::class
+        );
     }
 
     /**

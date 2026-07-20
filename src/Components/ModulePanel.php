@@ -1,6 +1,6 @@
-<?php namespace Seiger\sTask\Livewire;
+<?php namespace Seiger\sTask\Components;
 
-use Livewire\Component;
+use EvoUI\Components\Component;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Support\DashboardData;
 use Seiger\sTask\Tables\LogsTableData;
@@ -63,7 +63,7 @@ class ModulePanel extends Component
     {
         $dashboard = app(DashboardData::class);
 
-        return view('sTask::livewire.module-panel', [
+        return view('sTask::components.module-panel', [
             'tabs' => $this->navigationTabs(),
             'activeTab' => $this->activeTab,
             'dashboardCards' => $dashboard->cards(),

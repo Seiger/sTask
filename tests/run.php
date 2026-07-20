@@ -43,7 +43,7 @@ $composer = json_decode($read('composer.json'), true);
 $assert(is_array($composer), 'composer.json must be valid JSON.');
 $assert(($composer['name'] ?? null) === 'seiger/stask', 'composer package name must stay seiger/stask.');
 $assert(($composer['require']['evolution-cms/evolution'] ?? null) === '^3.5.7', 'sTask must require the Evolution CMS 3.5.7 baseline.');
-$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.0.6', 'sTask must pin evo-ui baseline dependency.');
+$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.1', 'sTask must require the EvoUI component runtime boundary.');
 $assert(($composer['scripts']['test'] ?? null) === 'php tests/run.php', 'composer test must run the package smoke suite.');
 $assert(
     in_array('Seiger\\sTask\\sTaskServiceProvider', $composer['extra']['laravel']['providers'] ?? [], true),
@@ -221,7 +221,13 @@ $contains($provider, "loadViewsFrom(dirname(__DIR__) . '/views', 'sTask')", 'Pro
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.php', 'stask.tasks.table')", 'Provider must merge the sTask EvoUI tasks table preset.');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/workers/table.php', 'stask.workers.table')", 'Provider must merge the sTask EvoUI workers table preset.');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/logs/table.php', 'stask.logs.table')", 'Provider must merge the sTask EvoUI logs table preset.');
-$contains($provider, "Livewire::component('stask.module-panel'", 'Provider must register the sTask EvoUI module panel.');
+$contains($provider, 'use EvoUI\\EvoUI;', 'Provider must depend on EvoUI instead of the underlying reactive runtime.');
+$contains($provider, '$this->registerEvoUIComponents();', 'Provider must declare the sTask component through EvoUI.');
+$contains($provider, "'stask.module-panel'", 'Provider must keep the public sTask component name.');
+$contains($provider, '\\Seiger\\sTask\\Components\\ModulePanel::class', 'Provider must register the EvoUI-owned component implementation.');
+$contains($provider, 'if (!$this->app->bound(EvoUI::class))', 'Provider must allow first package discovery to finish before EvoUI is registered.');
+$notContains($provider, 'Livewire\\', 'Provider must not depend directly on Livewire classes.');
+$notContains($provider, 'Livewire::', 'Provider must not call the Livewire runtime directly.');
 $notContains($provider, 'discoverWorkers', 'Provider must not discover workers during every boot.');
 $notContains($provider, 'WorkerDiscovery::class', 'Provider must keep worker discovery behind an explicit workers-table action.');
 $contains($provider, '$this->loadRoutes();', 'Provider must load manager routes.');
@@ -231,6 +237,65 @@ $contains($provider, "module_title", 'Manager registration must use localized mo
 $contains($provider, "module_icon", 'Manager registration must use localized module_icon.');
 $contains($provider, 'TaskWorker::class', 'Provider must register/schedule TaskWorker.');
 $notContains($provider, 'abort(', 'Provider must not use Laravel abort fallback in manager boot path.');
+
+if (!class_exists('EvolutionCMS\\ServiceProvider', false)) {
+    eval('namespace EvolutionCMS; class ServiceProvider { public function __construct(public object $app) {} }');
+}
+
+require_once $root . '/src/sTaskServiceProvider.php';
+
+$registerComponents = new ReflectionMethod(\Seiger\sTask\sTaskServiceProvider::class, 'registerEvoUIComponents');
+
+$discoveryApp = new class {
+    public int $makeCalls = 0;
+
+    public function bound(string $abstract): bool
+    {
+        return false;
+    }
+
+    public function make(string $abstract): object
+    {
+        $this->makeCalls++;
+
+        throw new RuntimeException('EvoUI must not resolve during transitional discovery.');
+    }
+};
+
+$registerComponents->invoke(new \Seiger\sTask\sTaskServiceProvider($discoveryApp));
+$assert($discoveryApp->makeCalls === 0, 'Transitional package discovery must skip EvoUI resolution when its provider is not registered.');
+
+$componentRegistry = new class {
+    /** @var array<string, class-string> */
+    public array $components = [];
+
+    public function registerComponent(string $name, string $component): void
+    {
+        $this->components[$name] = $component;
+    }
+};
+
+$runtimeApp = new class($componentRegistry) {
+    public function __construct(private object $componentRegistry)
+    {
+    }
+
+    public function bound(string $abstract): bool
+    {
+        return $abstract === \EvoUI\EvoUI::class;
+    }
+
+    public function make(string $abstract): object
+    {
+        return $this->componentRegistry;
+    }
+};
+
+$registerComponents->invoke(new \Seiger\sTask\sTaskServiceProvider($runtimeApp));
+$assert(
+    ($componentRegistry->components['stask.module-panel'] ?? null) === \Seiger\sTask\Components\ModulePanel::class,
+    'sTask must declare its module panel through the registered EvoUI runtime.'
+);
 
 $module = $read('module/sTaskModule.php');
 $contains($module, 'IN_MANAGER_MODE', 'Module entry must keep manager-mode guard.');
@@ -277,8 +342,10 @@ $notContains($taskDetail, '<script', 'Task detail shell must not add local scrip
 $notContains($taskDetail, 'stask.min.css', 'Task detail shell must not load old sTask CSS.');
 $notContains($taskDetail, 'cdn.jsdelivr', 'Task detail shell must not load CDN assets.');
 
-$modulePanel = $read('src/Livewire/ModulePanel.php');
-$contains($modulePanel, 'class ModulePanel extends Component', 'sTask ModulePanel must be a Livewire component.');
+$modulePanel = $read('src/Components/ModulePanel.php');
+$contains($modulePanel, 'class ModulePanel extends Component', 'sTask ModulePanel must be an EvoUI component.');
+$contains($modulePanel, 'use EvoUI\\Components\\Component;', 'sTask ModulePanel must extend the EvoUI component boundary.');
+$notContains($modulePanel, 'Livewire\\', 'sTask ModulePanel must not depend directly on Livewire classes.');
 $contains($modulePanel, 'DashboardData::class', 'sTask ModulePanel must delegate dashboard data to DashboardData.');
 $contains($modulePanel, 'openTaskDetails(int $id)', 'Dashboard recent task rows must open the details modal.');
 $contains($modulePanel, 'LogsTableData::class', 'Dashboard task detail modal must reuse the logs detail provider.');
@@ -302,7 +369,7 @@ $contains($dashboardData, 'cacheStats', 'DashboardData must expose cache stats.'
 $contains($dashboardData, 'sTaskFacade::getPerformanceMetrics', 'DashboardData performance cards must use real metrics.');
 $contains($dashboardData, 'sTaskFacade::getCacheStats', 'DashboardData performance cards must use real cache stats.');
 
-$modulePanelView = $read('views/livewire/module-panel.blade.php');
+$modulePanelView = $read('views/components/module-panel.blade.php');
 $contains($modulePanelView, '<x-evo::module-tab-shell', 'Module panel view must use the shared EvoUI module tab shell.');
 $contains($modulePanelView, '<x-evo::dashboard', 'Dashboard tab must use the shared EvoUI dashboard primitive.');
 $contains($modulePanelView, ':cards=', 'Dashboard tab must feed shared dashboard cards.');
