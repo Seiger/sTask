@@ -41,6 +41,7 @@ class sTaskServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(dirname(__DIR__) . '/database/migrations');
         $this->loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask');
         $this->loadViewsFrom(dirname(__DIR__) . '/views', 'sTask');
+        $this->registerManagerPermissionLexicon();
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.php', 'stask.tasks.table');
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/workers/table.php', 'stask.workers.table');
         $this->mergeConfigFrom(dirname(__DIR__) . '/config/logs/table.php', 'stask.logs.table');
@@ -163,6 +164,24 @@ class sTaskServiceProvider extends ServiceProvider
 
         // Register sTask as singleton
         $this->app->singleton(\Seiger\sTask\sTask::class);
+    }
+
+    /**
+     * Bridge package translations into the legacy manager permission lexicon.
+     *
+     * @since 2.0.2
+     */
+    protected function registerManagerPermissionLexicon(): void
+    {
+        if (!defined('IN_MANAGER_MODE') || !IN_MANAGER_MODE) {
+            return;
+        }
+
+        $managerTheme = $this->app->make('ManagerTheme');
+        $groupLabel = __('sTask::global.permissions_group');
+
+        $managerTheme->setLexicon('seiger_packages', $groupLabel);
+        $managerTheme->setLexicon('sTask::global.permission_access', __('sTask::global.permission_access'));
     }
 
     /**

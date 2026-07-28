@@ -4,6 +4,8 @@ $labels = include dirname(__DIR__) . '/en/global.php';
 
 $labels['module_title'] = 'sTask';
 $labels['module_description'] = 'Background task runner dla Evolution CMS: workery, kolejki, progress logs, performance metrics i cache controls.';
+$labels['permissions_group'] = 'Pakiety Seiger';
+$labels['permission_access'] = 'Dostęp do interfejsu sTask';
 $labels['performance'] = 'Wydajnosc';
 $labels['performance_alerts'] = 'Alerty wydajnosci';
 $labels['no_performance_alerts'] = 'Brak alertow wydajnosci.';

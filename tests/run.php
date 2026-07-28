@@ -218,6 +218,9 @@ $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/sTaskCheck.php
 $contains($provider, "loadMigrationsFrom(dirname(__DIR__) . '/database/migrations')", 'Provider must load package migrations from the standard package path.');
 $contains($provider, "loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask')", 'Provider must load sTask translations namespace.');
 $contains($provider, "loadViewsFrom(dirname(__DIR__) . '/views', 'sTask')", 'Provider must load sTask views namespace.');
+$contains($provider, 'registerManagerPermissionLexicon()', 'Provider must bridge package permission labels into the manager lexicon.');
+$contains($provider, "setLexicon('seiger_packages'", 'Provider must register the shared Seiger packages manager label.');
+$contains($provider, "setLexicon('sTask::global.permission_access'", 'Provider must register the localized sTask permission label.');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.php', 'stask.tasks.table')", 'Provider must merge the sTask EvoUI tasks table preset.');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/workers/table.php', 'stask.workers.table')", 'Provider must merge the sTask EvoUI workers table preset.');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/logs/table.php', 'stask.logs.table')", 'Provider must merge the sTask EvoUI logs table preset.');
@@ -673,7 +676,8 @@ $permissionMigration = $read('database/migrations/2025_10_15_000001_add_stask_pe
 $contains($permissionMigration, 'public $withinTransaction = false;', 'Permission migration must run outside Laravel transaction wrapper.');
 $contains($permissionMigration, "Schema::hasTable('permissions_groups')", 'Permission migration must guard missing permissions_groups table.');
 $contains($permissionMigration, "Schema::hasTable('permissions')", 'Permission migration must guard missing permissions table.');
-$contains($permissionMigration, "'name' => 'sTask'", 'Permission group must stay sTask.');
+$contains($permissionMigration, "'name' => 'Seiger packages'", 'Initial permission migration must use the shared Seiger packages group.');
+$contains($permissionMigration, "'lang_key' => 'seiger_packages'", 'Initial permission migration must expose the shared manager lexicon key.');
 $contains($permissionMigration, "'key', 'stask'", 'Permission lookup must use stask key.');
 $contains($permissionMigration, "'key' => 'stask'", 'Permission insert must use stask key.');
 $contains($permissionMigration, "sTask::global.permission_access", 'Permission must use localized lang key.');
@@ -716,12 +720,22 @@ $contains($dashboardData, "'progress' => max(0, min(100, (int)\$task->progress))
 $logsTableData = $read('src/Tables/LogsTableData.php');
 $contains($logsTableData, "\$progress = max(0, min(100, (int)\$task->progress));", 'Logs table must show stored task progress.');
 
+$permissionGroupLabels = [
+    'en' => 'Seiger packages',
+    'uk' => 'Пакети Seiger',
+    'fr' => 'Paquets Seiger',
+    'ru' => 'Пакеты Seiger',
+    'de' => 'Seiger-Pakete',
+    'pl' => 'Pakiety Seiger',
+];
+
 foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
     $lang = $read("lang/{$locale}/global.php");
     $labels = require $root . "/lang/{$locale}/global.php";
 
     $assert(($labels['module_title'] ?? null) === 'sTask', "{$locale} dDocs/module title must stay sTask.");
     $assert(($labels['module_icon'] ?? null) === 'tabler-progress-check', "{$locale} dDocs/module icon must stay tabler-progress-check.");
+    $assert(($labels['permissions_group'] ?? null) === $permissionGroupLabels[$locale], "{$locale} permission group must use the localized Seiger packages label.");
 
     foreach ([
         'module_title',

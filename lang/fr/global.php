@@ -147,7 +147,7 @@
     'worker_must_implement_TaskInterface' => 'Le gestionnaire de tâches doit implémenter TaskInterface : :className',
 
     // Permissions
-    'permissions_group' => 'sTask',
+    'permissions_group' => 'Paquets Seiger',
     'permission_access' => 'Accès à l\'interface sTask',
 
     // Widget

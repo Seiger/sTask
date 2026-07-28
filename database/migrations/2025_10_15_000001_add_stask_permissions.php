@@ -48,7 +48,7 @@ return new class extends Migration {
         }
 
         if (Schema::hasTable('permissions_groups')) {
-            $group = DB::table('permissions_groups')->where('name', 'sTask')->first();
+            $group = DB::table('permissions_groups')->where('name', 'Seiger packages')->first();
 
             if ($group) {
                 $hasPermissions = Schema::hasTable('permissions')
@@ -64,7 +64,7 @@ return new class extends Migration {
     protected function getOrCreateGroup(): int
     {
         $group = DB::table('permissions_groups')
-            ->where('name', 'sTask')
+            ->where('name', 'Seiger packages')
             ->first();
 
         if ($group) {
@@ -73,8 +73,8 @@ return new class extends Migration {
 
         try {
             return DB::table('permissions_groups')->insertGetId([
-                'name' => 'sTask',
-                'lang_key' => 'sTask::global.permissions_group',
+                'name' => 'Seiger packages',
+                'lang_key' => 'seiger_packages',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -83,13 +83,13 @@ return new class extends Migration {
 
             try {
                 return DB::table('permissions_groups')->insertGetId([
-                    'name' => 'sTask',
-                    'lang_key' => 'sTask::global.permissions_group',
+                    'name' => 'Seiger packages',
+                    'lang_key' => 'seiger_packages',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
             } catch (QueryException $e2) {
-                $group = DB::table('permissions_groups')->where('name', 'sTask')->first();
+                $group = DB::table('permissions_groups')->where('name', 'Seiger packages')->first();
                 if ($group) {
                     return $group->id;
                 }

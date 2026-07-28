@@ -147,7 +147,7 @@
     'worker_must_implement_TaskInterface' => 'Воркер повинен імплементувати TaskInterface: :className',
 
     // Permissions
-    'permissions_group' => 'sTask',
+    'permissions_group' => 'Пакети Seiger',
     'permission_access' => 'Доступ до інтерфейсу sTask',
 
     // Widget
