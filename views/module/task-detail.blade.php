@@ -95,5 +95,6 @@
         <pre class="evo-ui-code-block">{{ $resultPretty ?? __('sTask::global.raw_log_empty') }}</pre>
     </x-evo::card>
 </main>
+<script>window.parent?.evo?.moduleViewport?.requestHiddenTree(window);</script>
 </body>
 </html>

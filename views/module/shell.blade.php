@@ -47,5 +47,6 @@
             :context="$context"
         />
     </div>
+    <script>window.parent?.evo?.moduleViewport?.requestHiddenTree(window);</script>
 </body>
 </html>
