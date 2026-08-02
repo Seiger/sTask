@@ -94,8 +94,7 @@ class TaskWorker extends Command
         // If start_at is set, check if time has come; otherwise process immediately
         $tasks = sTaskModel::queued()
             ->where(function($query) {
-                $query->whereNull('start_at')
-                    ->orWhere('start_at', '<=', now());
+                $query->whereNull('start_at')->orWhere('start_at', '<=', now());
             })
             ->get();
         $processed = 0;
@@ -263,7 +262,7 @@ class TaskWorker extends Command
                 'action'     => $task->action,
                 'status'     => $task->status_text,
                 'progress'   => 0,
-                'message'    => '***' . __('sTask::global.starting_task') . '***',
+                'message'    => '**' . __('sTask::global.starting_task') . '**',
             ]);
 
             // Delegate the real work to worker via invokeAction
@@ -282,7 +281,7 @@ class TaskWorker extends Command
                     'action'     => $freshTask->action,
                     'status'     => $freshTask->status_text,
                     'progress'   => max(0, min(100, (int)$freshTask->progress)),
-                    'message'    => '***' . __('sTask::global.task_completed') . '***',
+                    'message'    => '**' . __('sTask::global.task_completed') . '**',
                 ]);
             }
         } catch (\Throwable $e) {

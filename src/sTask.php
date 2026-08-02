@@ -246,10 +246,7 @@ class sTask
     public function cleanOldTasks(int $days = 30): int
     {
         $cutoff = now()->subDays($days);
-
-        return sTaskModel::finished()
-            ->where('finished_at', '<', $cutoff)
-            ->delete();
+        return sTaskModel::finished()->where('finished_at', '<', $cutoff)->delete();
     }
 
     /**
