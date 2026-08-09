@@ -3,6 +3,7 @@
 use Illuminate\Support\Collection;
 use Seiger\sTask\Facades\sTask as sTaskFacade;
 use Seiger\sTask\Models\sTaskModel;
+use Seiger\sTask\Services\TaskProgress;
 
 /**
  * Build presentation-ready data for the sTask dashboard and performance tabs.
@@ -11,11 +12,21 @@ use Seiger\sTask\Models\sTaskModel;
  */
 class DashboardData
 {
+    /**
+     * Return aggregate task and worker counters for dashboard widgets.
+     *
+     * @return array<string, int|float|string|null>
+     */
     public function stats(): array
     {
         return sTaskFacade::getStats();
     }
 
+    /**
+     * Build the summary cards displayed at the top of the dashboard.
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function cards(): array
     {
         $stats = $this->stats();
@@ -30,6 +41,12 @@ class DashboardData
         ];
     }
 
+    /**
+     * Return the most recently created tasks formatted for dashboard rows.
+     *
+     * @param int $limit Maximum number of tasks to return
+     * @return Collection<int, array<string, mixed>>
+     */
     public function recentTasks(int $limit = 8): Collection
     {
         return sTaskModel::with(['worker', 'user'])
@@ -39,6 +56,12 @@ class DashboardData
             ->map(fn (sTaskModel $task): array => $this->taskRow($task));
     }
 
+    /**
+     * Return the most recent failed tasks formatted for dashboard rows.
+     *
+     * @param int $limit Maximum number of failed tasks to return
+     * @return Collection<int, array<string, mixed>>
+     */
     public function recentErrors(int $limit = 5): Collection
     {
         return sTaskModel::with(['worker', 'user'])
@@ -49,6 +72,11 @@ class DashboardData
             ->map(fn (sTaskModel $task): array => $this->taskRow($task));
     }
 
+    /**
+     * Build performance and worker-cache metric cards for the dashboard.
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function performanceCards(): array
     {
         $summary = sTaskFacade::getPerformanceMetrics(24);
@@ -124,6 +152,16 @@ class DashboardData
             ->all();
     }
 
+    /**
+     * Build a localized dashboard summary card.
+     *
+     * @param string $titleKey Translation key suffix for the card title
+     * @param string $icon Icon identifier used by the manager interface
+     * @param string $status Visual status variant for the card
+     * @param int $value Statistic value to display
+     * @param string $labelKey Translation key suffix for the statistic label
+     * @return array<string, mixed>
+     */
     protected function card(string $titleKey, string $icon, string $status, int $value, string $labelKey): array
     {
         return [
@@ -140,6 +178,16 @@ class DashboardData
         ];
     }
 
+    /**
+     * Build a localized dashboard card for a performance metric.
+     *
+     * @param string $titleKey Translation key suffix for the card title
+     * @param string $icon Icon identifier used by the manager interface
+     * @param string $status Visual status variant for the card
+     * @param int|float|string $value Metric value to format and display
+     * @param string $labelKey Translation key suffix for the metric label
+     * @return array<string, mixed>
+     */
     protected function metricCard(string $titleKey, string $icon, string $status, int|float|string $value, string $labelKey): array
     {
         return [
@@ -165,6 +213,7 @@ class DashboardData
     protected function taskRow(sTaskModel $task): array
     {
         $status = sTaskModel::statusText((int)$task->status);
+        $progress = max(0, min(100, (int)$task->progress));
 
         return [
             'id' => (int)$task->id,
@@ -175,7 +224,8 @@ class DashboardData
             'status_label' => __('sTask::global.' . $status),
             'status_color' => $this->statusColor((int)$task->status),
             'is_active' => in_array((int)$task->status, sTaskModel::activeStatuses(), true),
-            'progress' => max(0, min(100, (int)$task->progress)),
+            'progress' => $progress,
+            'progress_label' => $this->progressLabel($task, $progress),
             'created_at' => $task->created_at?->format('Y-m-d H:i') ?? '',
             'start_at' => $task->start_at?->format('Y-m-d H:i') ?? '',
             'message' => trim((string)($task->message ?? '')),
@@ -183,6 +233,38 @@ class DashboardData
         ];
     }
 
+    /**
+     * Format a task progress value and append ETA for a running task.
+     *
+     * Uses the worker-reported ETA when available; otherwise estimates it from
+     * elapsed execution time and the current progress.
+     *
+     * @param sTaskModel $task Running or completed task model
+     * @param int $progress Normalized progress value from 0 to 100
+     * @return string Progress label, optionally including ETA in brackets
+     */
+    protected function progressLabel(sTaskModel $task, int $progress): string
+    {
+        if (!$task->isRunning()) {
+            return $progress . '%';
+        }
+
+        $eta = trim((string)(TaskProgress::readProgress($task->id)['eta'] ?? ''));
+        if ($eta === '' || $eta === '—') {
+            $elapsed = $task->start_at ? max(0, $task->start_at->diffInSeconds(now())) : 0;
+            $seconds = $progress > 0 ? (int)round(($elapsed / $progress) * (100 - $progress)) : 0;
+            $eta = $seconds > 0 ? niceEta((float)$seconds) : '';
+        }
+
+        return $progress . '% [' . $eta . ']';
+    }
+
+    /**
+     * Resolve the manager UI color associated with a task status.
+     *
+     * @param int $status sTask status identifier
+     * @return string Hexadecimal color value for the manager interface
+     */
     protected function statusColor(int $status): string
     {
         return match ($status) {

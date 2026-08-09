@@ -32,6 +32,7 @@ class ModulePanel extends Component
     public function switchTab(string $tab): void
     {
         $this->activeTab = $this->normalizeTab($tab);
+        $this->dispatch('evo-ui:module-tab-refresh', tab: $this->activeTab);
     }
 
     public function openTaskDetails(int $id): void

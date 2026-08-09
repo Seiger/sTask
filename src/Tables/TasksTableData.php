@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use EvolutionCMS\Models\User;
 use Seiger\sTask\Models\sTaskModel;
+use Seiger\sTask\Services\TaskProgress;
 use Seiger\sTask\Models\sWorker as sWorker;
 use Seiger\sTask\Support\LiveProgressRow;
 
@@ -277,7 +278,7 @@ class TasksTableData
                 'color' => $this->priorityColor($priority),
             ],
             'progress' => max(0, min(100, (int)$task->progress)),
-            'progress_label' => max(0, min(100, (int)$task->progress)) . '%',
+            'progress_label' => $this->progressLabel($task),
             'attempts_label' => (int)$task->attempts . ' / ' . (int)$task->max_attempts,
             'message_text' => $message !== '' ? $message : __('sTask::global.raw_log_empty'),
             'started_by' => (string)($task->user->username ?? 'system'),
@@ -414,6 +415,41 @@ class TasksTableData
             sTaskModel::TASK_STATUS_PREPARING => '#D97706',
             default => '#64748B',
         };
+    }
+
+    /**
+     * Add the worker-provided ETA to progress only while a task is running.
+     */
+    protected function progressLabel(sTaskModel $task): string
+    {
+        $progress = max(0, min(100, (int)$task->progress));
+
+        if (!$task->isRunning()) {
+            return $progress . '%';
+        }
+
+        $eta = trim((string)(TaskProgress::readProgress($task->id)['eta'] ?? ''));
+        $eta = $eta === '' || $eta === '—' ? $this->estimatedEta($task, $progress) : $eta;
+        if ($eta === '' || $eta === '—') {
+            return $progress . '%';
+        }
+
+        return $progress . '% [' . $eta . ']';
+    }
+
+    /**
+     * Estimate the remaining duration while a worker has not supplied its own ETA.
+     */
+    protected function estimatedEta(sTaskModel $task, int $progress): string
+    {
+        if (!$task->start_at || $progress <= 0 || $progress >= 100) {
+            return '';
+        }
+
+        $elapsed = max(0, $task->start_at->diffInSeconds(now()));
+        $seconds = (int) round(($elapsed / $progress) * (100 - $progress));
+
+        return $seconds > 0 ? niceEta((float)$seconds) : '';
     }
 
     protected function priorityColor(string $priority): string

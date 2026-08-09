@@ -56,7 +56,11 @@
 
         row.style.setProperty('--stask-task-progress', `${progress}%`);
         if (progressCell) {
-            progressCell.textContent = `${progress}%`;
+            const eta = typeof snapshot.eta === 'string' ? snapshot.eta.trim() : '';
+            const isRunning = snapshot.status === 'running';
+            progressCell.textContent = isRunning && eta !== '' && eta !== '—'
+                ? `${progress}% [${eta}]`
+                : `${progress}%`;
         }
 
         if (messageTarget && typeof snapshot.message === 'string') {
@@ -134,6 +138,7 @@
                     snapshot.progress,
                     snapshot.processed,
                     snapshot.total,
+                    snapshot.eta,
                     snapshot.message,
                 ]);
                 const changed = lastSignature === '' || signature !== lastSignature;

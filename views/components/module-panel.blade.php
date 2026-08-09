@@ -37,7 +37,7 @@
                                             <td>{{ $task['worker_title'] }}</td>
                                             <td>{{ $task['action'] }}</td>
                                             <td><x-evo::badge :label="$task['status_label']" :color="$task['status_color']" /></td>
-                                            <td data-stask-progress-cell>{{ $task['progress'] }}%</td>
+                                            <td data-stask-progress-cell>{{ $task['progress_label'] }}</td>
                                             <td>{{ $task['start_at'] }}</td>
                                             <td class="evo-ui-row-actions-cell">
                                                 <div class="evo-ui-row-actions">

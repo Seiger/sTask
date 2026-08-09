@@ -47,6 +47,10 @@ class sTaskModel extends Model
     ];
 
     protected $casts = [
+        'status' => 'integer',
+        'progress' => 'integer',
+        'attempts' => 'integer',
+        'max_attempts' => 'integer',
         'meta' => 'array',
         'result' => 'array',
         'start_at' => 'datetime',

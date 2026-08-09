@@ -184,6 +184,17 @@ class sTaskActionController extends BaseController
             }
 
             // Skip log history for lightweight progress-only dashboard watchers.
+            if (trim((string)($data['eta'] ?? '')) === '—') {
+                $task = sTaskModel::query()->find($id);
+                $progress = max(0, min(100, (int)($data['progress'] ?? 0)));
+
+                if ($task?->isRunning() && $task->start_at && $progress > 0 && $progress < 100) {
+                    $elapsed = max(0, $task->start_at->diffInSeconds(now()));
+                    $seconds = (int)round(($elapsed / $progress) * (100 - $progress));
+                    $data['eta'] = $seconds > 0 ? niceEta((float)$seconds) : '—';
+                }
+            }
+
             $data['log_lines'] = request()->boolean('include_log', true)
                 ? TaskProgress::readLog($id, 50)
                 : [];

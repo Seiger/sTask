@@ -24,8 +24,9 @@
         rel="stylesheet"
         href="{{ rtrim(evo()->getConfig('site_url'), '/') }}/assets/site/stask-module.css?{{ evo()->getConfig('sTaskVer') }}"
     >
+    @php($moduleScriptVersion = is_file(public_path('assets/site/stask-module.js')) ? filemtime(public_path('assets/site/stask-module.js')) : evo()->getConfig('sTaskVer'))
     <script
-        src="{{ rtrim(evo()->getConfig('site_url'), '/') }}/assets/site/stask-module.js?{{ evo()->getConfig('sTaskVer') }}"
+        src="{{ rtrim(evo()->getConfig('site_url'), '/') }}/assets/site/stask-module.js?{{ $moduleScriptVersion }}"
         defer
     ></script>
 </head>
@@ -47,6 +48,5 @@
             :context="$context"
         />
     </div>
-    <script>window.parent?.evo?.moduleViewport?.requestHiddenTree(window);</script>
 </body>
 </html>
