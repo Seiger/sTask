@@ -219,6 +219,8 @@ $contains($provider, "loadMigrationsFrom(dirname(__DIR__) . '/database/migration
 $contains($provider, "loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask')", 'Provider must load sTask translations namespace.');
 $contains($provider, "loadViewsFrom(dirname(__DIR__) . '/views', 'sTask')", 'Provider must load sTask views namespace.');
 $contains($provider, 'registerManagerPermissionLexicon()', 'Provider must bridge package permission labels into the manager lexicon.');
+$contains($provider, "afterResolving('ManagerTheme'", 'Provider must defer manager lexicon registration until ManagerTheme is resolved.');
+$notContains($provider, "make('ManagerTheme')", 'Provider must not resolve ManagerTheme before system settings are loaded.');
 $contains($provider, "setLexicon('seiger_packages'", 'Provider must register the shared Seiger packages manager label.');
 $contains($provider, "setLexicon('sTask::global.permission_access'", 'Provider must register the localized sTask permission label.');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/tasks/table.php', 'stask.tasks.table')", 'Provider must merge the sTask EvoUI tasks table preset.');

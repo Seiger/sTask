@@ -177,11 +177,12 @@ class sTaskServiceProvider extends ServiceProvider
             return;
         }
 
-        $managerTheme = $this->app->make('ManagerTheme');
-        $groupLabel = __('sTask::global.permissions_group');
+        $this->app->afterResolving('ManagerTheme', function ($managerTheme): void {
+            $groupLabel = __('sTask::global.permissions_group');
 
-        $managerTheme->setLexicon('seiger_packages', $groupLabel);
-        $managerTheme->setLexicon('sTask::global.permission_access', __('sTask::global.permission_access'));
+            $managerTheme->setLexicon('seiger_packages', $groupLabel);
+            $managerTheme->setLexicon('sTask::global.permission_access', __('sTask::global.permission_access'));
+        });
     }
 
     /**
