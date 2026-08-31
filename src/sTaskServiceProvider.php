@@ -60,7 +60,7 @@ class sTaskServiceProvider extends ServiceProvider
     }
 
     /**
-     * Declare sTask manager components through the EvoUI runtime boundary.
+     * Declare sTask manager components and custom modal fields through EvoUI.
      *
      * The first package discovery after upgrading from sTask 1.x may boot this provider
      * before Evolution has discovered EvoUI. Skipping that transitional boot allows the
@@ -75,10 +75,13 @@ class sTaskServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app->make(EvoUI::class)->registerComponent(
+        $evoUi = $this->app->make(EvoUI::class);
+        $evoUi->registerComponent(
             'stask.module-panel',
             \Seiger\sTask\Components\ModulePanel::class
         );
+        $evoUi->registerFormField('worker-settings', 'sTask::fields.worker-settings');
+        $evoUi->registerFormField('worker-files', 'sTask::fields.worker-files');
     }
 
     /**

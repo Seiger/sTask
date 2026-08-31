@@ -43,7 +43,7 @@ $composer = json_decode($read('composer.json'), true);
 $assert(is_array($composer), 'composer.json must be valid JSON.');
 $assert(($composer['name'] ?? null) === 'seiger/stask', 'composer package name must stay seiger/stask.');
 $assert(($composer['require']['evolution-cms/evolution'] ?? null) === '^3.5.7', 'sTask must require the Evolution CMS 3.5.7 baseline.');
-$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.1', 'sTask must require the EvoUI component runtime boundary.');
+$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.2', 'sTask must require the EvoUI modal field runtime boundary.');
 $assert(($composer['scripts']['test'] ?? null) === 'php tests/run.php', 'composer test must run the package smoke suite.');
 $assert(
     in_array('Seiger\\sTask\\sTaskServiceProvider', $composer['extra']['laravel']['providers'] ?? [], true),
@@ -217,6 +217,8 @@ $provider = $read('src/sTaskServiceProvider.php');
 $contains($provider, "mergeConfigFrom(dirname(__DIR__) . '/config/sTaskCheck.php', 'cms.settings')", 'Provider must merge sTask CMS settings.');
 $contains($provider, "loadMigrationsFrom(dirname(__DIR__) . '/database/migrations')", 'Provider must load package migrations from the standard package path.');
 $contains($provider, "loadTranslationsFrom(dirname(__DIR__) . '/lang', 'sTask')", 'Provider must load sTask translations namespace.');
+$contains($provider, "registerFormField('worker-settings', 'sTask::fields.worker-settings')", 'Provider must register the worker settings modal field.');
+$contains($provider, "registerFormField('worker-files', 'sTask::fields.worker-files')", 'Provider must register the generated files modal field.');
 $contains($provider, "loadViewsFrom(dirname(__DIR__) . '/views', 'sTask')", 'Provider must load sTask views namespace.');
 $contains($provider, 'registerManagerPermissionLexicon()', 'Provider must bridge package permission labels into the manager lexicon.');
 $contains($provider, "afterResolving('ManagerTheme'", 'Provider must defer manager lexicon registration until ManagerTheme is resolved.');
@@ -274,9 +276,17 @@ $componentRegistry = new class {
     /** @var array<string, class-string> */
     public array $components = [];
 
+    /** @var array<string, string> */
+    public array $formFields = [];
+
     public function registerComponent(string $name, string $component): void
     {
         $this->components[$name] = $component;
+    }
+
+    public function registerFormField(string $type, string $view): void
+    {
+        $this->formFields[$type] = $view;
     }
 };
 
@@ -300,6 +310,11 @@ $registerComponents->invoke(new \Seiger\sTask\sTaskServiceProvider($runtimeApp))
 $assert(
     ($componentRegistry->components['stask.module-panel'] ?? null) === \Seiger\sTask\Components\ModulePanel::class,
     'sTask must declare its module panel through the registered EvoUI runtime.'
+);
+$assert(
+    ($componentRegistry->formFields['worker-settings'] ?? null) === 'sTask::fields.worker-settings'
+    && ($componentRegistry->formFields['worker-files'] ?? null) === 'sTask::fields.worker-files',
+    'sTask must register its worker modal fields through the EvoUI runtime.'
 );
 
 $module = $read('module/sTaskModule.php');
@@ -373,6 +388,7 @@ $contains($dashboardData, 'performanceAlerts', 'DashboardData must expose perfor
 $contains($dashboardData, 'cacheStats', 'DashboardData must expose cache stats.');
 $contains($dashboardData, 'sTaskFacade::getPerformanceMetrics', 'DashboardData performance cards must use real metrics.');
 $contains($dashboardData, 'sTaskFacade::getCacheStats', 'DashboardData performance cards must use real cache stats.');
+$contains($dashboardData, "return \$progress . '% · ' . \$eta;", 'Dashboard progress labels must separate ETA with a readable middle dot.');
 
 $modulePanelView = $read('views/components/module-panel.blade.php');
 $contains($modulePanelView, '<x-evo::module-tab-shell', 'Module panel view must use the shared EvoUI module tab shell.');
@@ -495,6 +511,7 @@ $contains($tasksTableData, "route('sTask.task.show'", 'TasksTableData rows must 
 $contains($tasksTableData, 'statusColor', 'TasksTableData must map task statuses to badge colors.');
 $contains($tasksTableData, 'priorityColor', 'TasksTableData must map task priorities to badge colors.');
 $contains($tasksTableData, "'sort_field'", 'TasksTableData must use provider-safe sort_field values from config.');
+$contains($tasksTableData, "return \$progress . '% · ' . \$eta;", 'Task table progress labels must separate ETA with a readable middle dot.');
 
 $logsTableConfig = $read('config/logs/table.php');
 $contains($logsTableConfig, "'key' => 'stask.logs'", 'Logs table config must use the stask.logs preset key.');
@@ -625,6 +642,11 @@ $contains($workersTableData, 'public function runSelectedWorkerAttributes(array 
 $contains($workersTableData, "return ['disabled' => true];", 'WorkersTableData must disable toolbar run action for non-runnable workers.');
 $contains($workersTableData, 'settings_payload', 'WorkersTableData must expose additional settings payload.');
 $contains($workersTableData, 'decodeSettingsPayload', 'WorkersTableData must decode additional settings payload.');
+$contains($workersTableData, 'public function modalFields(array $fields, array $data, ?int $id = null): array', 'WorkersTableData must adapt modal fields to worker capabilities.');
+$contains($workersTableData, "method_exists(\$instance, 'renderSettings')", 'WorkersTableData must support worker-owned settings forms.');
+$contains($workersTableData, "method_exists(\$instance, 'getGeneratedFiles')", 'WorkersTableData must support generated file lists.');
+$contains($workersTableData, "\$field['type'] = 'worker-settings'", 'WorkersTableData must expose the worker settings modal field type.');
+$contains($workersTableData, "'type' => 'worker-files'", 'WorkersTableData must expose the generated files modal field type.');
 $contains($workersTableData, "Arr::except", 'WorkersTableData must keep schedule out of the additional settings payload.');
 $contains($workersTableData, "'minutely', 'every_5min', 'every_15min', 'every_30min', 'hourly', 'daily', 'weekly', 'monthly'", 'Workers periodic schedule must allow minute, hourly, daily, weekly and monthly frequencies.');
 $contains($workersTableData, "'value' => 'monthly'", 'Workers periodic schedule frequency options must include monthly.');
@@ -717,7 +739,15 @@ $contains($workersTableData, "['value' => 'supervisor', 'label' => 'sTask::globa
 $contains($workersTableConfig, "'name' => 'supervisor_heartbeat_at'", 'Workers UI must expose live supervisor heartbeat.');
 
 $dashboardData = $read('src/Support/DashboardData.php');
-$contains($dashboardData, "'progress' => max(0, min(100, (int)\$task->progress))", 'Dashboard recent tasks must show stored task progress.');
+$contains($dashboardData, "\$progress = max(0, min(100, (int)\$task->progress));", 'Dashboard recent tasks must normalize stored task progress.');
+$contains($dashboardData, "'progress' => \$progress", 'Dashboard recent tasks must show normalized task progress.');
+$contains($dashboardData, "'progress_label' => \$this->progressLabel(\$task, \$progress)", 'Dashboard recent tasks must expose the readable progress and ETA label.');
+$moduleJs = $read('js/module.js');
+$contains($moduleJs, '`${progress}% · ${eta}`', 'Live progress polling must preserve the readable ETA separator.');
+$contains($moduleJs, 'function initWorkerSettings(container, wire)', 'sTask runtime must activate worker-owned settings forms.');
+$contains($moduleJs, "form.addEventListener('submit', () => syncWorkerSettings(form, wire), {capture: true})", 'Worker settings must synchronize before the EvoUI modal save handler.');
+$assert(is_file($root . '/views/fields/worker-settings.blade.php'), 'Worker settings custom field view must exist.');
+$assert(is_file($root . '/views/fields/worker-files.blade.php'), 'Generated files custom field view must exist.');
 
 $logsTableData = $read('src/Tables/LogsTableData.php');
 $contains($logsTableData, "\$progress = max(0, min(100, (int)\$task->progress));", 'Logs table must show stored task progress.');
@@ -726,7 +756,7 @@ $permissionGroupLabels = [
     'en' => 'Seiger packages',
     'uk' => 'Пакети Seiger',
     'fr' => 'Paquets Seiger',
-    'ru' => 'Пакеты Seiger',
+    'ru' => 'Пакети Seiger',
     'de' => 'Seiger-Pakete',
     'pl' => 'Pakiety Seiger',
 ];
@@ -770,6 +800,7 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         'default_position',
         'additional_settings',
         'additional_settings_help',
+        'open_file',
         'refresh_worker_registry',
         'edit_worker',
         'permissions_group',
@@ -802,6 +833,10 @@ foreach (['en', 'uk', 'fr', 'ru', 'de', 'pl'] as $locale) {
         $assert(array_key_exists($key, $labels), "{$locale} lang must define {$key}.");
     }
 }
+
+$ukLabels = require $root . '/lang/uk/global.php';
+$ruLabels = require $root . '/lang/ru/global.php';
+$assert($ruLabels === $ukLabels, 'Russian manager locale must fall back to the canonical Ukrainian labels.');
 
 foreach (['en', 'uk', 'ru', 'de', 'fr', 'pl'] as $locale) {
     $lang = require $root . "/lang/{$locale}/global.php";

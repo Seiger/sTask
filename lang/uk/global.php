@@ -249,6 +249,7 @@
     'settings_saved' => 'Налаштування збережено успішно',
     'settings_save_failed' => 'Помилка збереження налаштувань',
     'generated_files' => 'Згенеровані файли',
+    'open_file' => 'Відкрити',
 
     // File upload
     'file_too_large' => 'Файл занадто великий',

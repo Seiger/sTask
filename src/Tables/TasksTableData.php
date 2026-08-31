@@ -418,7 +418,13 @@ class TasksTableData
     }
 
     /**
-     * Add the worker-provided ETA to progress only while a task is running.
+     * Format normalized progress and append ETA only while a task is running.
+     *
+     * The worker snapshot wins when it provides ETA; otherwise the table derives an
+     * estimate from elapsed runtime. A middle dot keeps the compact label readable.
+     *
+     * @param sTaskModel $task Task row whose progress and runtime state are displayed
+     * @return string Percentage with optional ETA for active work
      */
     protected function progressLabel(sTaskModel $task): string
     {
@@ -434,7 +440,7 @@ class TasksTableData
             return $progress . '%';
         }
 
-        return $progress . '% [' . $eta . ']';
+        return $progress . '% · ' . $eta;
     }
 
     /**

@@ -8,7 +8,7 @@
 | --- |----------------------------|
 | PHP | <code>&#94;8.4</code> |
 | Evolution CMS | <code>&#94;3.5.7</code> |
-| evo-ui | <code>&#94;1.0.6</code> |
+| evo-ui | <code>&#94;1.2</code> |
 | Composer | доступний у каталозі `core` |
 
 HTML entity для caret використано навмисно: dDocs не перетворює її на superscript і показує точний Composer constraint.

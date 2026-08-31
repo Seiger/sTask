@@ -8,7 +8,7 @@ La branche 2.x actuelle `composer.json` exige :
 | --- |----------------------------|
 | PHP | <code>&#94;8.4</code> |
 | CMS d’évolution | <code>&#94;3.5.7</code> |
-| evo-ui | <code>&#94;1.0.6</code> |
+| evo-ui | <code>&#94;1.2</code> |
 | Composer | Disponible dans le catalogue `core` |
 
 L’entité HTML pour caret est utilisée intentionnellement : dDocs ne la convertit pas en exposant et affiche la contrainte exacte du Composer.

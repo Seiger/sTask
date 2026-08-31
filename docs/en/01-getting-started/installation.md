@@ -8,7 +8,7 @@ The current 2.x branch `composer.json` requires:
 | --- |----------------------------|
 | PHP | <code>&#94;8.4</code> |
 | Evolution CMS | <code>&#94;3.5.7</code> |
-| evo-ui | <code>&#94;1.0.6</code> |
+| evo-ui | <code>&#94;1.2</code> |
 | Composer | available in the `core` directory |
 
 The HTML entity for caret is used intentionally: dDocs does not convert it to superscript and shows the exact Composer constraint.

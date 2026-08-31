@@ -6,6 +6,88 @@
     const HIDDEN_DELAY = 5000;
     const TERMINAL_STATUSES = new Set(['finished', 'failed', 'completed']);
 
+    /**
+     * Serialize controls rendered by a worker-owned settings form into Livewire state.
+     *
+     * @param {HTMLFormElement} form Owning EvoUI modal form
+     * @param {object} wire Livewire component proxy
+     * @returns {void}
+     */
+    function syncWorkerSettings(form, wire) {
+        const container = form?.querySelector('[data-stask-worker-settings]');
+        if (!container || !wire?.set) {
+            return;
+        }
+
+        const serializer = container.dataset.staskSerializer || 'serializeWorkerSettings';
+        if (typeof window[serializer] === 'function') {
+            window[serializer](form);
+        }
+
+        const payload = {};
+        const formData = new FormData(form);
+        formData.forEach((value, rawName) => {
+            const isArray = rawName.endsWith('[]');
+            const name = isArray ? rawName.slice(0, -2) : rawName;
+
+            if (!container.querySelector(`[name="${CSS.escape(rawName)}"]`)) {
+                return;
+            }
+
+            if (isArray || Object.prototype.hasOwnProperty.call(payload, name)) {
+                payload[name] = Array.isArray(payload[name])
+                    ? payload[name].concat([value])
+                    : (Object.prototype.hasOwnProperty.call(payload, name) ? [payload[name], value] : [value]);
+                return;
+            }
+
+            payload[name] = value;
+        });
+
+        wire.set(container.dataset.staskModel || 'modalData.settings_payload', JSON.stringify(payload), false);
+    }
+
+    /**
+     * Activate trusted scripts and submit synchronization for a worker settings field.
+     *
+     * @param {HTMLElement} container Worker settings field root
+     * @param {object} wire Livewire component proxy
+     * @returns {void}
+     */
+    function initWorkerSettings(container, wire) {
+        if (!container || container.dataset.staskInitialized === '1') {
+            return;
+        }
+
+        container.dataset.staskInitialized = '1';
+        container.querySelectorAll('script').forEach((source) => {
+            const code = source.textContent || '';
+            const functionNames = Array.from(code.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g))
+                .map((match) => match[1])
+                .filter((name, index, names) => names.indexOf(name) === index);
+            const exports = functionNames.map((name) => (
+                `${JSON.stringify(name)}: typeof ${name} === "function" ? ${name} : window[${JSON.stringify(name)}]`
+            ));
+            const script = document.createElement('script');
+            script.textContent = `(function () {\n${code}\nObject.assign(window, {${exports.join(',')}});\n})();`;
+            document.head.appendChild(script);
+            script.remove();
+        });
+
+        const form = container.closest('form');
+        if (form && form.dataset.staskWorkerSettingsSync !== '1') {
+            form.dataset.staskWorkerSettingsSync = '1';
+            form.addEventListener('submit', () => syncWorkerSettings(form, wire), {capture: true});
+        }
+
+        window.lucide?.createIcons();
+    }
+
+    window.sTask = Object.assign(window.sTask || {}, {
+        initWorkerSettings,
+        syncWorkerSettings,
+    });
+
     /** Escape untrusted progress messages before applying inline Markdown. */
     function escapeHtml(value) {
         return String(value)
@@ -59,7 +141,7 @@
             const eta = typeof snapshot.eta === 'string' ? snapshot.eta.trim() : '';
             const isRunning = snapshot.status === 'running';
             progressCell.textContent = isRunning && eta !== '' && eta !== '—'
-                ? `${progress}% [${eta}]`
+                ? `${progress}% · ${eta}`
                 : `${progress}%`;
         }
 

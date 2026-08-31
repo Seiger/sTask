@@ -25,7 +25,7 @@ Il s’agit d’une liste de contrôle fondée sur des preuves, pas d’un autom
    ```
 
 4. Trouver des classes personnalisées qui implémentent l’ancien contrat.
-5. Vérifiez PHP 8.4 et evo-ui 1.0.6+.
+5. Vérifiez PHP 8.4 et evo-ui 1.2+.
 
 ## Worker d’adaptation
 

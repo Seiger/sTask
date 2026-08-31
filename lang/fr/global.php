@@ -249,6 +249,7 @@
     'settings_saved' => 'Paramètres enregistrés avec succès',
     'settings_save_failed' => 'Échec de l\'enregistrement des paramètres',
     'generated_files' => 'Fichiers générés',
+    'open_file' => 'Ouvrir',
 
     // File upload
     'file_too_large' => 'Le fichier est trop volumineux',
