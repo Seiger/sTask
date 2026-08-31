@@ -56,5 +56,6 @@ $labels['supervisor_event_degraded'] = 'Nadzorca :supervisor działa w stanie po
 $labels['supervisor_event_failed'] = 'Nadzorca :supervisor zakończył się błędem.';
 $labels['supervisor_event_stopped'] = 'Nadzorca :supervisor został zatrzymany.';
 $labels['supervisor_event_diagnostic_changed'] = 'Diagnostyka nadzorcy :supervisor uległa zmianie.';
+$labels['open_file'] = 'Otwórz';
 
 return $labels;

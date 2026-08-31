@@ -241,7 +241,7 @@ class DashboardData
      *
      * @param sTaskModel $task Running or completed task model
      * @param int $progress Normalized progress value from 0 to 100
-     * @return string Progress label, optionally including ETA in brackets
+     * @return string Progress label, optionally followed by a middle dot and ETA
      */
     protected function progressLabel(sTaskModel $task, int $progress): string
     {
@@ -256,7 +256,7 @@ class DashboardData
             $eta = $seconds > 0 ? niceEta((float)$seconds) : '';
         }
 
-        return $progress . '% [' . $eta . ']';
+        return $progress . '% · ' . $eta;
     }
 
     /**

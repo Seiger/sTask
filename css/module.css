@@ -99,3 +99,280 @@
         transition: none;
     }
 }
+
+.evo-ui .evo-ui-field--type-worker-settings,
+.evo-ui .evo-ui-field--type-worker-files {
+    align-items: start;
+}
+
+.evo-ui .stask-worker-settings {
+    min-width: 0;
+    width: 100%;
+    color: var(--evo-ui-text);
+}
+
+.evo-ui .stask-worker-settings,
+.evo-ui .stask-worker-settings *,
+.evo-ui .stask-worker-settings *::before,
+.evo-ui .stask-worker-settings *::after {
+    box-sizing: border-box;
+}
+
+.evo-ui .stask-worker-settings .row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 12px 14px;
+    width: 100%;
+    margin: 0;
+}
+
+.evo-ui .stask-worker-settings .col-sm-4 {
+    grid-column: span 4;
+}
+
+.evo-ui .stask-worker-settings .col-sm-6 {
+    grid-column: span 6;
+}
+
+.evo-ui .stask-worker-settings .col-sm-12 {
+    grid-column: span 12;
+}
+
+.evo-ui .stask-worker-settings .form-group {
+    min-width: 0;
+    margin: 0 0 12px;
+}
+
+.evo-ui .stask-worker-settings .gm-feed,
+.evo-ui .stask-worker-settings .prom-feed {
+    border-color: var(--evo-ui-border) !important;
+    color: var(--evo-ui-text) !important;
+    background: var(--evo-ui-surface-raised) !important;
+    box-shadow: 0 8px 22px color-mix(in oklch, var(--evo-ui-bg) 70%, transparent);
+}
+
+.evo-ui .stask-worker-settings .gm-feed h5,
+.evo-ui .stask-worker-settings .prom-feed h5 {
+    color: var(--evo-ui-primary) !important;
+}
+
+.evo-ui .stask-worker-settings label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 0 5px;
+    color: var(--evo-ui-muted);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.evo-ui .stask-worker-settings .form-control {
+    display: block;
+    width: 100% !important;
+    min-width: 0;
+    min-height: 32px;
+    margin: 0;
+    padding: 5px 9px;
+    border: 1px solid var(--evo-ui-border);
+    border-radius: 6px;
+    color: var(--evo-ui-text);
+    background: var(--evo-ui-control-bg);
+    font: inherit;
+    line-height: 1.35;
+    box-shadow: none;
+}
+
+.evo-ui .stask-worker-settings select.form-control {
+    height: 32px;
+    padding-right: 30px;
+}
+
+.evo-ui .stask-worker-settings .form-control:focus {
+    border-color: var(--evo-ui-primary);
+    outline: 0;
+    box-shadow: 0 0 0 1px color-mix(in oklch, var(--evo-ui-primary) 64%, transparent);
+}
+
+.evo-ui .stask-worker-settings .form-control::placeholder {
+    color: var(--evo-ui-placeholder);
+    opacity: 1;
+}
+
+.evo-ui .stask-worker-settings select.form-control option {
+    color: var(--evo-ui-text);
+    background: var(--evo-ui-surface);
+}
+
+.evo-ui .stask-worker-settings input[type="checkbox"],
+.evo-ui .stask-worker-settings input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--evo-ui-primary);
+}
+
+.evo-ui .stask-worker-settings .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 1px solid var(--evo-ui-border);
+    border-radius: 6px;
+    color: var(--evo-ui-text);
+    background: var(--evo-ui-control-bg);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.evo-ui .stask-worker-settings .btn:hover,
+.evo-ui .stask-worker-settings .btn:focus-visible {
+    border-color: color-mix(in oklch, var(--evo-ui-primary) 45%, var(--evo-ui-border));
+    background: var(--evo-ui-control-hover);
+    outline: none;
+}
+
+.evo-ui .stask-worker-settings .btn-primary {
+    border-color: var(--evo-ui-primary);
+    color: var(--color-primary-content);
+    background: var(--evo-ui-primary);
+}
+
+.evo-ui .stask-worker-settings .btn-danger {
+    border-color: var(--evo-ui-danger);
+    color: var(--color-error-content);
+    background: var(--evo-ui-danger);
+}
+
+.evo-ui .stask-worker-settings .btn-sm {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.evo-ui .stask-worker-settings .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: var(--evo-ui-info);
+    background: var(--evo-ui-info-soft);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.evo-ui .stask-worker-settings .gm-keyword-chip {
+    border-color: var(--evo-ui-border) !important;
+    color: var(--evo-ui-text) !important;
+    background: var(--evo-ui-control-bg) !important;
+}
+
+.evo-ui .stask-worker-settings .form-text,
+.evo-ui .stask-worker-settings .text-muted,
+.evo-ui .stask-worker-settings small {
+    color: var(--evo-ui-muted) !important;
+}
+
+.evo-ui .stask-worker-settings hr {
+    margin: 14px 0;
+    border: 0;
+    border-top: 1px solid var(--evo-ui-border-soft);
+}
+
+.evo-ui .stask-worker-files {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--evo-ui-border);
+    border-radius: var(--evo-ui-radius);
+    color: var(--evo-ui-text);
+    background: var(--evo-ui-surface-raised);
+}
+
+.evo-ui .stask-worker-files__summary,
+.evo-ui .stask-worker-files__name,
+.evo-ui .stask-worker-files__item,
+.evo-ui .stask-worker-files__item a {
+    display: flex;
+    align-items: center;
+}
+
+.evo-ui .stask-worker-files__summary {
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.evo-ui .stask-worker-files__summary svg,
+.evo-ui .stask-worker-files__name svg,
+.evo-ui .stask-worker-files__item a svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+
+.evo-ui .stask-worker-files__summary svg,
+.evo-ui .stask-worker-files__item a {
+    color: var(--evo-ui-primary);
+}
+
+.evo-ui .stask-worker-files__list {
+    display: grid;
+    gap: 6px;
+}
+
+.evo-ui .stask-worker-files__item {
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--evo-ui-control-bg);
+}
+
+.evo-ui .stask-worker-files__name {
+    gap: 7px;
+    min-width: 0;
+}
+
+.evo-ui .stask-worker-files__name svg {
+    color: var(--evo-ui-muted);
+}
+
+.evo-ui .stask-worker-files__name code {
+    overflow: hidden;
+    color: var(--evo-ui-text);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evo-ui .stask-worker-files__item a {
+    gap: 5px;
+    flex: 0 0 auto;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.evo-ui .stask-worker-files__item a:hover,
+.evo-ui .stask-worker-files__item a:focus-visible {
+    text-decoration: underline;
+    outline: none;
+}
+
+@media (max-width: 900px) {
+    .evo-ui .stask-worker-settings .col-sm-4,
+    .evo-ui .stask-worker-settings .col-sm-6,
+    .evo-ui .stask-worker-settings .col-sm-12 {
+        grid-column: 1 / -1;
+    }
+}

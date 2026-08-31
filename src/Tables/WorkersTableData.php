@@ -443,6 +443,60 @@ class WorkersTableData
         ];
     }
 
+    /**
+     * Replace the raw JSON settings field with optional worker-owned manager surfaces.
+     *
+     * Workers may expose a trusted settings form through renderSettings() and a
+     * read-only generated file list through getGeneratedFiles(). The returned field
+     * descriptors are rendered by the matching EvoUI modal field extensions.
+     *
+     * @param array<int, array<string, mixed>> $fields Configured modal fields
+     * @param array<string, mixed> $data Current modal payload
+     * @param int|null $id Persisted worker identifier
+     * @return array<int, array<string, mixed>> Modal fields adapted to worker capabilities
+     * @since 2.2.0
+     */
+    public function modalFields(array $fields, array $data, ?int $id = null): array
+    {
+        $worker = $id ? sWorker::query()->find($id) : null;
+        $settingsFormHtml = $worker ? $this->renderWorkerSettings($worker) : '';
+        $generatedFiles = $worker ? $this->workerGeneratedFiles($worker) : [];
+
+        if ($settingsFormHtml === '' && $generatedFiles === []) {
+            return $fields;
+        }
+
+        return collect($fields)
+            ->flatMap(function (array $field) use ($settingsFormHtml, $generatedFiles): array {
+                if (($field['name'] ?? null) !== 'settings_payload') {
+                    return [$field];
+                }
+
+                if ($settingsFormHtml !== '') {
+                    $field['type'] = 'worker-settings';
+                    $field['html'] = $settingsFormHtml;
+                }
+
+                if ($generatedFiles === []) {
+                    return [$field];
+                }
+
+                return [
+                    $field,
+                    [
+                        'name' => 'generated_files',
+                        'type' => 'worker-files',
+                        'label' => false,
+                        'title' => __('sTask::global.generated_files'),
+                        'open_label' => __('sTask::global.open_file'),
+                        'files' => $generatedFiles,
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     protected function scheduleLabel(array $schedule): string
     {
         if (empty($schedule['enabled'])) {
@@ -649,6 +703,79 @@ class WorkersTableData
         $decoded = json_decode($payload, true);
 
         return is_array($decoded) ? Arr::except($decoded, ['schedule']) : null;
+    }
+
+    /**
+     * Render a worker-owned settings form for the manager edit modal.
+     *
+     * Rendering failures are isolated from the workers table so an invalid optional
+     * integration form cannot make the complete sTask manager surface unavailable.
+     *
+     * @param sWorker $worker Persisted worker whose runtime class may provide renderSettings()
+     * @return string Trusted worker settings markup or an empty string when unsupported
+     * @since 2.2.0
+     */
+    protected function renderWorkerSettings(sWorker $worker): string
+    {
+        if (!$worker->class_exists) {
+            return '';
+        }
+
+        try {
+            $instance = $worker->getInstance();
+
+            return $instance && method_exists($instance, 'renderSettings')
+                ? trim((string)$instance->renderSettings())
+                : '';
+        } catch (\Throwable $e) {
+            Log::warning('Failed to render custom sTask worker settings', [
+                'identifier' => (string)$worker->identifier,
+                'error' => $e->getMessage(),
+            ]);
+
+            return '';
+        }
+    }
+
+    /**
+     * Normalize optional generated file metadata exposed by a worker.
+     *
+     * Only named entries cross the provider boundary. Missing URLs remain valid so
+     * workers may report files that are visible but not publicly downloadable.
+     *
+     * @param sWorker $worker Persisted worker whose runtime class may provide getGeneratedFiles()
+     * @return array<int, array{filename: string, url: string}> Safe file descriptors for the modal
+     * @since 2.2.0
+     */
+    protected function workerGeneratedFiles(sWorker $worker): array
+    {
+        if (!$worker->class_exists) {
+            return [];
+        }
+
+        try {
+            $instance = $worker->getInstance();
+
+            if (!$instance || !method_exists($instance, 'getGeneratedFiles')) {
+                return [];
+            }
+
+            return collect((array)$instance->getGeneratedFiles())
+                ->filter(fn ($file): bool => is_array($file) && trim((string)($file['filename'] ?? '')) !== '')
+                ->map(fn (array $file): array => [
+                    'filename' => trim((string)$file['filename']),
+                    'url' => trim((string)($file['url'] ?? '')),
+                ])
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('Failed to load generated sTask worker files', [
+                'identifier' => (string)$worker->identifier,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     protected function canRun(sWorker $worker): bool

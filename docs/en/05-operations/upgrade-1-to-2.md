@@ -25,7 +25,7 @@ This is an evidence-based checklist, not an automatic upgrader. The repository d
    ```
 
 4. Find custom classes that implement the old contract.
-5. Check PHP 8.4 and evo-ui 1.0.6+.
+5. Check PHP 8.4 and evo-ui 1.2+.
 
 ## Adaptation worker
 

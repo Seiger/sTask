@@ -25,7 +25,7 @@ Dies ist eine evidenzbasierte Checkliste, kein automatischer Upgrader. Das Repos
    ```
 
 4. Finde benutzerdefinierte Klassen, die den alten Vertrag implementieren.
-5. Überprüfe PHP 8.4 und evo-ui 1.0.6+.
+5. Überprüfe PHP 8.4 und evo-ui 1.2+.
 
 ## Anpassungsarbeiter
 

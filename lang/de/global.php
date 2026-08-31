@@ -56,5 +56,6 @@ $labels['supervisor_event_degraded'] = 'Supervisor :supervisor ist beeinträchti
 $labels['supervisor_event_failed'] = 'Supervisor :supervisor ist fehlgeschlagen.';
 $labels['supervisor_event_stopped'] = 'Supervisor :supervisor wurde gestoppt.';
 $labels['supervisor_event_diagnostic_changed'] = 'Die Diagnose des Supervisors :supervisor hat sich geändert.';
+$labels['open_file'] = 'Öffnen';
 
 return $labels;

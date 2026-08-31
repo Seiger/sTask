@@ -8,7 +8,7 @@ Obecna `composer.json` 2.x wymaga:
 | --- |----------------------------|
 | PHP | <code>&#94;8.4</code> |
 | Evolution CMS | <code>&#94;3.5.7</code> |
-| evo-ui | <code>&#94;1.0.6</code> |
+| evo-ui | <code>&#94;1.2</code> |
 | Kompozytor | Dostępne w katalogu `core` |
 
 Encja HTML do kursora jest używana celowo: dDocs nie konwertuje jej na indeks górny i pokazuje dokładne ograniczenie Composer.

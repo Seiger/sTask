@@ -25,7 +25,7 @@ To lista kontrolna oparta na dowodach, a nie automatyczny aktualizator. Repozyto
    ```
 
 4. Znajdź niestandardowe klasy implementujące stary kontrakt.
-5. Sprawdź PHP 8.4 i evo-ui 1.0.6+.
+5. Sprawdź PHP 8.4 i evo-ui 1.2+.
 
 ## Pracownik adaptacyjny
 
