@@ -386,6 +386,28 @@ sTask is designed to become the **fundamental task management solution** for the
 
 If you need help, please don't hesitate to **[open an issue](https://github.com/Seiger/sTask/issues)**.
 
+## Runner heartbeat
+
+Use `Seiger\sTask\Facades\sTask::heartbeat(int $ttl = 3610): bool` to check
+whether `stask:worker` started within the last `$ttl` seconds (inclusive).
+The runner calls `touch(storage_path('logs/sTask.heartbeat'))` before scheduling
+or queue access, including empty runs. The check only reads the timestamp and
+never creates or refreshes the marker. Missing, inaccessible, expired or future
+timestamps return `false`, as does a negative TTL.
+
+This indicates recent runner invocation, not successful task execution or a
+guarantee that a process is still alive. The existing `storage/logs` directory
+must be writable by CLI and the marker readable by the web process. Keep storage
+shared across release deployments. Vendor publishing must not create this marker.
+
+`sTask::heartbeatStatus()` exposes the same check with `available`, `state`,
+`last_seen_at` and `age_seconds`. The manager displays a colored runner indicator
+beside the tabs. Its tooltip shows the last invocation and elapsed time, without
+the TTL. It updates when the panel component refreshes, without separate polling.
+
+See the [PHP API](docs/en/04-development/public-api.md) and
+[manager interface](docs/en/03-manager/interface.md) documentation for details.
+
 ## License
 
 This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.

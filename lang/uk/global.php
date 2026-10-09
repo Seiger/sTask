@@ -1,4 +1,10 @@
 <?php return [
+    'runner_last_seen' => 'Останній запуск',
+    'runner_elapsed' => 'Минуло',
+    'runner_available' => 'Runner активний',
+    'runner_expired' => 'Runner недоступний',
+    'runner_missing' => 'Runner ще не запускався',
+    'runner_error' => 'Не вдалося перевірити runner',
     'title' => 'Менеджер Задач',
     'module_title' => 'sTask',
     'module_description' => 'Фоновий task runner для Evolution CMS: воркери, черги, progress logs, performance metrics і cache controls.',

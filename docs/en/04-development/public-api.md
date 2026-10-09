@@ -2,6 +2,24 @@
 
 The canonical service class is `Seiger\sTask\sTask`; facade — `Seiger\sTask\Facades\sTask`. Composer alias is `sTask` also logged, but explicit import is better readable and more convenient for static analysis.
 
+## Runner heartbeat
+
+`heartbeat(int $ttl = 3610): bool` checks whether `stask:worker` started within the last `$ttl` seconds, inclusive. Missing, inaccessible, expired or future-dated markers return `false`. A negative `$ttl` also returns `false`.
+
+`heartbeatStatus(int $ttl = 3610): array` returns `available` (bool), `state` (`available`, `expired`, `missing`, `error`), `last_seen_at` (Unix timestamp or null) and `age_seconds` (int or null). Both methods only read status and never create or refresh the file.
+
+```php
+use Seiger\sTask\Facades\sTask;
+
+$available = sTask::heartbeat();
+$recent = sTask::heartbeat(180);
+$status = sTask::heartbeatStatus();
+```
+
+At the beginning of every invocation, the runner calls `touch(storage_path('logs/sTask.heartbeat'))`, before scheduling and queue access, even with no tasks. The existing `core/storage/logs` directory must allow CLI writes and web-process access to file metadata. Write failures are logged without stopping queue processing. Vendor publishing does not create the marker. Use shared storage across release deployments.
+
+Heartbeat confirms recent invocation, not successful task execution or continued process liveness. The default threshold allows up to 3610 seconds before detecting a stopped runner. An external lock preventing command invocation does not refresh the marker.
+
 ## Creating a task
 
 ```php

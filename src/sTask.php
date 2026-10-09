@@ -22,6 +22,59 @@ use Seiger\sTask\Contracts\TaskInterface;
 class sTask
 {
     /**
+     * Check whether the CLI runner has started within the allowed interval.
+     *
+     * Reads only the shared storage marker; it never creates or refreshes it.
+     * This confirms recent invocation, not successful task execution or process liveness.
+     *
+     * @param int $ttl Maximum heartbeat age in seconds, inclusive; negative values are unavailable
+     * @return bool Whether the marker is readable and its timestamp is within the interval
+     * @since 2.2.0
+     */
+    public function heartbeat(int $ttl = 3610): bool
+    {
+        return $this->heartbeatStatus($ttl)['available'];
+    }
+
+    /**
+     * Read runner availability and timestamp for monitoring interfaces.
+     *
+     * Shares the boolean API's freshness rules without writing the marker.
+     * A future timestamp is treated as an error rather than evidence of activity.
+     *
+     * @param int $ttl Maximum marker age in seconds, inclusive
+     * @return array{available: bool, state: string, last_seen_at: ?int, age_seconds: ?int}
+     * @since 2.2.0
+     */
+    public function heartbeatStatus(int $ttl = 3610): array
+    {
+        $status = ['available' => false, 'state' => 'error', 'last_seen_at' => null, 'age_seconds' => null];
+        if ($ttl < 0) {
+            return $status;
+        }
+
+        clearstatcache();
+        $path = storage_path('logs/sTask.heartbeat');
+        $mtime = @filemtime($path);
+        $now = time();
+
+        if ($mtime === false) {
+            $status['state'] = !file_exists($path) && is_readable(dirname($path)) ? 'missing' : 'error';
+            return $status;
+        }
+
+        $status['last_seen_at'] = $mtime;
+        if ($mtime > $now) {
+            return $status;
+        }
+
+        $status['age_seconds'] = $now - $mtime;
+        $status['available'] = $status['age_seconds'] <= $ttl;
+        $status['state'] = $status['available'] ? 'available' : 'expired';
+        return $status;
+    }
+
+    /**
      * Worker service instance
      *
      * @var WorkerService

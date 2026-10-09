@@ -1,4 +1,10 @@
 <?php return [
+    'runner_last_seen' => 'Dernier lancement',
+    'runner_elapsed' => 'Temps écoulé',
+    'runner_available' => 'Runner actif',
+    'runner_expired' => 'Runner indisponible',
+    'runner_missing' => 'Runner pas encore démarré',
+    'runner_error' => 'Impossible de vérifier le runner',
     'title' => 'Gestionnaire de tâches',
     'module_title' => 'sTask',
     'module_description' => 'Task runner en arriere-plan pour Evolution CMS: workers, files, progress logs, metriques de performance et cache.',

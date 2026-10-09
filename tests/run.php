@@ -877,4 +877,6 @@ if ($failures !== []) {
     exit(1);
 }
 
+require __DIR__ . '/heartbeat.php';
+
 echo "sTask smoke OK ({$tests} assertions)\n";

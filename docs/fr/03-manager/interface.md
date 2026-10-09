@@ -2,6 +2,8 @@
 
 Le module dispose de cinq onglets Livewire : **Panneau**, **Tâches**, **Workers**, **Journaux**, **Statistiques**. La commutation se produit sans un redémarrage complet du cadre gestionnaire. L’onglet initial peut être passé par le paramètre de requête `get`; La valeur inconnue est remplacée par `dashboard`.
 
+À droite des onglets, le statut du runner apparaît : vert — actif, rouge — indisponible, gris — jamais démarré, orange — erreur de vérification. Le survol affiche le dernier lancement et le temps écoulé si connus. Le seuil est masqué. L’indicateur est actualisé avec le panneau, sans polling séparé.
+
 ## Accès
 
 Le shell du module et les détails de la tâche peuvent être ouverts par un utilisateur gestionnaire avec la permission `stask`. Toutes les routes HTTP se trouvent dans le groupe middleware `mgr`. Certains points d’accès d’action ne reposent que sur `mgr` middleware et n’appellent pas `hasPermission('stask')` à répétition, donc ne publiez pas `/stask/*` en dehors de l’authentification du manager.

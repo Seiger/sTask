@@ -2,6 +2,24 @@
 
 Die kanonische Dienstklasse ist `Seiger\sTask\sTask`; Fassade — `Seiger\sTask\Facades\sTask`. Composer-Alias wird `sTask` ebenfalls protokolliert, aber expliziter Import ist besser lesbar und bequemer für statische Analysen.
 
+## Runner-Heartbeat
+
+`heartbeat(int $ttl = 3610): bool` prüft, ob `stask:worker` innerhalb der letzten `$ttl` Sekunden gestartet wurde, einschließlich der Grenze. Fehlende, unzugängliche, abgelaufene oder zukünftige Zeitstempel ergeben `false`. Ein negativer `$ttl` ergibt ebenfalls `false`.
+
+`heartbeatStatus(int $ttl = 3610): array` liefert `available` (bool), `state` (`available`, `expired`, `missing`, `error`), `last_seen_at` (Unix timestamp oder null) und `age_seconds` (int oder null). Beide Methoden lesen nur und erstellen oder aktualisieren keine Datei.
+
+```php
+use Seiger\sTask\Facades\sTask;
+
+$available = sTask::heartbeat();
+$recent = sTask::heartbeat(180);
+$status = sTask::heartbeatStatus();
+```
+
+Zu Beginn jedes Aufrufs führt der Runner `touch(storage_path('logs/sTask.heartbeat'))` vor Zeitplanung und Warteschlange aus, auch ohne Aufgaben. `core/storage/logs` muss existieren und CLI-Schreibzugriff sowie Zugriff des Webprozesses auf Metadaten erlauben. Schreibfehler werden protokolliert, ohne die Verarbeitung zu stoppen. Vendor-Publishing erstellt die Datei nicht. Storage muss über Releases hinweg gemeinsam genutzt werden.
+
+Heartbeat bestätigt einen kürzlichen Aufruf, keinen Aufgabenerfolg und keinen weiterhin lebenden Prozess. Der Standardwert erlaubt bis zu 3610 Sekunden Verzögerung bei der Erkennung eines Stopps. Eine externe Sperre, die den Befehlsstart verhindert, aktualisiert die Datei nicht.
+
 ## Eine Aufgabe schaffen
 
 ```php

@@ -2,6 +2,8 @@
 
 Das Modul verfügt über fünf Livewire-Tabs: **Panel**, **Aufgaben**, **Arbeiter**, **Logs**, **Statistik**. Das Umschalten erfolgt ohne einen vollständigen Neustart des Manager-Frames. Der Anfangstab kann durch den Abfrageparameter `get`; Der unbekannte Wert wird durch `dashboard` ersetzt.
 
+Rechts neben den Tabs erscheint der Runner-Status: grün — aktiv, rot — nicht verfügbar, grau — noch nicht gestartet, orange — Prüffehler. Der Tooltip zeigt den letzten Aufruf und die vergangene Zeit, sofern bekannt. Der Grenzwert wird nicht angezeigt. Die Anzeige wird mit dem Panel aktualisiert; separates Polling gibt es nicht.
+
 ## Zugang
 
 Die Modulshell und Aufgabendetails können von einem Manager-Benutzer mit der Berechtigung `stask` geöffnet werden. Alle HTTP-Routen befinden sich in der Middleware-Gruppe `mgr`. Einige Aktions-Endpunkte verlassen sich nur auf `mgr` Middleware und rufen `hasPermission('stask')` nicht wiederholt auf, daher poste `/stask/*` nicht außerhalb der Manager-Authentifizierung.

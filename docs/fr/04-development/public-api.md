@@ -2,6 +2,24 @@
 
 La classe de service canonique est `Seiger\sTask\sTask`; façade — `Seiger\sTask\Facades\sTask`. L’alias du compositeur est `sTask` également enregistré, mais l’importation explicite est plus lisible et plus pratique pour une analyse statique.
 
+## Heartbeat du runner
+
+`heartbeat(int $ttl = 3610): bool` vérifie si `stask:worker` a démarré dans les dernières `$ttl` secondes, limite incluse. Un fichier absent, inaccessible, expiré ou daté dans le futur donne `false`. Un `$ttl` négatif donne également `false`.
+
+`heartbeatStatus(int $ttl = 3610): array` retourne `available` (bool), `state` (`available`, `expired`, `missing`, `error`), `last_seen_at` (Unix timestamp ou null) et `age_seconds` (int ou null). Les deux méthodes lisent uniquement le statut sans créer ni actualiser le fichier.
+
+```php
+use Seiger\sTask\Facades\sTask;
+
+$available = sTask::heartbeat();
+$recent = sTask::heartbeat(180);
+$status = sTask::heartbeatStatus();
+```
+
+Au début de chaque invocation, le runner appelle `touch(storage_path('logs/sTask.heartbeat'))` avant la planification et la file, même sans tâche. Le dossier `core/storage/logs` doit exister et autoriser les écritures CLI et l’accès du processus web aux métadonnées. Les erreurs d’écriture sont journalisées sans arrêter le traitement. La publication du paquet ne crée pas le fichier. Utilisez un storage partagé entre les releases.
+
+Heartbeat confirme un lancement récent, pas la réussite des tâches ni la survie du processus. Le seuil par défaut permet un délai de détection allant jusqu’à 3610 secondes. Un verrou externe empêchant le lancement de la commande n’actualise pas le fichier.
+
 ## Créer une tâche
 
 ```php

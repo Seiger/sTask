@@ -1,4 +1,19 @@
-<x-evo::module-tab-shell :tabs="$tabs" model="activeTab">
+<x-evo::module-tab-shell :tabs="$tabs" model="activeTab" class="stask-module-with-heartbeat">
+    @php
+        $heartbeatColors = ['available' => '#22C55E', 'expired' => '#EF4444', 'missing' => '#94A3B8', 'error' => '#F59E0B'];
+        $heartbeatLabel = __('sTask::global.runner_' . $runnerHeartbeat['state']);
+        $heartbeatTooltip = $heartbeatLabel;
+        if ($runnerHeartbeat['last_seen_at'] !== null) {
+            $heartbeatDate = \Carbon\Carbon::createFromTimestamp($runnerHeartbeat['last_seen_at'])->setTimezone(config('app.timezone', 'UTC'))->locale(app()->getLocale());
+            $heartbeatTooltip = __('sTask::global.runner_last_seen') . ': ' . $heartbeatDate->format('d.m.Y H:i:s');
+            if ($runnerHeartbeat['age_seconds'] !== null) {
+                $heartbeatTooltip .= "\n" . __('sTask::global.runner_elapsed') . ': ' . $heartbeatDate->diffForHumans(null, true);
+            }
+        }
+    @endphp
+    <div class="stask-runner-heartbeat" role="status" title="{{ $heartbeatTooltip }}" tabindex="0" aria-label="{{ $heartbeatLabel . '. ' . $heartbeatTooltip }}">
+        <x-evo::badge :label="$heartbeatLabel" :color="$heartbeatColors[$runnerHeartbeat['state']]" icon="activity" />
+    </div>
     <div class="stask-dashboard-tab" x-show="activeTab === 'dashboard'" x-cloak data-stask-live-dashboard>
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>
