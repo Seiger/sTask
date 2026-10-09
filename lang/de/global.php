@@ -2,6 +2,13 @@
 
 $labels = include dirname(__DIR__) . '/en/global.php';
 
+$labels['runner_available'] = 'Runner aktiv';
+$labels['runner_expired'] = 'Runner nicht verfügbar';
+$labels['runner_missing'] = 'Runner noch nicht gestartet';
+$labels['runner_error'] = 'Runner konnte nicht geprüft werden';
+$labels['runner_last_seen'] = 'Letzter Aufruf';
+$labels['runner_elapsed'] = 'Vergangen';
+
 $labels['module_title'] = 'sTask';
 $labels['module_description'] = 'Background Task Runner fuer Evolution CMS: Worker, Queues, Progress Logs, Performance Metrics und Cache Controls.';
 $labels['permissions_group'] = 'Seiger-Pakete';
