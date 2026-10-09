@@ -1,4 +1,10 @@
 <?php return [
+    'runner_last_seen' => 'Last invocation',
+    'runner_elapsed' => 'Elapsed',
+    'runner_available' => 'Runner active',
+    'runner_expired' => 'Runner unavailable',
+    'runner_missing' => 'Runner has not started yet',
+    'runner_error' => 'Unable to check runner',
     'title' => 'Task Manager',
     'module_title' => 'sTask',
     'module_description' => 'Background task runner for Evolution CMS: workers, queues, progress logs, performance metrics, and cache controls.',

@@ -60,6 +60,11 @@ class ModulePanel extends Component
         sTaskFacade::clearWorkerCache();
     }
 
+    /**
+     * Render module tabs and the read-only runner indicator on every panel refresh.
+     *
+     * @return \Illuminate\Contracts\View\View Module content and heartbeat snapshot
+     */
     public function render()
     {
         $dashboard = app(DashboardData::class);
@@ -67,6 +72,7 @@ class ModulePanel extends Component
         return view('sTask::components.module-panel', [
             'tabs' => $this->navigationTabs(),
             'activeTab' => $this->activeTab,
+            'runnerHeartbeat' => sTaskFacade::heartbeatStatus(),
             'dashboardCards' => $dashboard->cards(),
             'recentTaskRows' => $dashboard->recentTasks(),
             'recentErrorRows' => $dashboard->recentErrors(),

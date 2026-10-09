@@ -2,6 +2,8 @@
 
 Moduł posiada pięć zakładek Livewire: **Panel**, **Zadania**, **Pracownicy**, **Logi**, **Statystyki**. Przełączanie następuje bez całkowitego restartu ramki menedżera. Zakładkę początkową można przekazać parametrowi zapytania `get`; Nieznana wartość jest zastępowana przez `dashboard`.
 
+Po prawej stronie kart widnieje stan runnera: zielony — aktywny, czerwony — niedostępny, szary — jeszcze nie uruchomiony, pomarańczowy — błąd sprawdzenia. Podpowiedź pokazuje ostatnie uruchomienie i czas, który upłynął, jeśli timestamp jest znany. Próg nie jest wyświetlany. Wskaźnik odświeża się z panelem, bez osobnego pollingu.
+
 ## Dostęp
 
 Powłoka modułu i szczegóły zadań mogą być otwierane przez użytkownika menedżera z uprawnieniami `stask`. Wszystkie trasy HTTP znajdują się w grupie middleware `mgr`. Niektóre endpointy akcji polegają wyłącznie na `mgr` middleware i nie dzwonią `hasPermission('stask')` wielokrotnie, więc nie publikuj `/stask/*` poza uwierzytelnieniem menedżera.

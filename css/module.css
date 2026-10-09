@@ -376,3 +376,35 @@
         grid-column: 1 / -1;
     }
 }
+
+/* Runner heartbeat alongside module navigation. */
+.stask-module-with-heartbeat {
+    position: relative;
+}
+
+.stask-module-with-heartbeat > nav {
+    padding-right: 270px;
+}
+
+.stask-runner-heartbeat {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    height: var(--evo-ui-nav-tab-height, 40px);
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .stask-module-with-heartbeat > nav {
+        padding-right: 0;
+    }
+
+    .stask-runner-heartbeat {
+        position: static;
+        height: auto;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
+    }
+}

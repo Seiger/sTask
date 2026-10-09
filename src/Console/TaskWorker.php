@@ -72,6 +72,9 @@ class TaskWorker extends Command
     /**
      * Execute the console command.
      *
+     * Refreshes the shared runner heartbeat before scheduling or accessing the queue,
+     * including empty runs. A failed marker write is reported without stopping tasks.
+     *
      * Ensures each scheduled worker has a queued task:
      * - If worker has no incomplete task → creates next scheduled task
      * - Task is created with start_at set to next execution time
@@ -87,6 +90,10 @@ class TaskWorker extends Command
      */
     public function handle(): int
     {
+        if (!@touch(storage_path('logs/sTask.heartbeat'))) {
+            Log::warning('[stask:worker] Could not update the runner heartbeat.');
+        }
+
         // Step 1: Check scheduled workers and create tasks
         $created = $this->checkScheduledWorkers();
 

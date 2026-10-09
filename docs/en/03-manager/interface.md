@@ -2,6 +2,8 @@
 
 The module has five Livewire tabs: **Panel**, **Tasks**, **Workers**, **Logs**, **Statistics**. Switching occurs without a complete reboot of the manager frame. The initial tab can be passed by the query parameter `get`; The unknown value is replaced by `dashboard`.
 
+The runner indicator appears to the right of the tabs: green for active, red for unavailable, gray for never started, orange for a check error. Hovering shows the last invocation and elapsed time when the timestamp is known. The threshold is not displayed. The indicator refreshes with the panel component; there is no separate polling.
+
 ## Access
 
 The module shell and task details can be opened by a manager user with permission `stask`. All HTTP routes are in the middleware group `mgr`. Some action endpoints only rely on `mgr` middleware and don't call `hasPermission('stask')` repeatedly, so don't post `/stask/*` outside of manager authentication.

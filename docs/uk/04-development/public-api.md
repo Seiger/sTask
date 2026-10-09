@@ -2,6 +2,24 @@
 
 Канонічний service class — `Seiger\sTask\sTask`; facade — `Seiger\sTask\Facades\sTask`. Composer alias `sTask` також реєструється, але explicit import краще читається і зручніший для static analysis.
 
+## Heartbeat runner-а
+
+`heartbeat(int $ttl = 3610): bool` перевіряє, чи запускався `stask:worker` протягом останніх `$ttl` секунд; межа включена. Відсутній, недоступний, прострочений або датований майбутнім marker повертає `false`. Від’ємний `$ttl` також повертає `false`.
+
+`heartbeatStatus(int $ttl = 3610): array` повертає `available` (bool), `state` (`available`, `expired`, `missing`, `error`), `last_seen_at` (Unix timestamp або null) та `age_seconds` (int або null). Обидва методи лише читають стан і ніколи не створюють чи оновлюють файл.
+
+```php
+use Seiger\sTask\Facades\sTask;
+
+$available = sTask::heartbeat();
+$recent = sTask::heartbeat(180);
+$status = sTask::heartbeatStatus();
+```
+
+На початку кожного запуску runner виконує `touch(storage_path('logs/sTask.heartbeat'))`, перед розкладом і чергою, навіть коли завдань немає. Каталог `core/storage/logs` повинен існувати: CLI потрібен запис, вебпроцесу — доступ до атрибутів файлу. Помилка запису логується, виконання черги продовжується. Публікація пакета не створює marker. При релізному деплої використовуйте спільний storage.
+
+Heartbeat підтверджує недавній запуск, а не успішне виконання завдань чи те, що процес досі живий. Типовий поріг допускає затримку виявлення зупинки до 3610 секунд. Зовнішній lock, що не допускає запуск команди, не оновлює marker.
+
 ## Створення task
 
 ```php

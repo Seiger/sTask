@@ -2,6 +2,24 @@
 
 Kanoniczna klasa służbowa to `Seiger\sTask\sTask`; Fasada — `Seiger\sTask\Facades\sTask`. Alias kompozytora również `sTask` jest logowany, ale import jawny jest łatwiej czytelny i wygodniejszy do analizy statycznej.
 
+## Heartbeat runnera
+
+`heartbeat(int $ttl = 3610): bool` sprawdza, czy `stask:worker` uruchomiono w ostatnich `$ttl` sekundach, włącznie z granicą. Brak, niedostępność, wygaśnięcie lub przyszła data pliku oznacza `false`. Ujemny `$ttl` również daje `false`.
+
+`heartbeatStatus(int $ttl = 3610): array` zwraca `available` (bool), `state` (`available`, `expired`, `missing`, `error`), `last_seen_at` (Unix timestamp lub null) i `age_seconds` (int lub null). Obie metody tylko odczytują stan, bez tworzenia lub aktualizacji pliku.
+
+```php
+use Seiger\sTask\Facades\sTask;
+
+$available = sTask::heartbeat();
+$recent = sTask::heartbeat(180);
+$status = sTask::heartbeatStatus();
+```
+
+Na początku każdego uruchomienia runner wykonuje `touch(storage_path('logs/sTask.heartbeat'))` przed harmonogramem i kolejką, także bez zadań. Katalog `core/storage/logs` musi istnieć i umożliwiać zapis CLI oraz dostęp procesu WWW do metadanych. Błąd zapisu jest logowany; kolejka działa dalej. Publikacja pakietu nie tworzy pliku. Storage powinien być współdzielony między wydaniami.
+
+Heartbeat potwierdza niedawne uruchomienie, a nie sukces zadań ani dalsze działanie procesu. Domyślny próg pozwala na opóźnienie wykrycia zatrzymania do 3610 sekund. Zewnętrzna blokada uniemożliwiająca uruchomienie komendy nie aktualizuje pliku.
+
 ## Tworzenie zadania
 
 ```php
