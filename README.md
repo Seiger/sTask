@@ -1,6 +1,6 @@
 # sTask for Evolution CMS
 
-![sTask Dashboard with Key Metrics](./docs/assets/screenshots/stask-dashboard.png)
+![sTask Dashboard with Runner Status, Key Metrics and Recent Tasks](./docs/assets/screenshots/stask-dashboard-runner.jpg)
 [![Latest Stable Version](https://img.shields.io/packagist/v/seiger/stask?label=version)](https://packagist.org/packages/seiger/stask)
 [![CMS Evolution](https://img.shields.io/badge/CMS-Evolution-brightgreen.svg)](https://github.com/evolution-cms/evolution)
 ![PHP version](https://img.shields.io/packagist/php-v/seiger/stask)
