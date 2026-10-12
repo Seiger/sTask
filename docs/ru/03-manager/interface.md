@@ -24,7 +24,7 @@
 
 ## Панель
 
-![sTask Dashboard с ключевыми метриками](../../assets/screenshots/stask-dashboard.png)
+![sTask Dashboard с ключевыми метриками](../../assets/screenshots/stask-dashboard-runner.jpg)
 
 ### Карты
 

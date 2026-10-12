@@ -24,7 +24,7 @@ Search and filters are applied on the server. List view changes the view, not th
 
 ## Panel
 
-![sTask Dashboard with Key Metrics](../../assets/screenshots/stask-dashboard.png)
+![sTask Dashboard with Key Metrics](../../assets/screenshots/stask-dashboard-runner.jpg)
 
 ### Cards
 

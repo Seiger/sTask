@@ -24,7 +24,7 @@
 
 ## Панель
 
-![Панель sTask із ключовими показниками](../../assets/screenshots/stask-dashboard.png)
+![Панель sTask із ключовими показниками](../../assets/screenshots/stask-dashboard-runner.jpg)
 
 ### Картки
 

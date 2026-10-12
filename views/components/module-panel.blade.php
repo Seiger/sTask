@@ -1,4 +1,5 @@
-<x-evo::module-tab-shell :tabs="$tabs" model="activeTab" class="stask-module-with-heartbeat">
+<x-evo::module-tab-shell :tabs="$tabs" model="activeTab">
+    <x-slot:navigationAside>
     @php
         $heartbeatColors = ['available' => '#22C55E', 'expired' => '#EF4444', 'missing' => '#94A3B8', 'error' => '#F59E0B'];
         $heartbeatLabel = __('sTask::global.runner_' . $runnerHeartbeat['state']);
@@ -11,9 +12,10 @@
             }
         }
     @endphp
-    <div class="stask-runner-heartbeat" role="status" title="{{ $heartbeatTooltip }}" tabindex="0" aria-label="{{ $heartbeatLabel . '. ' . $heartbeatTooltip }}">
+    <div role="status" title="{{ $heartbeatTooltip }}" tabindex="0" aria-label="{{ $heartbeatLabel . '. ' . $heartbeatTooltip }}">
         <x-evo::badge :label="$heartbeatLabel" :color="$heartbeatColors[$runnerHeartbeat['state']]" icon="activity" />
     </div>
+    </x-slot:navigationAside>
     <div class="stask-dashboard-tab" x-show="activeTab === 'dashboard'" x-cloak data-stask-live-dashboard>
         <x-evo::dashboard :cards="$dashboardCards">
             <x-slot:body>

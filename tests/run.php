@@ -43,7 +43,7 @@ $composer = json_decode($read('composer.json'), true);
 $assert(is_array($composer), 'composer.json must be valid JSON.');
 $assert(($composer['name'] ?? null) === 'seiger/stask', 'composer package name must stay seiger/stask.');
 $assert(($composer['require']['evolution-cms/evolution'] ?? null) === '^3.5.7', 'sTask must require the Evolution CMS 3.5.7 baseline.');
-$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.2', 'sTask must require the EvoUI modal field runtime boundary.');
+$assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.3', 'sTask must require the EvoUI navigation aside runtime boundary.');
 $assert(($composer['scripts']['test'] ?? null) === 'php tests/run.php', 'composer test must run the package smoke suite.');
 $assert(
     in_array('Seiger\\sTask\\sTaskServiceProvider', $composer['extra']['laravel']['providers'] ?? [], true),
@@ -72,7 +72,7 @@ $ukrainianDocs = [
     '06-reference/faq.md',
 ];
 $documentationScreenshots = [
-    'docs/assets/screenshots/stask-dashboard.png',
+    'docs/assets/screenshots/stask-dashboard-runner.jpg',
     'docs/assets/screenshots/stask-tasks.png',
     'docs/assets/screenshots/stask-workers.png',
     'docs/assets/screenshots/stask-logs.png',
@@ -866,6 +866,11 @@ foreach ($phpFiles as $file) {
 
     $notContains($content, 'Seiger\\sTask\\Models\\Worker;', "{$relative} must not reference non-existent Worker model.");
 }
+
+$navigationPanel = $read('views/components/module-panel.blade.php');
+$contains($navigationPanel, '<x-slot:navigationAside>', 'Runner state must use the shared EvoUI navigation aside.');
+$contains($navigationPanel, 'role="status"', 'Runner state must preserve its accessible status semantics.');
+$notContains($read('css/module.css'), '.stask-runner-heartbeat', 'Runner layout must be owned by EvoUI rather than local absolute positioning.');
 
 if ($failures !== []) {
     fwrite(STDERR, "sTask smoke FAILED\n");

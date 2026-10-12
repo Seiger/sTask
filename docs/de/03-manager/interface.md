@@ -24,7 +24,7 @@ Suche und Filter werden auf dem Server angewendet. Die Listenansicht verändert 
 
 ## Panel
 
-![sTask-Dashboard mit Schlüsselkennzahlen](../../assets/screenshots/stask-dashboard.png)
+![sTask-Dashboard mit Schlüsselkennzahlen](../../assets/screenshots/stask-dashboard-runner.jpg)
 
 ### Karten
 
