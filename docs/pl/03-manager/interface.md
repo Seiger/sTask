@@ -24,7 +24,7 @@ Na serwerze stosuje się wyszukiwanie i filtry. Widok listy zmienia widok, a nie
 
 ## Panel
 
-![sTask Dashboard z kluczowymi metrykami](../../assets/screenshots/stask-dashboard.png)
+![sTask Dashboard z kluczowymi metrykami](../../assets/screenshots/stask-dashboard-runner.jpg)
 
 ### Karty
 

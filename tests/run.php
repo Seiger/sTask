@@ -72,7 +72,7 @@ $ukrainianDocs = [
     '06-reference/faq.md',
 ];
 $documentationScreenshots = [
-    'docs/assets/screenshots/stask-dashboard.png',
+    'docs/assets/screenshots/stask-dashboard-runner.jpg',
     'docs/assets/screenshots/stask-tasks.png',
     'docs/assets/screenshots/stask-workers.png',
     'docs/assets/screenshots/stask-logs.png',

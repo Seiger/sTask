@@ -24,7 +24,7 @@ La recherche et les filtres sont appliqués sur le serveur. La vue de liste modi
 
 ## Panneau
 
-![Tableau de bord sTask avec indicateurs clés](../../assets/screenshots/stask-dashboard.png)
+![Tableau de bord sTask avec indicateurs clés](../../assets/screenshots/stask-dashboard-runner.jpg)
 
 ### Cartes
 
