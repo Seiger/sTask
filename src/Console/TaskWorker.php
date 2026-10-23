@@ -107,8 +107,9 @@ class TaskWorker extends Command
         $processed = 0;
 
         foreach ($tasks as $task) {
-            $this->runOne($task);
-            $processed++;
+            if ($this->runOne($task)) {
+                $processed++;
+            }
         }
 
         $this->info("[stask:worker] created {$created} scheduled task(s), processed {$processed} task(s).");
@@ -240,8 +241,14 @@ class TaskWorker extends Command
      * @param sTaskModel $task The task to execute
      * @return void
      */
-    private function runOne(sTaskModel $task): void
+    private function runOne(sTaskModel $task): bool
     {
+        // The queue snapshot can be shared by overlapping UI/scheduler runners.
+        // Claim before resolving the worker or writing progress/failure state.
+        if (!$task->tryClaim()) {
+            return false;
+        }
+
         try {
             $workerRecord = sWorker::where('identifier', $task->identifier)->where('active', true)->first();
 
@@ -258,9 +265,6 @@ class TaskWorker extends Command
             if (!$worker instanceof \Seiger\sTask\Contracts\TaskInterface) {
                 throw new \RuntimeException("Class '{$className}' must implement TaskInterface");
             }
-
-            // Mark task as running
-            $task->markAsRunning();
 
             // Initialize progress tracking
             TaskProgress::init([
@@ -303,6 +307,7 @@ class TaskWorker extends Command
                 'message'    => '**Failed @ ' . basename($e->getFile()) . ':' . $e->getLine() . ' — ' . $e->getMessage() . '**',
             ]);
         }
+        return true;
     }
 
     /**
