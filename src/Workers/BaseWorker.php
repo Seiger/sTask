@@ -362,38 +362,46 @@ abstract class BaseWorker implements TaskInterface
             }
         }
 
-        $options = sTaskModel::normalizeMeta($options);
-        $duplicate = sTaskModel::findActiveDuplicate($this->identifier(), $action, $options);
-        if ($duplicate) {
-            return $duplicate;
-        }
-
-        $startedBy = 0;
-        try {
-            if (evo()->getLoginUserID()) {
-                $startedBy = (int)evo()->getLoginUserID();
+        return (new sTaskModel())->getConnection()->transaction(function () use ($action, $options): sTaskModel {
+            // Serialize duplicate admission on the registered worker row. The
+            // no-op UPDATE acquires a SQLite write lock before reading tasks;
+            // InnoDB locks the same worker row, without changing its settings.
+            $model = new sWorker();
+            $model->getConnection()->table($model->getTable())->where('identifier', $this->identifier())
+                ->update(['updated_at' => $model->getConnection()->raw('updated_at')]);
+            $options = sTaskModel::normalizeMeta($options);
+            $duplicate = sTaskModel::findActiveDuplicate($this->identifier(), $action, $options);
+            if ($duplicate) {
+                return $duplicate;
             }
-        } catch (\Throwable) {}
 
-        $task = sTaskModel::create([
-            'identifier' => $this->identifier(),
-            'action'     => $action,
-            'status'     => sTaskModel::TASK_STATUS_QUEUED,
-            'message'    => '_' . __('sTask::global.task_queued') . '..._',
-            'started_by' => $startedBy,
-            'meta'       => $options,
-            'priority'   => 'normal',
-        ]);
+            $startedBy = 0;
+            try {
+                if (evo()->getLoginUserID()) {
+                    $startedBy = (int)evo()->getLoginUserID();
+                }
+            } catch (\Throwable) {}
 
-        TaskProgress::init([
-            'id'         => (int)$task->id,
-            'identifier' => $task->identifier,
-            'action'     => $task->action,
-            'status'     => 'pending',
-            'message'    => $task->message,
-        ]);
+            $task = sTaskModel::create([
+                'identifier' => $this->identifier(),
+                'action'     => $action,
+                'status'     => sTaskModel::TASK_STATUS_QUEUED,
+                'message'    => '_' . __('sTask::global.task_queued') . '..._',
+                'started_by' => $startedBy,
+                'meta'       => $options,
+                'priority'   => 'normal',
+            ]);
 
-        return $task;
+            TaskProgress::init([
+                'id'         => (int)$task->id,
+                'identifier' => $task->identifier,
+                'action'     => $task->action,
+                'status'     => 'pending',
+                'message'    => $task->message,
+            ]);
+
+            return $task;
+        });
     }
 
     /**

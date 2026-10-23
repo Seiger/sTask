@@ -27,3 +27,9 @@ They load the same queued row before a common start gate. Exactly one may claim
 it; losing runners leave the winner untouched. Due-time and terminal-state guards
 are also covered. A crashed running task is not automatically requeued: recovery
 of externally visible work needs reconciliation rather than an implicit resend.
+
+`STASK_AUTOLOAD=/path/to/core/vendor/autoload.php php tests/queue_admission.php`
+verifies that eight concurrent producers admit one identical active task. Worker
+row serialization precedes duplicate lookup; scheduled duplicate admission does
+not overwrite a task's start time. SQLite contention is qualified locally;
+other database engines require their own execution qualification.

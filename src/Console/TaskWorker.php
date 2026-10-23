@@ -210,6 +210,7 @@ class TaskWorker extends Command
 
                 // Create new task for this worker
                 $task = $worker->createTask('make', ['manual' => false]);
+                if (!$task->wasRecentlyCreated) { continue; }
 
                 // Set start_at if calculated
                 if ($startAt) {
@@ -239,7 +240,7 @@ class TaskWorker extends Command
      * 5. Handles any errors with appropriate cleanup
      *
      * @param sTaskModel $task The task to execute
-     * @return void
+     * @return bool Whether this runner claimed and processed the task.
      */
     private function runOne(sTaskModel $task): bool
     {
