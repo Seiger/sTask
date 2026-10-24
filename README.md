@@ -421,3 +421,12 @@ This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) 
 ---
 
 Made with ❤️ for Evolution CMS
+
+### Explicit execution of one due task
+
+`Services\TaskExecutor::run($task)` is the shared executor used by the CLI runner
+and explicit low-latency handoff. It atomically claims a queued, due task before
+resolving an active worker. A stale contender returns false without touching the
+winner's state. Call only for an authorised, committed task; applications retain
+responsibility for selecting the task and enforcing ownership. This API does not
+start a background daemon or drain the global queue.
