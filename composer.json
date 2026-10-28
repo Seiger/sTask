@@ -20,7 +20,8 @@
     "evolution-cms/evo-ui": "^1.3"
   },
   "scripts": {
-    "test": "php tests/run.php"
+    "test": "php tests/run.php",
+    "test:metrics": "php -d memory_limit=96M tests/metrics_memory.php --large"
   },
   "autoload": {
     "psr-4": {

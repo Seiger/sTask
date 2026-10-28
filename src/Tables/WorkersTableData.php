@@ -11,6 +11,11 @@ use Seiger\sTask\Services\WorkerDiscovery;
 use Seiger\sTask\Services\WorkerService;
 use Seiger\sTask\Support\LiveProgressRow;
 
+/**
+ * Provide manager worker rows and actions without loading task payload history.
+ *
+ * Latest/active task snapshots are bounded to the workers on the visible page.
+ */
 class WorkersTableData
 {
     public function __construct(
@@ -642,14 +647,15 @@ class WorkersTableData
         return $badge;
     }
 
+    /**
+     * Read one recent task snapshot per visible worker without loading its history.
+     *
+     * @param array<int, string> $identifiers Visible worker identifiers
+     * @return Collection<string, sTaskModel>
+     */
     protected function lastTasksFor(array $identifiers): Collection
     {
-        return sTaskModel::query()
-            ->whereIn('identifier', array_values(array_filter($identifiers)))
-            ->orderByDesc('created_at')
-            ->get()
-            ->unique('identifier')
-            ->keyBy('identifier');
+        return $this->latestTaskSnapshots($identifiers);
     }
 
     /**
@@ -660,12 +666,41 @@ class WorkersTableData
      */
     protected function activeTasksFor(array $identifiers): Collection
     {
+        return $this->latestTaskSnapshots($identifiers, true);
+    }
+
+    /**
+     * Bound task hydration to the visible workers using portable scalar subqueries.
+     *
+     * Each subquery chooses one id in the database, including the active-status
+     * restriction when requested. Only fields consumed by row labels and live progress
+     * are loaded; meta/result JSON never belongs in the workers overview. Equal creation
+     * times resolve to the higher id, keeping repeated renders deterministic.
+     *
+     * @since 2.3.0
+     * @param array<int, string> $identifiers Visible worker identifiers
+     * @param bool $activeOnly Restrict each worker's candidate tasks to active statuses
+     * @return Collection<string, sTaskModel>
+     */
+    protected function latestTaskSnapshots(array $identifiers, bool $activeOnly = false): Collection
+    {
+        $identifiers = array_values(array_unique(array_filter($identifiers)));
+        if ($identifiers === []) {
+            return collect();
+        }
+
         return sTaskModel::query()
-            ->whereIn('identifier', array_values(array_filter($identifiers)))
-            ->whereIn('status', sTaskModel::activeStatuses())
-            ->orderByDesc('created_at')
+            ->select(['id', 'identifier', 'action', 'status', 'progress', 'created_at'])
+            ->where(function ($query) use ($identifiers, $activeOnly): void {
+                foreach ($identifiers as $identifier) {
+                    $latest = sTaskModel::query()->select('id')->where('identifier', $identifier);
+                    if ($activeOnly) {
+                        $latest->whereIn('status', sTaskModel::activeStatuses());
+                    }
+                    $query->orWhere('id', '=', $latest->orderByDesc('created_at')->orderByDesc('id')->limit(1));
+                }
+            })
             ->get()
-            ->unique('identifier')
             ->keyBy('identifier');
     }
 
