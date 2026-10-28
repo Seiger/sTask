@@ -2,18 +2,7 @@
 
 declare(strict_types=1);
 
-$autoload = dirname(__DIR__) . '/vendor/autoload.php';
-if (!is_file($autoload)) {
-    $autoload = (string)getenv('STASK_AUTOLOAD');
-}
-if ($autoload === '' || !is_file($autoload)) {
-    $autoload = dirname(__DIR__, 3) . '/autoload.php';
-}
-if (!is_file($autoload)) {
-    throw new RuntimeException('Set STASK_AUTOLOAD to a Composer autoload.php path.');
-}
-
-require $autoload;
+require __DIR__ . '/bootstrap.php';
 
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;

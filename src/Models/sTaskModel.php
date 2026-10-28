@@ -222,8 +222,32 @@ class sTaskModel extends Model
     }
 
     /**
-     * Mark task as running
+     * Atomically claim a due queued task. A stale runner has no write authority.
      */
+    public function tryClaim(): bool
+    {
+        $now = now();
+        $changed = $this->newQuery()->whereKey($this->getKey())
+            ->where('status', self::TASK_STATUS_QUEUED)
+            ->where(function ($query) use ($now): void {
+                $query->whereNull('start_at')->orWhere('start_at', '<=', $now);
+            })
+            ->update([
+                'status' => self::TASK_STATUS_RUNNING,
+                'start_at' => $now,
+                'attempts' => $this->getConnection()->raw('COALESCE(attempts, 0) + 1'),
+                'updated_at' => $now,
+            ]);
+
+        if ($changed !== 1) {
+            return false;
+        }
+
+        $this->refresh();
+        return true;
+    }
+
+    /** Legacy explicit state transition; queue executors must use tryClaim(). */
     public function markAsRunning(): void
     {
         $this->update([

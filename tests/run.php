@@ -359,6 +359,7 @@ $contains($taskDetail, '<x-evo::badge', 'Task detail shell must use shared EvoUI
 $notContains($taskDetail, "@extends('sTask::index')", 'Task detail shell must not extend legacy sTask index.');
 $notContains($taskDetail, '<style', 'Task detail shell must not add local style blocks.');
 $notContains($taskDetail, '<script', 'Task detail shell must not add local script blocks.');
+$contains($taskDetail, 'data-manager-tree="hidden"', 'Task detail shell must declare its hidden manager tree through the shared viewport contract.');
 $notContains($taskDetail, 'stask.min.css', 'Task detail shell must not load old sTask CSS.');
 $notContains($taskDetail, 'cdn.jsdelivr', 'Task detail shell must not load CDN assets.');
 
