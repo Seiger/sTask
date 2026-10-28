@@ -136,7 +136,12 @@ class MetricsService
     }
 
     /**
-     * Get system performance summary
+     * Aggregate dashboard statistics without loading task models or their payloads.
+     *
+     * Source and transport tasks may contain large meta/result JSON documents. A
+     * full daily task collection can exhaust PHP memory just by opening the manager.
+     * Group counts in SQL so PHP receives at most one row per worker/status pair.
+     * Existing duration, memory and common-error placeholders remain unchanged.
      *
      * @param int $hours Number of hours to analyze (default: 24)
      * @return array<string, mixed> Performance summary
@@ -145,27 +150,66 @@ class MetricsService
     {
         $since = now()->subHours($hours);
         
-        $tasks = sTaskModel::where('created_at', '>=', $since)->get();
-        
-        $summary = [
+        $groups = sTaskModel::where('created_at', '>=', $since)
+            ->select('identifier', 'status')
+            ->selectRaw('COUNT(*) AS aggregate')
+            ->groupBy('identifier', 'status')
+            ->toBase()
+            ->get();
+        $counts = ['total' => 0, 'completed' => 0, 'failed' => 0, 'running' => 0, 'queued' => 0];
+        $statusKeys = [
+            sTaskModel::TASK_STATUS_FINISHED => 'completed',
+            sTaskModel::TASK_STATUS_FAILED => 'failed',
+            sTaskModel::TASK_STATUS_RUNNING => 'running',
+            sTaskModel::TASK_STATUS_QUEUED => 'queued',
+        ];
+        $workerTotals = [];
+        foreach ($groups as $group) {
+            $count = (int) $group->aggregate;
+            $status = (int) $group->status;
+            $identifier = (string) $group->identifier;
+            $counts['total'] += $count;
+            if (isset($statusKeys[$status])) {
+                $counts[$statusKeys[$status]] += $count;
+            }
+            $workerTotals[$identifier] ??= ['total' => 0, 'completed' => 0];
+            $workerTotals[$identifier]['total'] += $count;
+            if ($status === sTaskModel::TASK_STATUS_FINISHED) {
+                $workerTotals[$identifier]['completed'] += $count;
+            }
+        }
+        $workers = [];
+        foreach ($workerTotals as $identifier => $totals) {
+            $workers[$identifier] = [
+                'identifier' => $identifier,
+                'task_count' => $totals['total'],
+                'success_rate' => round($totals['completed'] / $totals['total'] * 100, 2),
+            ];
+        }
+        $successRate = $counts['total'] > 0 ? round($counts['completed'] / $counts['total'] * 100, 2) : 0.0;
+        $errorRate = $counts['total'] > 0 ? round($counts['failed'] / $counts['total'] * 100, 2) : 0.0;
+
+        return [
             'period' => [
                 'hours' => $hours,
                 'from' => $since->toISOString(),
                 'to' => now()->toISOString(),
             ],
-            'tasks' => [
-                'total' => $tasks->count(),
-                'completed' => $tasks->where('status', sTaskModel::TASK_STATUS_FINISHED)->count(),
-                'failed' => $tasks->where('status', sTaskModel::TASK_STATUS_FAILED)->count(),
-                'running' => $tasks->where('status', sTaskModel::TASK_STATUS_RUNNING)->count(),
-                'queued' => $tasks->where('status', sTaskModel::TASK_STATUS_QUEUED)->count(),
+            'tasks' => $counts,
+            'performance' => [
+                'success_rate' => $successRate,
+                'average_duration' => 0.0,
+                'average_memory' => 0,
+                'total_execution_time' => 0.0,
+                'error_rate' => $errorRate,
             ],
-            'performance' => $this->calculatePerformanceMetrics($tasks),
-            'workers' => $this->getWorkerStatistics($tasks),
-            'errors' => $this->getErrorStatistics($tasks),
+            'workers' => $workers,
+            'errors' => [
+                'total_errors' => $counts['failed'],
+                'error_rate' => $errorRate,
+                'common_errors' => [],
+            ],
         ];
-
-        return $summary;
     }
 
     /**
