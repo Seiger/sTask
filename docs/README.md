@@ -20,6 +20,8 @@ not be treated as the current runtime contract.
 
 ## Coverage
 
+- [Bounded execution and interrupted-task recovery](execution-recovery.md)
+
 Every language tree contains the complete guide: installation, lifecycle and
 schedules, supervisor state, all five EvoUI manager tabs, public PHP extension
 points, manager routes, progress files, database schema, production operations,

@@ -50,7 +50,7 @@ $assert(
     'Laravel provider must stay registered in composer extra.'
 );
 
-$docsRoot = $root . '/docs';
+$docsRoot = str_replace('\\', '/', $root) . '/docs';
 $docsReadme = $read('docs/README.md');
 $ukrainianDocs = [
     'README.md',
@@ -197,7 +197,7 @@ foreach ($docsIterator as $fileInfo) {
 
         $targetPath = realpath(dirname($fileInfo->getPathname()) . '/' . $target);
         $assert(
-            $targetPath !== false && str_starts_with($targetPath, $docsRoot) && is_file($targetPath),
+            $targetPath !== false && str_starts_with(str_replace('\\', '/', $targetPath), $docsRoot . '/') && is_file($targetPath),
             "Markdown link {$target} in {$relativePath} must resolve inside docs."
         );
     }
@@ -207,7 +207,7 @@ foreach ($docsIterator as $fileInfo) {
     foreach ($imageMatches[1] as $target) {
         $targetPath = realpath(dirname($fileInfo->getPathname()) . '/' . $target);
         $assert(
-            $targetPath !== false && str_starts_with($targetPath, $docsRoot) && is_file($targetPath),
+            $targetPath !== false && str_starts_with(str_replace('\\', '/', $targetPath), $docsRoot . '/') && is_file($targetPath),
             "Markdown image {$target} in {$relativePath} must resolve inside docs."
         );
     }
@@ -712,7 +712,8 @@ $taskWorker = $read('src/Console/TaskWorker.php');
 $contains($taskWorker, 'use Seiger\\sTask\\Models\\sTaskModel;', 'TaskWorker must import sTaskModel.');
 $contains($taskWorker, 'use Seiger\\sTask\\Models\\sWorker;', 'TaskWorker must import lowercase-s sWorker model.');
 $notContains($taskWorker, 'use Seiger\\sTask\\Models\\Worker;', 'TaskWorker must not import non-existent Worker model.');
-$contains($taskWorker, "protected \$signature = 'stask:worker';", 'TaskWorker command signature must stay stask:worker.');
+$contains($taskWorker, "protected \$signature = 'stask:worker {--execute=", 'TaskWorker must keep stask:worker with internal child execution options.');
+$contains($taskWorker, '{--lease=', 'Claimed child execution must require a lease token.');
 $contains($taskWorker, "\$scheduleType === 'supervisor'", 'TaskWorker must route supervisor schedules through the supervisor.');
 $contains($taskWorker, 'SupervisorWorkerInterface', 'TaskWorker must require the generic supervisor contract.');
 

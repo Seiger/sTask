@@ -129,46 +129,25 @@ class sTask
     }
 
     /**
-     * Execute a task by invoking its action method
+     * Claim a due task and wait for its bounded child while recording metrics.
      *
      * @param sTaskModel $task
      * @return bool
      */
     public function execute(sTaskModel $task): bool
     {
-        try {
-            // Record task start metrics
-            $this->metricsService->recordTaskStart($task);
-
-            // Mark task as running
-            $task->markAsRunning();
-
-            // Get worker for this task identifier using optimized service
-            $worker = $this->workerService->resolveWorker($task->identifier);
-
-            // Invoke the action method
-            $worker->invokeAction($task->action, $task, $task->meta);
-
-            $freshTask = $task->fresh();
-            if (!$freshTask || !$freshTask->isFinished()) {
-                $task->markAsFinished('Task completed successfully');
-            }
-
-            // Record successful completion metrics
-            $this->metricsService->recordTaskEnd($task, true);
-            return true;
-        } catch (\Exception $e) {
-            $task->markAsFailed($e->getMessage());
-
-            // Record failed completion metrics
-            $this->metricsService->recordTaskEnd($task, false, $e->getMessage());
-
-            // If max attempts reached, mark as failed permanently
-            if ($task->attempts >= $task->max_attempts) {
-                $task->markAsFailed('Max retry attempts reached. Task failed permanently.');
-            }
+        if (!$task->tryClaim()) {
             return false;
         }
+        $this->metricsService->recordTaskStart($task);
+        app(\Seiger\sTask\Services\TaskExecution::class)->run($task);
+        $task->refresh();
+        if (!$task->isFinished()) {
+            return false;
+        }
+        $success = $task->status === sTaskModel::TASK_STATUS_FINISHED;
+        $this->metricsService->recordTaskEnd($task, $success, $success ? null : $task->message);
+        return $success;
     }
 
     /**

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Illuminate\Console {
     /** Minimal console parent for the isolated runner contract test. @since 2.2.0 */
-    class Command {}
+    class Command
+    {
+        public function option(string $name): mixed { return null; }
+    }
 }
 
 namespace Illuminate\Support\Facades {
@@ -42,6 +45,8 @@ namespace {
     }
 
     require dirname(__DIR__) . '/src/sTask.php';
+    require dirname(__DIR__) . '/src/Services/ExecutionLock.php';
+    require dirname(__DIR__) . '/src/Services/TaskExecution.php';
     require dirname(__DIR__) . '/src/Console/TaskWorker.php';
 
     $check = static function (bool $condition, string $message): void {
@@ -97,6 +102,9 @@ namespace {
         if (is_dir($directory . '/logs')) {
             rmdir($directory . '/logs');
         }
+        foreach (glob($directory . '/stask/leases/*') ?: [] as $lease) { unlink($lease); }
+        if (is_dir($directory . '/stask/leases')) { rmdir($directory . '/stask/leases'); }
+        if (is_dir($directory . '/stask')) { rmdir($directory . '/stask'); }
         rmdir($directory);
     }
 }

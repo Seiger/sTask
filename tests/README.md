@@ -1,5 +1,20 @@
 # Local contract checks
 
+## Bounded Execution Regressions
+
+Run `composer test:execution` with PHP 8.4, PDO SQLite and Composer dependencies.
+An isolated checkout can set `STASK_AUTOLOAD=/path/to/site/core/vendor/autoload.php`.
+Tests override the Composer class map so the checked-out package is exercised.
+
+`task_execution.php` launches real disposable PHP child processes against a
+temporary SQLite database. It covers process completion, deferred work, crashes,
+zero-exit-without-completion, wall-clock timeout, file locks, wakeup coalescing,
+expired leases, live-owner protection and legacy running rows without leases.
+No site queue or remote provider is used. `task_executor.php` preserves the shared
+atomic claim contract and ensures deferred work is not silently marked successful.
+
+See [execution recovery](../docs/execution-recovery.md) for rollout limits.
+
 Run the structural suite and heartbeat fixture with PHP 8.4 or newer:
 
 ```sh
@@ -17,6 +32,9 @@ STASK_AUTOLOAD=/path/to/site/core/vendor/autoload.php php tests/supervisor_contr
 ```
 
 The bootstrap prioritizes this checkout and verifies the loaded service path.
+For dynamically loaded PHP extensions, `STASK_TEST_PHP_ARGS` can supply a JSON
+array of child CLI options (for example `-d` extension settings) to the concurrent
+queue fixtures, which otherwise start PHP with `-n`.
 The task detail view declares `data-manager-tree="hidden"`; the manager viewport
 reads that attribute on iframe load and restores the tree for subsequent pages.
 No inline script or separate viewport implementation is needed.

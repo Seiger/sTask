@@ -851,6 +851,9 @@ class WorkersTableData
     protected function launchTaskWorker(): void
     {
         try {
+            if (!(new \Seiger\sTask\Services\QueueWakeup())->shouldLaunch()) {
+                return;
+            }
             $artisanPath = defined('EVO_CORE_PATH') ? EVO_CORE_PATH . 'artisan' : '';
 
             if ($artisanPath === '' || !is_file($artisanPath)) {

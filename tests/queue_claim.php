@@ -30,7 +30,8 @@ try {
     $gate=$path.'.gate'; $processes=[];
     for ($i=0;$i<8;$i++) {
         $pipes=[];
-        $p=proc_open([PHP_BINARY,'-n',__FILE__,'--claim',$path,(string)$task->id,$gate],
+        $phpArguments = json_decode(getenv('STASK_TEST_PHP_ARGS') ?: '[]', true, flags: JSON_THROW_ON_ERROR);
+        $p=proc_open([PHP_BINARY,'-n',...$phpArguments,__FILE__,'--claim',$path,(string)$task->id,$gate],
             [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
         $check(is_resource($p),'Cannot spawn contender'); fclose($pipes[0]);$processes[]=[$p,$pipes];
     }
