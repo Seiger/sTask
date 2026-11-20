@@ -9,6 +9,8 @@ use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Services\SupervisorService;
 use Seiger\sTask\Services\TaskProgress;
 use Seiger\sTask\Services\WorkerService;
+use Seiger\sTask\Services\ExecutionLock;
+use Seiger\sTask\Services\TaskExecution;
 
 /**
  * TaskWorker - Console command for processing sTask background tasks
@@ -64,7 +66,7 @@ use Seiger\sTask\Services\WorkerService;
 class TaskWorker extends Command
 {
     /** @var string */
-    protected $signature = 'stask:worker';
+    protected $signature = 'stask:worker {--execute= : Internal claimed task ID} {--lease= : Internal execution token}';
 
     /** @var string */
     protected $description = 'Process all queued sTask jobs and exit.';
@@ -83,38 +85,67 @@ class TaskWorker extends Command
      * - For once: creates only if scheduled time is in future
      *
      * Then retrieves all tasks ready for execution and processes them sequentially.
-     * Each task is executed through its respective worker implementation.
+     * At most 100 due rows are loaded and each claimed task runs in a bounded child.
+     * Internal child mode validates a lease token and holds the task's file lock.
      * After processing, performs cleanup of old progress files if idle.
      *
      * @return int Command exit code (0 for success)
      */
     public function handle(): int
     {
+        if ((int) $this->option('execute') > 0) {
+            $task = sTaskModel::query()->findOrFail((int) $this->option('execute'));
+            $lock = new ExecutionLock();
+            if (!$lock->acquire('task:' . $task->id)) {
+                return self::FAILURE;
+            }
+            try {
+                $execution = new TaskExecution();
+                if (!$execution->authorized($task, (string) $this->option('lease'))) {
+                    return self::FAILURE;
+                }
+                if (function_exists('pcntl_async_signals') && function_exists('pcntl_alarm')) {
+                    pcntl_async_signals(true);
+                    pcntl_signal(SIGALRM, static function (): never { exit(124); });
+                    pcntl_alarm($execution->timeout($task));
+                }
+                app(\Seiger\sTask\Services\TaskExecutor::class)->runClaimed($task);
+                return self::SUCCESS;
+            } finally {
+                if (function_exists('pcntl_alarm')) {
+                    pcntl_alarm(0);
+                }
+                $lock->release();
+            }
+        }
         if (!@touch(storage_path('logs/sTask.heartbeat'))) {
             Log::warning('[stask:worker] Could not update the runner heartbeat.');
         }
 
-        // Step 1: Check scheduled workers and create tasks
-        $created = $this->checkScheduledWorkers();
-
-        // Step 2: Process all queued tasks that are ready
-        // If start_at is set, check if time has come; otherwise process immediately
-        $tasks = sTaskModel::queued()
-            ->where(function($query) {
-                $query->whereNull('start_at')->orWhere('start_at', '<=', now());
-            })
-            ->get();
-        $processed = 0;
-
-        foreach ($tasks as $task) {
-            if ($this->runOne($task)) {
-                $processed++;
-            }
+        $lock = new ExecutionLock();
+        if (!$lock->acquire('runner')) {
+            return self::SUCCESS;
         }
-
-        $this->info("[stask:worker] created {$created} scheduled task(s), processed {$processed} task(s).");
-        $this->cleanupIfIdle();
-        return self::SUCCESS;
+        try {
+            (new TaskExecution())->recover();
+            $created = $this->checkScheduledWorkers();
+            $tasks = sTaskModel::queued()
+                ->where(function($query) {
+                    $query->whereNull('start_at')->orWhere('start_at', '<=', now());
+                })
+                ->orderBy('id')->limit(100)->get();
+            $processed = 0;
+            foreach ($tasks as $task) {
+                if ($this->runOne($task)) {
+                    $processed++;
+                }
+            }
+            $this->info("[stask:worker] created {$created} scheduled task(s), processed {$processed} task(s).");
+            $this->cleanupIfIdle();
+            return self::SUCCESS;
+        } finally {
+            $lock->release();
+        }
     }
 
     /**

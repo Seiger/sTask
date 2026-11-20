@@ -14,7 +14,8 @@ $storage=$path.'.storage';mkdir($storage,0700);putenv('STASK_FIXTURE_STORAGE='.$
 try{
  $db->schema()->create('s_workers',function($t){$t->increments('id');$t->string('identifier')->unique();$t->timestamps();});$db->table('s_workers')->insert(['identifier'=>'fixture']);
  $db->schema()->create('s_tasks',function($t){$t->increments('id');$t->string('identifier');$t->string('action');$t->integer('status');$t->text('meta');$t->text('message')->nullable();$t->integer('started_by')->default(0);$t->string('priority');$t->timestamps();});
- $gate=$path.'.gate';$procs=[];for($i=0;$i<8;$i++){$pipes=[];$p=proc_open([PHP_BINARY,'-n',__FILE__,'--admit',$path,$gate],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);$check(is_resource($p),'Spawn failed');fclose($pipes[0]);$procs[]=[$p,$pipes];}
+ $phpArguments=json_decode(getenv('STASK_TEST_PHP_ARGS')?:'[]',true,flags:JSON_THROW_ON_ERROR);
+ $gate=$path.'.gate';$procs=[];for($i=0;$i<8;$i++){$pipes=[];$p=proc_open([PHP_BINARY,'-n',...$phpArguments,__FILE__,'--admit',$path,$gate],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);$check(is_resource($p),'Spawn failed');fclose($pipes[0]);$procs[]=[$p,$pipes];}
  for($i=0;$i<1000&&count(glob($gate.'.*'))<8;$i++)usleep(10000);$check(count(glob($gate.'.*'))===8,'No contenders');file_put_contents($gate,'go');$ids=[];
  foreach($procs as[$p,$pipes]){$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$code=proc_close($p);$check($code===0&&ctype_digit($out),'Child failed: '.$err.$out);$ids[]=$out;}
  $check(count(array_unique($ids))===1&&$db->table('s_tasks')->count()===1,'Duplicate admitted');echo "Queue admission: PASS (8 concurrent producers, one task)\n";

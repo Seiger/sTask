@@ -236,6 +236,7 @@ class sTaskModel extends Model
                 'status' => self::TASK_STATUS_RUNNING,
                 'start_at' => $now,
                 'attempts' => $this->getConnection()->raw('COALESCE(attempts, 0) + 1'),
+                'finished_at' => null,
                 'updated_at' => $now,
             ]);
 
@@ -310,7 +311,8 @@ class sTaskModel extends Model
      */
     public function canRetry(): bool
     {
-        return $this->status === self::TASK_STATUS_FAILED && $this->attempts < $this->max_attempts;
+        return $this->status === self::TASK_STATUS_FAILED && $this->attempts < $this->max_attempts
+            && data_get($this->result, 'retry_safe') !== false;
     }
 
     /**

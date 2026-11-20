@@ -3,9 +3,10 @@
 use Seiger\sTask\Models\{sTaskModel,sWorker};
 use Illuminate\Support\Facades\Log;
 
-/** Execute one due task through the same atomic claim in CLI and explicit handoff. */
+/** Execute due tasks through one atomic claim and a bounded child process. */
 final class TaskExecutor
 {
+    /** Claim a due task once, then supervise its isolated process to completion. */
     public function run(sTaskModel $task): bool
     {
         // The queue snapshot can be shared by overlapping UI/scheduler runners.
@@ -13,7 +14,22 @@ final class TaskExecutor
         if (!$task->tryClaim()) {
             return false;
         }
+        app(TaskExecution::class)->run($task);
+        return true;
+    }
 
+    /**
+     * Invoke a worker only inside the child whose execution lease was validated.
+     *
+     * The command holds the task lock and validates the token before calling this
+     * method. Do not reclaim the row or increment its attempt a second time.
+     *
+     * @param sTaskModel $task Claimed task owned by the current child process.
+     * @return void
+     * @since 2.4.0
+     */
+    public function runClaimed(sTaskModel $task): void
+    {
         try {
             $workerRecord = sWorker::where('identifier', $task->identifier)->where('active', true)->first();
 
@@ -47,7 +63,7 @@ final class TaskExecutor
 
             // Ensure finalization if worker didn't mark finished
             $freshTask = $task->fresh();
-            if (!$freshTask->isFinished()) {
+            if ($freshTask && $freshTask->isRunning()) {
                 $task->markAsFinished('Task completed successfully');
                 $freshTask = $task->fresh();
 
@@ -72,7 +88,6 @@ final class TaskExecutor
                 'message'    => '**Failed @ ' . basename($e->getFile()) . ':' . $e->getLine() . ' — ' . $e->getMessage() . '**',
             ]);
         }
-        return true;
     }
 
 }

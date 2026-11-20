@@ -6,10 +6,14 @@ use Seiger\sTask\Models\sTaskModel as Task;use Seiger\sTask\Services\TaskExecuto
 class ExecutorFixtureWorker extends \Seiger\sTask\Workers\BaseWorker
 {
  public function identifier():string{return 'executor-fixture';}public function scope():string{return 'fixture';}public function icon():string{return '';}public function title():string{return 'fixture';}public function description():string{return 'fixture';}
- public function taskMake(Task $task,array $options=[]):void{$GLOBALS['executorCalls']++;if($options['fail']??false)throw new RuntimeException('Synthetic failure');}
+ public function taskMake(Task $task,array $options=[]):void{$GLOBALS['executorCalls']++;if($options['fail']??false)throw new RuntimeException('Synthetic failure');if($options['defer']??false)$task->update(['status'=>10,'start_at'=>now()->addMinute()]);}
 }
 $c=new Container();Container::setInstance($c);$c->instance('translator',new class{public function get($key,$replace=[]){return $key;}});$c->instance('log',new class{public function error(...$args):void{}});
 $db=new Capsule($c);$db->addConnection(['driver'=>'sqlite','database'=>':memory:']);$db->setAsGlobal();$db->bootEloquent();$c->instance('db',$db->getDatabaseManager());Facade::setFacadeApplication($c);
+$c->instance(\Seiger\sTask\Services\TaskExecution::class,new class extends \Seiger\sTask\Services\TaskExecution {
+ /** Exercise the child invocation in memory; process deadlines have a separate integration test. */
+ public function run(Task $task):void{(new TaskExecutor())->runClaimed($task);}
+});
 $GLOBALS['executorStorage']=sys_get_temp_dir().'/executor-'.bin2hex(random_bytes(8));mkdir($GLOBALS['executorStorage'],0700);$GLOBALS['executorCalls']=0;
 $check=fn($ok,$why)=>$ok?:throw new RuntimeException($why);
 try{
@@ -20,7 +24,8 @@ try{
  $task=$make();$stale=$task->fresh();$check($executor->run($task) && !$executor->run($stale),'Duplicate claim executed');$check($GLOBALS['executorCalls']===1 && $task->fresh()->status===80 && $task->fresh()->attempts===1,'Success finalization failed');
  $future=$make();$future->update(['start_at'=>now()->addMinute()]);$check(!$executor->run($future),'Future task ran');
  $failed=$make(['fail'=>true]);$check($executor->run($failed) && $failed->fresh()->status===100,'Failure was not persisted');$check(!$executor->run($failed) && $GLOBALS['executorCalls']===2,'Failed task replayed');
- $db->table('s_workers')->update(['active'=>false]);$inactive=$make();$check($executor->run($inactive) && $inactive->fresh()->status===100 && $GLOBALS['executorCalls']===2,'Inactive worker invoked');
+ $deferred=$make(['defer'=>true]);$check($executor->run($deferred) && $deferred->fresh()->status===10,'A deferred task was falsely marked completed');$check(!$executor->run($deferred),'Deferred task replayed before its due time');
+ $db->table('s_workers')->update(['active'=>false]);$inactive=$make();$check($executor->run($inactive) && $inactive->fresh()->status===100 && $GLOBALS['executorCalls']===3,'Inactive worker invoked');
  echo "Task executor: PASS (success, failure, stale contender, due time, inactive worker, no replay)\n";
 }finally{
  $db->getDatabaseManager()->disconnect();$it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($GLOBALS['executorStorage'],FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::CHILD_FIRST);foreach($it as$f)$f->isDir()?rmdir($f->getPathname()):unlink($f->getPathname());rmdir($GLOBALS['executorStorage']);

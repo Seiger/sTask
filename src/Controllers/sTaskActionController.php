@@ -670,6 +670,9 @@ class sTaskActionController extends BaseController
     protected function launchTaskWorker(): void
     {
         try {
+            if (!(new \Seiger\sTask\Services\QueueWakeup())->shouldLaunch()) {
+                return;
+            }
             $artisanPath = EVO_CORE_PATH . 'artisan';
 
             // Try exec for true async execution (best option)
