@@ -3,18 +3,23 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Seiger\sTask\Support\InstallerMigration;
 
 /**
  * Create the separate live-state store used by supervisor schedules.
  */
 return new class extends Migration {
     /**
-     * Create the supervisor state table.
+     * Create the supervisor state table when it is missing.
      *
      * @return void
      */
     public function up(): void
     {
+        if (Schema::hasTable('s_supervisor_states')) {
+            return;
+        }
+
         Schema::create('s_supervisor_states', function (Blueprint $table): void {
             $table->comment('Live state and diagnostic cursor for sTask supervisors');
             $table->bigIncrements('id');
@@ -43,12 +48,16 @@ return new class extends Migration {
     }
 
     /**
-     * Drop the supervisor state table.
+     * Drop the Artisan-created state table while preserving the installer baseline.
      *
      * @return void
      */
     public function down(): void
     {
+        if (InstallerMigration::isBaseline(basename(__FILE__, '.php'))) {
+            return;
+        }
+
         Schema::dropIfExists('s_supervisor_states');
     }
 };

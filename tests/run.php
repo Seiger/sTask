@@ -885,5 +885,6 @@ if ($failures !== []) {
 }
 
 require __DIR__ . '/heartbeat.php';
+require __DIR__ . '/migrations.php';
 
 echo "sTask smoke OK ({$tests} assertions)\n";

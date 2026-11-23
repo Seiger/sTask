@@ -16,8 +16,8 @@
   ],
   "require": {
     "php": "^8.4",
-    "evolution-cms/evolution": "^3.5.7",
-    "evolution-cms/evo-ui": "^1.3"
+    "evolution-cms/evolution": "^3.5",
+    "evolution-cms/evo-ui": "*"
   },
   "scripts": {
     "test": "php tests/run.php",

@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Seiger\sTask\Support\InstallerMigration;
 
 /**
  * Migration: sTask permissions and admin assignment.
@@ -32,8 +33,13 @@ return new class extends Migration {
         $this->assignPermissionToAdmin();
     }
 
+    /** Remove the Artisan-created permission and assignment, preserving installer grants. */
     public function down(): void
     {
+        if (InstallerMigration::isBaseline(basename(__FILE__, '.php'))) {
+            return;
+        }
+
         if (Schema::hasTable('role_permissions')) {
             DB::table('role_permissions')
                 ->where('role_id', 1)

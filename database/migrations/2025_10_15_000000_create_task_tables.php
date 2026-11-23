@@ -4,19 +4,43 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Query\Expression;
+use Seiger\sTask\Support\InstallerMigration;
 
 /**
- * Migration: sTask tables creation.
+ * Create the queue tables while retaining workers and tasks already stored by Evolution.
  * Permissions and groups are handled by a separate migration.
  */
 return new class extends Migration {
+    /** Create each missing table independently so a partial installation can be repaired. */
     public function up(): void
     {
-        /*
-        |--------------------------------------------------------------------------
-        | The workers table structure
-        |--------------------------------------------------------------------------
-        */
+        if (!Schema::hasTable('s_workers')) {
+            $this->createWorkersTable();
+        }
+
+        if (!Schema::hasTable('s_tasks')) {
+            $this->createTasksTable();
+        }
+    }
+
+    /** Drop Artisan-created queue tables while preserving the installer baseline. */
+    public function down(): void
+    {
+        if (InstallerMigration::isBaseline(basename(__FILE__, '.php'))) {
+            return;
+        }
+
+        Schema::dropIfExists('s_tasks');
+        Schema::dropIfExists('s_workers');
+    }
+
+    /**
+     * Define the original worker registry schema for a site where the table is missing.
+     *
+     * @since 2.3.2
+     */
+    private function createWorkersTable(): void
+    {
         Schema::create('s_workers', function (Blueprint $table) {
             $table->comment('Workers for sTask');
             $table->id();
@@ -35,12 +59,15 @@ return new class extends Migration {
             $table->index('active');
             $table->index('position');
         });
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | The tasks table structure
-        |--------------------------------------------------------------------------
-        */
+    /**
+     * Define the original task queue schema for a site where the table is missing.
+     *
+     * @since 2.3.2
+     */
+    private function createTasksTable(): void
+    {
         Schema::create('s_tasks', function (Blueprint $table) {
             $table->comment('Async tasks for sTask');
             $table->bigIncrements('id');
@@ -66,11 +93,5 @@ return new class extends Migration {
             $table->index('created_at');
             $table->index('priority');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('s_tasks');
-        Schema::dropIfExists('s_workers');
     }
 };
