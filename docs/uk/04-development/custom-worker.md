@@ -218,3 +218,23 @@ Override `renderWidget()` лише коли default EvoUI task runner недос
 ## Supervisor extension
 
 Якщо worker володіє detached daemon, додайте `SupervisorWorkerInterface`, але не прибирайте звичайний `TaskInterface`. Повний contract: [Supervisor-процеси](../02-concepts/supervisor.md).
+
+## Назва окремого завдання
+
+Починаючи з 2.4.0 воркер може додатково оголосити `taskTitle(sTaskModel $task): string`. Назва показується на дашборді, у списках завдань і логів та в деталях завдання. Метод отримує збережені `action` і `meta`, тому працює й для раніше створених завдань без перезаписування їхніх даних.
+
+Це необов’язковий метод: додавати його до старих воркерів або успадковувати його від `BaseWorker` не потрібно. Якщо публічного методу немає або він повернув порожній текст, sTask використовує звичайну назву воркера. Список воркерів і фільтри зберігають назву та ідентифікатор воркера.
+
+```php
+/** Describe a persisted task in the current manager language. @since 2.4.0 */
+public function taskTitle(sTaskModel $task): string
+{
+    if ($task->action === 'make' && ($task->meta['mode'] ?? null) === 'audit') {
+        return $this->title() . ' · ' . __('custom::tasks.audit');
+    }
+
+    return $this->title();
+}
+```
+
+Повертайте звичайний текст і перекладайте його мовою поточного менеджера. Метод викликається під час показу сторінки: не змінюйте дані й не виконуйте HTTP-запити. sTask екранує текст у штатному інтерфейсі.

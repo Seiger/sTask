@@ -218,3 +218,23 @@ Override `renderWidget()` nur, wenn der Standard-EvoUI-Taskrunner nicht ausreich
 ## Supervisor-Erweiterung
 
 Wenn der Arbeiter einen abgetrennten Dämon besitzt, füge `SupervisorWorkerInterface` hinzu, aber entferne nicht den regulären `TaskInterface`. Vollvertrag: [Prozessleiter](../02-concepts/supervisor.md).
+
+## Aufgabenspezifische Namen
+
+Seit 2.4.0 kann ein Worker zusätzlich `taskTitle(sTaskModel $task): string` deklarieren. Die Bezeichnung erscheint im Dashboard, in Aufgaben- und Protokolllisten sowie in den Aufgabendetails. Die Methode erhält die gespeicherten Werte `action` und `meta`; auch ältere Aufgaben erhalten so aussagekräftige Namen, ohne ihre Daten umzuschreiben.
+
+Die Methode ist optional: Bestehende Worker müssen nicht geändert werden, und `BaseWorker` deklariert sie nicht. Fehlt eine öffentliche Methode oder liefert sie leeren Text, verwendet sTask den üblichen Worker-Titel. Worker-Verzeichnis und Filter behalten den Worker-Titel und die Kennung.
+
+```php
+/** Describe a persisted task in the current manager language. @since 2.4.0 */
+public function taskTitle(sTaskModel $task): string
+{
+    if ($task->action === 'make' && ($task->meta['mode'] ?? null) === 'audit') {
+        return $this->title() . ' · ' . __('custom::tasks.audit');
+    }
+
+    return $this->title();
+}
+```
+
+Geben Sie Klartext in der aktuellen Managersprache zurück. Die Methode läuft bei der Seitenausgabe: keine Daten schreiben und keine HTTP-Anfragen ausführen. Die nativen Manageransichten maskieren den Text.

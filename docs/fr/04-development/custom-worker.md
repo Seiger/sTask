@@ -218,3 +218,23 @@ Le dérogation `renderWidget()` uniquement lorsque l’exécuteur de tâches par
 ## Prolongation du superviseur
 
 Si l’ouvrier possède un démon détaché, ajoutez- `SupervisorWorkerInterface` mais ne retirez pas le `TaskInterface` régulier. Contrat complet : [Superviseur de processus](../02-concepts/supervisor.md).
+
+## Noms propres aux tâches
+
+Depuis la version 2.4.0, un worker peut aussi déclarer `taskTitle(sTaskModel $task): string`. Le libellé apparaît sur le tableau de bord, dans les listes de tâches et de journaux et dans les détails. La méthode reçoit les valeurs enregistrées `action` et `meta` ; les anciennes tâches obtiennent ainsi des noms descriptifs sans réécriture de leurs données.
+
+Cette méthode est facultative : les workers existants restent compatibles et `BaseWorker` ne la déclare pas. Si aucune méthode publique n’existe ou si elle renvoie du texte vide, sTask utilise le titre habituel du worker. Le registre des workers et les filtres conservent son titre et son identifiant.
+
+```php
+/** Describe a persisted task in the current manager language. @since 2.4.0 */
+public function taskTitle(sTaskModel $task): string
+{
+    if ($task->action === 'make' && ($task->meta['mode'] ?? null) === 'audit') {
+        return $this->title() . ' · ' . __('custom::tasks.audit');
+    }
+
+    return $this->title();
+}
+```
+
+Renvoyez du texte brut traduit dans la langue actuelle du gestionnaire. La méthode est appelée pendant l’affichage : ne modifiez pas de données et n’effectuez pas de requêtes HTTP. Les vues natives du gestionnaire échappent ce texte.

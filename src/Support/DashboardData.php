@@ -205,7 +205,7 @@ class DashboardData
     }
 
     /**
-     * Convert a task model into dashboard row data, including live-state hints.
+     * Convert a task into dashboard data with its contextual title and live-state hints.
      *
      * @param sTaskModel $task Persisted task with its worker and user relations
      * @return array<string, mixed>
@@ -218,7 +218,7 @@ class DashboardData
         return [
             'id' => (int)$task->id,
             'identifier' => (string)$task->identifier,
-            'worker_title' => (string)($task->worker->title ?? $task->identifier),
+            'worker_title' => $task->display_title,
             'action' => (string)$task->action,
             'status' => (int)$task->status,
             'status_label' => __('sTask::global.' . $status),
