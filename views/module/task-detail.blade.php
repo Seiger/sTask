@@ -63,7 +63,7 @@
             <p class="evo-ui-card__value">{{ max(0, min(100, (int)$task->progress)) }}%</p>
         </x-evo::card>
         <x-evo::card :label="__('sTask::global.worker')" icon="cpu">
-            <p class="evo-ui-card__value">{{ $task->worker->title ?? $task->identifier }}</p>
+            <p class="evo-ui-card__value">{{ $task->display_title }}</p>
             <p class="evo-ui-card__label">{{ $task->identifier }}</p>
         </x-evo::card>
         <x-evo::card :label="__('sTask::global.action')" icon="play">

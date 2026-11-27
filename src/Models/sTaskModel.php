@@ -9,6 +9,7 @@ use EvolutionCMS\Models\User;
  *
  * Model for asynchronous tasks
  *
+ * @property-read string $display_title Plain-text task label for escaped manager views
  * @package Seiger\sTask
  * @author Seiger IT Team
  * @since 1.0.0
@@ -291,6 +292,32 @@ class sTaskModel extends Model
             'progress' => min(100, max(0, $progress)),
             'message' => $message,
         ]);
+    }
+
+    /**
+     * Resolve a task-specific label without rewriting the worker's registered title.
+     *
+     * The optional public taskTitle(sTaskModel $task): string hook may use persisted
+     * action and metadata to localize historical tasks in the current manager language.
+     * It must be read-only and return plain text. Missing or empty hooks retain the
+     * existing worker-title fallback, including unavailable worker implementations.
+     *
+     * @return string Plain text for escaped manager rendering
+     * @since 2.4.0
+     */
+    public function getDisplayTitleAttribute(): string
+    {
+        $worker = $this->worker;
+        $instance = $worker?->getInstance();
+        if ($instance && is_callable([$instance, 'taskTitle'])) {
+            $title = trim((string)$instance->taskTitle($this));
+            if ($title !== '') {
+                return $title;
+            }
+        }
+
+        return (string)($instance && method_exists($instance, 'title')
+            ? $instance->title() : ($worker?->title ?? $this->identifier));
     }
 
     /**

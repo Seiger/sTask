@@ -218,3 +218,23 @@ Override `renderWidget()` only when the default EvoUI task runner is insufficien
 ## Supervisor extension
 
 If the worker owns a detached daemon, add `SupervisorWorkerInterface` but do not remove the regular `TaskInterface`. Full contract: [Process Supervisor](../02-concepts/supervisor.md).
+
+## Task-specific names
+
+Since 2.4.0, a worker may additionally declare `taskTitle(sTaskModel $task): string`. The label appears on the dashboard, in task and log lists, and in task details. The method receives persisted `action` and `meta`, so historical tasks also gain descriptive names without rewriting their data.
+
+This method is optional: existing workers need no changes, and `BaseWorker` does not declare it. If no public hook exists or its result is blank, sTask uses the ordinary worker title. The worker registry and filters keep the worker title and identifier.
+
+```php
+/** Describe a persisted task in the current manager language. @since 2.4.0 */
+public function taskTitle(sTaskModel $task): string
+{
+    if ($task->action === 'make' && ($task->meta['mode'] ?? null) === 'audit') {
+        return $this->title() . ' · ' . __('custom::tasks.audit');
+    }
+
+    return $this->title();
+}
+```
+
+Return plain text translated for the current manager language. The hook runs during page rendering: do not write data or make HTTP requests. Native manager views escape its text.

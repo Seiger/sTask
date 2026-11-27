@@ -8,6 +8,7 @@ use Seiger\sTask\Services\TaskProgress;
 use Seiger\sTask\Models\sWorker as sWorker;
 use Seiger\sTask\Support\LiveProgressRow;
 
+/** Project native task rows and filters for the manager without changing queue state. */
 class TasksTableData
 {
     public function __construct(
@@ -245,7 +246,7 @@ class TasksTableData
     }
 
     /**
-     * Build a table row without truncating live task messages on the server.
+     * Build a row with the contextual task title and complete live messages.
      */
     protected function row(sTaskModel $task): array
     {
@@ -265,7 +266,7 @@ class TasksTableData
             ],
             'identifier' => (string)$task->identifier,
             'worker_identifier' => (string)$task->identifier,
-            'worker_title' => (string)($task->worker->title ?? $task->identifier),
+            'worker_title' => $task->display_title,
             'action' => (string)$task->action,
             'status' => (int)$task->status,
             'status_badge' => [

@@ -21,6 +21,7 @@
   },
   "scripts": {
     "test": "php tests/run.php",
+    "test:titles": "php tests/task_titles.php",
     "test:metrics": "php -d memory_limit=96M tests/metrics_memory.php --large",
     "test:execution": ["@php tests/task_executor.php", "@php tests/task_execution.php", "@php tests/supervisor_contract.php"]
   },

@@ -7,6 +7,7 @@ use Seiger\sTask\Models\sTaskModel;
 use Seiger\sTask\Models\sWorker;
 use Seiger\sTask\Support\LiveProgressRow;
 
+/** Project native task history and log details for read-only manager views. */
 class LogsTableData
 {
     public function __construct(
@@ -297,6 +298,7 @@ class LogsTableData
         ]);
     }
 
+    /** Build shared history data with the contextual task title and native status values. */
     protected function basePayload(sTaskModel $task): array
     {
         $status = sTaskModel::statusText((int)$task->status);
@@ -308,7 +310,7 @@ class LogsTableData
             'row_attributes' => LiveProgressRow::attributes($task),
             'id_label' => '#' . $task->id,
             'worker_identifier' => (string)$task->identifier,
-            'worker_title' => (string)($task->worker->title ?? $task->identifier),
+            'worker_title' => $task->display_title,
             'action' => (string)$task->action,
             'status_badge' => [
                 'label' => __('sTask::global.' . $status),

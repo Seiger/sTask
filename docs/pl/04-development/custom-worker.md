@@ -218,3 +218,23 @@ Przepisywanie `renderWidget()` tylko wtedy, gdy domyślny task runner EvoUI jest
 ## Przedłużenie przełożone
 
 Jeśli pracownik posiada odłączonego demona, dodaj `SupervisorWorkerInterface`, ale nie usuwaj zwykłego `TaskInterface`. Pełny kontrakt: [Nadzorca Procesu](../02-concepts/supervisor.md).
+
+## Nazwy poszczególnych zadań
+
+Od wersji 2.4.0 worker może dodatkowo deklarować `taskTitle(sTaskModel $task): string`. Nazwa pojawia się na pulpicie, na listach zadań i logów oraz w szczegółach zadania. Metoda otrzymuje zapisane `action` i `meta`, więc także starsze zadania otrzymują opisowe nazwy bez nadpisywania ich danych.
+
+Metoda jest opcjonalna: istniejące workery nie wymagają zmian, a `BaseWorker` jej nie deklaruje. Gdy publiczna metoda nie istnieje lub zwraca pusty tekst, sTask używa zwykłej nazwy workera. Rejestr workerów i filtry zachowują jego nazwę i identyfikator.
+
+```php
+/** Describe a persisted task in the current manager language. @since 2.4.0 */
+public function taskTitle(sTaskModel $task): string
+{
+    if ($task->action === 'make' && ($task->meta['mode'] ?? null) === 'audit') {
+        return $this->title() . ' · ' . __('custom::tasks.audit');
+    }
+
+    return $this->title();
+}
+```
+
+Zwracaj zwykły tekst przetłumaczony na aktualny język panelu. Metoda działa podczas wyświetlania strony: nie zapisuj danych ani nie wykonuj zapytań HTTP. Natywne widoki panelu zabezpieczają ten tekst przed interpretacją jako HTML.
